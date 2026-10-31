@@ -2,13 +2,11 @@
 from __future__ import annotations
 
 import argparse
-import ctypes
 import json
 import os
 from pathlib import Path
 import sys
 import time
-import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -16,42 +14,7 @@ sys.path.insert(0, str(ROOT))
 from maa.controller import Win32Controller
 from maa.define import MaaWin32InputMethodEnum, MaaWin32ScreencapMethodEnum
 from daily.recording import FrameRecording, RecordingError
-
-
-def publish_status(path, record):
-    temporary = path.with_suffix(f'.{uuid.uuid4().hex}.pending')
-    try:
-        temporary.write_text(json.dumps(record), encoding='utf-8')
-        deadline = time.monotonic() + .5
-        while True:
-            try:
-                temporary.replace(path)
-                return
-            except PermissionError:
-                # Windows can refuse replacement while the parent briefly has
-                # status.json open for reading. Do not change file permissions.
-                if time.monotonic() >= deadline:
-                    raise
-                time.sleep(.01)
-    finally:
-        temporary.unlink(missing_ok=True)
-
-
-def parent_alive(pid):
-    if os.name != 'nt':
-        return os.getppid() == pid
-    kernel = ctypes.windll.kernel32
-    kernel.OpenProcess.argtypes = [ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong]
-    kernel.OpenProcess.restype = ctypes.c_void_p
-    kernel.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
-    kernel.CloseHandle.argtypes = [ctypes.c_void_p]
-    handle = kernel.OpenProcess(0x00100000, False, pid)
-    if not handle:
-        return False
-    try:
-        return kernel.WaitForSingleObject(handle, 0) == 0x102
-    finally:
-        kernel.CloseHandle(handle)
+from daily.processes import parent_alive, publish_status
 
 
 def run(config_path):

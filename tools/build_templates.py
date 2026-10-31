@@ -16,6 +16,7 @@ ANCHORS = {
     'multi_ready': [585, 12, 190, 45],
     'song_select': [680, 678, 290, 30],
     'fishing_setup_second': [790, 95, 330, 45],
+    'fishing_result': [670, 15, 140, 65],
     'fishing_map_second': [20, 12, 285, 78],
     'holowork': [12, 8, 230, 75],
     'holowork_get': [555, 40, 172, 65],
@@ -47,6 +48,7 @@ AUTO['park_interact_key'] = ('gift_house_entry', [808, 427, 32, 33])
 AUTO['park_gift_prompt'] = ('gift_house_entry', [901, 433, 23, 25])
 AUTO['park_gift_prompt_compact'] = ('gift_bijou_entry', [897, 432, 25, 27])
 AUTO['lottery_scratch_card'] = ('lottery_scratch', [630, 245, 350, 115])
+AUTO['fishing_practice_infinite'] = ('fishing_setup_second', [1128, 512, 35, 25])
 
 
 def build(samples: Path):
@@ -71,7 +73,7 @@ def build(samples: Path):
                          'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
         if name == 'map_fishing_hook':
             entries[name].update(scene=False, threshold=.82)
-        elif name.startswith(('map_', 'park_', 'lottery_')) or name in ('energy_minus', 'energy_plus', 'portal_go', 'work_empty_slot') or name.endswith('_boost_button'):
+        elif name.startswith(('map_', 'park_', 'lottery_')) or name in ('energy_minus', 'energy_plus', 'portal_go', 'work_empty_slot', 'fishing_practice_infinite') or name.endswith('_boost_button'):
             entries[name].update(scene=False)
         if name == 'notifications':
             entries[name]['priority'] = 1

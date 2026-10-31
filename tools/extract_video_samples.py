@@ -23,6 +23,7 @@ SAMPLES = [
     ('fishing_map_second', '13.51.56.03', 1910),
     ('fishing_map_popup', '13.51.56.03', 1910.6),
     ('fishing_setup_second', '13.51.56.03', 1918),
+    ('fishing_result', '13.51.56.03', 1945),
     ('fishing_setup_first', '13.51.56.03', 1906),
     ('multi_ready', '13.51.56.03', 1630),
     ('holowork', '09.52.54.01', 45),

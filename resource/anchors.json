@@ -215,6 +215,33 @@
     },
     "sha256": "81bd717ae5f219676027f6f7f2059c45c447c111516055d69e5cdfac6b3401f3"
   },
+  "fishing_result": {
+    "file": "anchors/fishing_result.png",
+    "roi": [
+      670,
+      15,
+      140,
+      65
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "fishing_result",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 1945,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "4d63f118cf711ad1336da0f69d8e4abbf1da03fb41ef25b12c700ff3fa831f0f"
+    },
+    "sha256": "1abc36f5a1352b4ab2de91267762f928ec568c8b0d39ea1887f368ab6f73b973"
+  },
   "fishing_map_second": {
     "file": "anchors/fishing_map_second.png",
     "roi": [
@@ -1040,6 +1067,34 @@
       "sha256": "9da71627d438efe8afb86b4bae4a352386bc3749c5800a10dcf9dff6a738dd28"
     },
     "sha256": "7553cb1b2141ef07acaba5aad0e18c1dc58d479d90c0b02f77f465f77a2de1e8",
+    "scene": false
+  },
+  "fishing_practice_infinite": {
+    "file": "anchors/fishing_practice_infinite.png",
+    "roi": [
+      1128,
+      512,
+      35,
+      25
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "fishing_setup_second",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 1918,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "60ba1227ec292b7052767e83400bc7c933b817639eef0431420af02b45b622f8"
+    },
+    "sha256": "d5a977201b5e1087190f0975f6de33e65375bbe13882bda018b77742a82d97d9",
     "scene": false
   }
 }

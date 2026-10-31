@@ -21,6 +21,7 @@ from .holowork import HoloWorkRunner
 from .recording import GameRecording, recording_directory
 from .calendar import DailyAttempts, DailyUnavailable
 from .park import ParkRunner
+from .fishing import FishingRunner
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,13 +29,14 @@ ROOT = Path(__file__).resolve().parents[1]
 class RunDailyTask(CustomAction):
     def __init__(self):
         super().__init__()
-        self.session = datetime.now().strftime('%Y%m%d-%H%M%S-') + uuid.uuid4().hex[:8]
+        self.session = None
         self._lock = threading.Lock()
 
     def run(self, context, argv):
         if not self._lock.acquire(blocking=False):
             print('另一項日常仍持有遊戲控制權', flush=True)
             return False
+        self.session = datetime.now().strftime('%Y%m%d-%H%M%S-') + uuid.uuid4().hex[:8]
         navigator = recording = journal = config = result = None
 
         def report(value):
@@ -126,6 +128,9 @@ class RunDailyTask(CustomAction):
             return SoloLiveRunner(navigator, progress).run(config)
         if config.task == 'holowork':
             return HoloWorkRunner(navigator, progress).run()
+        if config.task == 'fishing':
+            data = Path(os.environ.get('PI_USER_DATA_DIR', ROOT / 'userdata')) / 'daily'
+            return FishingRunner(navigator, ROOT, data, progress).run(config)
         if config.task in ('cooking', 'jump_rope'):
             EnergySettings(navigator).configure(config.task, config.multiplier, config.resource_budget)
         raise NavigationError('已到達導航入口；完整任務執行尚未啟用')

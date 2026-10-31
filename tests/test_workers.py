@@ -43,3 +43,28 @@ def test_live_is_never_sent_to_minigame_worker(tmp_path):
     runner = supervisor(tmp_path, 'pass\n')
     with pytest.raises(WorkerError, match='Live'):
         runner.run(TaskConfig('solo_live', rounds=1))
+
+
+def test_recording_guard_failure_stops_worker_without_waiting_for_timeout(tmp_path):
+    runner = supervisor(tmp_path, "import sys,pathlib,time\nwhile not pathlib.Path(sys.argv[2]).exists(): time.sleep(.01)\n")
+    checks = []
+    def guard():
+        checks.append(True)
+        if len(checks) > 2:
+            raise RuntimeError('recording lost')
+    runner.guard = guard
+    with pytest.raises(RuntimeError, match='recording lost'):
+        runner.run(TaskConfig('fishing', target=3), timeout=30, stop_grace=1)
+    assert runner.process is None
+    assert len(checks) == 3
+    assert list((tmp_path / 'sessions').rglob('stop'))
+
+
+def test_failed_initial_recording_guard_does_not_create_or_launch_worker(tmp_path):
+    runner = supervisor(tmp_path, "raise RuntimeError('must not run')\n")
+    def guard():
+        raise RuntimeError('no recording')
+    runner.guard = guard
+    with pytest.raises(RuntimeError, match='no recording'):
+        runner.run(TaskConfig('fishing', target=3))
+    assert not (tmp_path / 'sessions').exists()

@@ -23,6 +23,7 @@ from daily.resources import EnergySettings
 from daily.live import LiveControls
 from daily.holowork import HoloWorkRunner
 from daily.park import ParkRunner, GIFT_PLACES, LOTTERY_PLACE
+from daily.fishing import FishingRunner
 from offline_controller import OfflineController
 
 
@@ -69,6 +70,15 @@ class InspectRecordings(CustomAction):
             if scene == 'live_result':
                 result['auto_result'] = bool(navigator.text(Observation(frame, scene, time.monotonic()),
                                                            '^AUTO LIVE$', (650, 180, 530, 330)))
+            if path.stem == 'fishing_setup_second':
+                FishingRunner(navigator, ROOT, self.samples.parent).verify_practice_bait(
+                    Observation(frame, scene, time.monotonic()))
+                result['practice_bait_verified'] = True
+            if path.stem == 'fishing_result':
+                result['cancel_buttons'] = len(navigator.text(
+                    Observation(frame, scene, time.monotonic()), r'^[×xX✕]?\s*取消$', (720, 620, 230, 80)))
+                if result['cancel_buttons'] != 1:
+                    raise ValueError('Fishing result cancel is not unique')
             if path.stem.startswith('holowork'):
                 work = HoloWorkRunner(navigator).read(Observation(frame, scene, time.monotonic()))
                 result['holowork'] = {'kind': work.kind, 'scores': work.scores,

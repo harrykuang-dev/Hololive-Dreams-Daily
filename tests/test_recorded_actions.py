@@ -97,3 +97,16 @@ def test_unverified_recording_cannot_report_complete(recorded_action, monkeypatc
     assert not test.action.run(test.context, test.args)
     assert test.result()['result']['status'] == 'failed'
     assert test.result()['result']['completed_rounds'] == 1
+
+
+def test_rerunning_same_task_preserves_both_result_records(recorded_action, monkeypatch, tmp_path):
+    test = recorded_action
+    monkeypatch.setattr(test.action, 'execute', lambda *args, **kwargs:
+                        TaskResult(TaskStatus.COMPLETE, 'done'))
+    assert test.action.run(test.context, test.args)
+    first = test.action.session
+    assert test.action.run(test.context, test.args)
+    assert test.action.session != first
+    records = list((tmp_path / 'daily/results').glob('*.json'))
+    assert len(records) == 2
+    assert {json.loads(p.read_text(encoding='utf-8'))['session'] for p in records} == {first, test.action.session}

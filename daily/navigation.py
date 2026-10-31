@@ -146,8 +146,10 @@ class Navigator:
         if self.vision.match(observation.image, 'park_dialogue_next'):
             raise NavigationError('角色對話尚未結束，未嘗試其他選單')
         if observation.scene == 'notifications':
-            self.inputs.click(260, 45)
-            return self.wait_for({'home'})
+            self.inputs.key(0x1B, .08)
+            return self.wait_for({'home'}, timeout=45)
+        if observation.scene == 'fishing_result':
+            return self.click_text('fishing_result', r'^[×xX✕]?\s*取消$', 'home', roi=(720, 620, 230, 80))
         if observation.scene == 'other_menu':
             observation = self.click_text('other_menu', '取消$', 'main_menu', roi=(990, 610, 240, 100))
         if observation.scene == 'live_result':
@@ -277,6 +279,8 @@ class Navigator:
             self.inputs.pause(.2)
 
     def to_fishing_second(self):
+        if self.observe().scene == 'fishing_setup_second':
+            return self.wait_for({'fishing_setup_second'}, timeout=5)
         self.to_home()
         # The recording uses M, not a click on the small minimap. Selecting a
         # fishing icon opens an information card; Move is a separate action.

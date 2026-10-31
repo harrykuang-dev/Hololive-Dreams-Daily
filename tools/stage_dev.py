@@ -17,7 +17,7 @@ def copy_changed(source, destination):
     return shutil.copy2(source, destination)
 
 
-def stage(gui: Path, python: Path, output: Path):
+def stage(gui: Path, python: Path, output: Path, module_python: Path | None = None):
     if not (gui / 'MFAAvalonia.exe').is_file() or not python.is_file():
         raise FileNotFoundError('GUI runtime or development interpreter is missing')
     output.mkdir(parents=True, exist_ok=True)
@@ -37,6 +37,12 @@ def stage(gui: Path, python: Path, output: Path):
         {'directory': str((output.parent / 'recordings').resolve()),
          'daily_test_not_before': datetime.now(timezone(timedelta(hours=8))).replace(
              hour=4, minute=5, second=0, microsecond=0).isoformat()}, indent=2), encoding='utf-8')
+    if module_python is not None:
+        if not module_python.is_file():
+            raise FileNotFoundError('Module interpreter is missing')
+        (config / 'modules.json').write_text(json.dumps({
+            'python': str(module_python.resolve()),
+            'module_root': str((ROOT / 'upstream/holodori/upstream').resolve())}, indent=2), encoding='utf-8')
     print(output / 'MFAAvalonia.exe')
 
 
@@ -45,5 +51,6 @@ if __name__ == '__main__':
     parser.add_argument('--gui-runtime', type=Path, required=True)
     parser.add_argument('--python', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--module-python', type=Path)
     args = parser.parse_args()
-    stage(args.gui_runtime, args.python, args.output)
+    stage(args.gui_runtime, args.python, args.output, args.module_python)
