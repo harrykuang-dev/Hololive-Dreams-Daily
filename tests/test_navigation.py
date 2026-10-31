@@ -43,3 +43,9 @@ def test_holowork_header_ocr_handles_changing_dispatch_background(tmp_path):
     root = Path(__file__).resolve().parents[1]
     navigator = Navigator(Context(['holowork']), root / 'resource', tmp_path)
     assert navigator.observe().scene == 'holowork'
+
+
+def test_main_menu_requires_multiple_distinct_menu_labels(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    navigator = Navigator(Context(['個人檔案', '會員資格', '持有物', '其他']), root / 'resource', tmp_path)
+    assert navigator.observe().scene == 'main_menu'

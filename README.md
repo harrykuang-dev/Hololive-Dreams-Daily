@@ -12,6 +12,8 @@ Cooking, Jump Rope and solo Live have reached their final setup screens in entry
 
 Solo Live has passed a one-round foreground test: verifying built-in Auto and its remaining uses, setting a one-energy cost, waiting for the game's Auto play, verifying the Auto Live result and returning to song selection. Multi-round execution and per-round budget checks are implemented; multi-round live testing remains pending. The current song, difficulty and team must be retained. Multiplayer matchmaking and play remain disabled.
 
+holoWork entry has been verified through the completed-work notification. Automatic collection and redispatch remain disabled; navigation stops when no completed-work notification is available.
+
 ## Development
 
 Use Python 3.13 x64 and .NET 10. Install `requirements-dev.txt`, then run:

@@ -59,10 +59,19 @@ class Navigator:
             if len(words.intersection({'遊戲', 'Live', '任務', '成就'})) >= 3:
                 scene = 'home'
             else:
-                work = self.text(observation, r'^[Hh]olo[Ww]ork$', (90, 0, 270, 95))
-                heading = self.text(observation, r'^MAP$', (65, 5, 240, 95)) if not work else []
-                if len(work) == 1 and re.fullmatch(r'[Hh]olo[Ww]ork', getattr(work[0], 'text', '').strip()):
+                work = [item for item in self.text(observation, r'^[Hh]olo[Ww]ork$', (90, 0, 270, 95))
+                        if re.fullmatch(r'[Hh]olo[Ww]ork', getattr(item, 'text', '').strip())]
+                menu = self.text(observation, r'^(個人檔案|會員資格|持有物|其他)$', (680, 110, 530, 440)) if not work else []
+                menu_words = {getattr(item, 'text', '').strip() for item in menu}
+                extra = self.text(observation, r'^(標題畫面|結束遊戲|客服諮詢)$', (150, 250, 950, 220)) if not work and len(menu_words) < 3 else []
+                extra_words = {getattr(item, 'text', '').strip() for item in extra}
+                heading = self.text(observation, r'^MAP$', (65, 5, 240, 95)) if not work and len(menu_words) < 3 else []
+                if len(work) == 1:
                     scene = 'holowork'
+                elif len(menu_words.intersection({'個人檔案', '會員資格', '持有物', '其他'})) >= 3:
+                    scene = 'main_menu'
+                elif len(extra_words.intersection({'標題畫面', '結束遊戲', '客服諮詢'})) == 3:
+                    scene = 'other_menu'
                 elif any(getattr(item, 'text', '').strip() == 'MAP' for item in heading):
                     area = self.text(observation, '汽水泡泡灣', (65, 5, 350, 110))
                     scene = 'fishing_map_second' if any('汽水泡泡灣' in getattr(item, 'text', '')
@@ -116,6 +125,8 @@ class Navigator:
 
     def to_home(self):
         observation = self.observe()
+        if observation.scene == 'other_menu':
+            observation = self.click_text('other_menu', '取消$', 'main_menu', roi=(990, 610, 240, 100))
         if observation.scene == 'live_result':
             # Recover a result left open by an earlier run without starting or
             # counting another song. This path only advances reward pages.
@@ -149,7 +160,7 @@ class Navigator:
         # These screens have the visibly recorded close button at top right.
         if observation.scene in {'live_portal', 'minigame_portal', 'daily_missions',
                                  'achievements', 'event_missions', 'gifts',
-                                 'fishing_setup_second'}:
+                                 'fishing_setup_second', 'main_menu', 'holowork'}:
             self.inputs.click(1223, 55)
             return self.wait_for({'home'})
         raise NavigationError('目前不在可安全返回樂園的畫面')
@@ -217,18 +228,19 @@ class Navigator:
         if self.observe().scene == 'holowork':
             return self.wait_for({'holowork'})
         self.to_home()
-        self.inputs.click(1217, 55)  # Recorded main menu control, not a resource button.
+        self.inputs.click(260, 45)  # Recorded notification speaker shortcut.
+        self.wait_for({'notifications'}, timeout=8)
         deadline = time.monotonic()+8
         while True:
             menu = self.observe()
-            buttons = self.text(menu, '^[Hh]olo[Ww]ork$', (0, 100, 1280, 570))
+            buttons = self.text(menu, '[已巳]完成.*[Hh]olo[Ww]ork', (20, 90, 470, 480))
             if len(buttons) == 1:
                 x, y, w, h = buttons[0].box
                 self.inputs.click(int(x+w/2), int(y+h/2))
                 return self.wait_for({'holowork'}, timeout=30)
             if time.monotonic() >= deadline:
-                self.save(menu, 'holowork-menu-not-found')
-                raise NavigationError('無法唯一確認主選單的 holoWork 入口')
+                self.save(menu, 'holowork-notification-not-found')
+                raise NavigationError('沒有可唯一確認的已完成 holoWork 通知；尚未啟用其他入口')
             self.inputs.pause(.2)
 
     def to_fishing_second(self):
