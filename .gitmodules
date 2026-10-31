@@ -1,0 +1,3 @@
+[submodule "holodori"]
+	path = upstream/holodori
+	url = https://github.com/harrykuang-dev/Holodori-Auto.git

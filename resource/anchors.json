@@ -1,0 +1,407 @@
+{
+  "home": {
+    "file": "anchors/home.png",
+    "roi": [
+      800,
+      24,
+      185,
+      85
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "home",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 1995,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "563e1fa6e37ba6ff662d8dc38ae653716b915c731da74fad59feaf8db7e47241"
+    },
+    "sha256": "0e504d579af2d152a9c152a4ce623941ac06a72fad4f38279162d518f4935f77"
+  },
+  "live_portal": {
+    "file": "anchors/live_portal.png",
+    "roi": [
+      12,
+      8,
+      230,
+      75
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "live_portal",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 20,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "58c62055f60aaa99d8c7562bb7b2ea0941ea786a7a9b42cae94d5538636bf4cd"
+    },
+    "sha256": "44d801961164b89b5e486fc196d7bb5b41fa7fb8f10255b3ef3aa92b540fcb25"
+  },
+  "solo_setup": {
+    "file": "anchors/solo_setup.png",
+    "roi": [
+      1020,
+      100,
+      200,
+      60
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "solo_setup",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 50,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "c1c81eb03533ebf87c797af9d425334b8831d0e58b0e977be12db5fad1225b66"
+    },
+    "sha256": "b1bcd7e7ccdb3cb9b5fb66dc0d269ce0b47d05079e5cd90a51cc5d775cb0fde2"
+  },
+  "multi_ready": {
+    "file": "anchors/multi_ready.png",
+    "roi": [
+      585,
+      12,
+      190,
+      45
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "multi_ready",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 1630,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "ca2a765c15bf8eecfa99c85601e90bcb23db7c6effbdd49f4d3bdf2e0050c85e"
+    },
+    "sha256": "d0c4ee7027b7f70c8121fc3bac17bb507daa2523141cc651bbf4b2c349ed5326"
+  },
+  "song_select": {
+    "file": "anchors/song_select.png",
+    "roi": [
+      680,
+      678,
+      290,
+      30
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "song_select",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 40,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "d5aeac9a8ce228c8ffc763cb31dfc75ee3d40eca5b4170679ce946c167eee8a4"
+    },
+    "sha256": "876a9159bcdbefe90c15c2713007cc0629db71d505aac0f64a8cdd56db6cc266"
+  },
+  "fishing_setup_second": {
+    "file": "anchors/fishing_setup_second.png",
+    "roi": [
+      790,
+      95,
+      330,
+      45
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "fishing_setup_second",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 1918,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "60ba1227ec292b7052767e83400bc7c933b817639eef0431420af02b45b622f8"
+    },
+    "sha256": "81bd717ae5f219676027f6f7f2059c45c447c111516055d69e5cdfac6b3401f3"
+  },
+  "fishing_map_second": {
+    "file": "anchors/fishing_map_second.png",
+    "roi": [
+      20,
+      12,
+      285,
+      78
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "fishing_map_second",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 1910,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "f39941a0d4cb1810ec50424b207b04490fead01f8fcd17761f5408c52a443ddb"
+    },
+    "sha256": "f69436ec6a27f3c91dd2ddf7326e7bb56900e48d1bb12a00642224d22233712d"
+  },
+  "holowork": {
+    "file": "anchors/holowork.png",
+    "roi": [
+      12,
+      8,
+      230,
+      75
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "holowork",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 45,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "f2b3c413d4643a3a6f9bbb0bc8b93f5f39c2d15d628c5853b23789aed7ad489b"
+    },
+    "sha256": "11018d68357c57b6387ec54454e7ed40031272ae403549780a5c2410c6ac5e98"
+  },
+  "minigame_portal": {
+    "file": "anchors/minigame_portal.png",
+    "roi": [
+      12,
+      8,
+      230,
+      75
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "minigame_portal",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 125,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "3dd81b9397e672dd4f662dbf7e914db3efdf9f4f76cc87da4bf58c01d8a37a59"
+    },
+    "sha256": "b2e716552454a575547c2b268b5fdd7be21fc4837418b76b26897522a2f915f4"
+  },
+  "daily_missions": {
+    "file": "anchors/daily_missions.png",
+    "roi": [
+      12,
+      8,
+      240,
+      75
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "daily_missions",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 2000,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "42b616f99f7c53077dcdd93836276ba60ac5afcdebe6dcd3841e51ad17d222a2"
+    },
+    "sha256": "32c7a1e2efe4650a5e2e573c30b86be4925e9ecfd45ab6a4f69b63b7471bfa0e"
+  },
+  "achievements": {
+    "file": "anchors/achievements.png",
+    "roi": [
+      12,
+      8,
+      240,
+      75
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "achievements",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 2010,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "be90d3bf9e65e5176e44224d861a9e824bba43625f2149853882ef5554b73914"
+    },
+    "sha256": "12efdea061921962f0bd1c7e7c44973a45adbe1c9b91477b8345a669c105daff"
+  },
+  "event_missions": {
+    "file": "anchors/event_missions.png",
+    "roi": [
+      12,
+      8,
+      240,
+      75
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "event_missions",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 2020,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "991a961d6ea9d8789a5d7f7c445a50f0fd5b8b2424d328eab9459bbfc1202027"
+    },
+    "sha256": "f628e35e5925b507422c9414d632263d293eaf6ecc93eaa1eb8ee7914052b2b3"
+  },
+  "gifts": {
+    "file": "anchors/gifts.png",
+    "roi": [
+      12,
+      8,
+      240,
+      75
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "gifts",
+      "video": "Desktop 2026.10.31 - 14.25.52.04.mp4",
+      "seconds": 6,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "3af425f3cec5b7b628c239757693294e40f36ada6a18e4398e89943fb46e0d9b"
+    },
+    "sha256": "b5239f2d60d89e5d995457e53bc47d5147ab75c1631eee198427201763dd7a1e"
+  },
+  "solo_auto_on": {
+    "file": "anchors/solo_auto_on.png",
+    "roi": [
+      523,
+      635,
+      77,
+      41
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "solo_setup",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 50,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "c1c81eb03533ebf87c797af9d425334b8831d0e58b0e977be12db5fad1225b66"
+    },
+    "sha256": "075a5be6d14b98f02e682e88f0cc0f2deb5396261bd6fb75434c7be353ccb35f"
+  },
+  "multi_auto_on": {
+    "file": "anchors/multi_auto_on.png",
+    "roi": [
+      217,
+      632,
+      77,
+      41
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "multi_ready",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 1630,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "ca2a765c15bf8eecfa99c85601e90bcb23db7c6effbdd49f4d3bdf2e0050c85e"
+    },
+    "sha256": "94edda1c38dd6f25fcc901de987679325d5737bfff7339952d6627ecb2f80c67"
+  }
+}

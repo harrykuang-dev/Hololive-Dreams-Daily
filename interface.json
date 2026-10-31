@@ -1,0 +1,840 @@
+{
+  "interface_version": 2,
+  "name": "HololiveDreamsDaily",
+  "label": "$title",
+  "title": "$title",
+  "version": "0.1.0",
+  "languages": {
+    "zh_tw": "interface_zh_tw.json",
+    "en_us": "interface_en_us.json"
+  },
+  "description": "$description",
+  "license": "THIRD_PARTY_NOTICES.md",
+  "controller": [
+    {
+      "name": "SteamWin32",
+      "label": "$controller",
+      "type": "Win32",
+      "display_short_side": 720,
+      "win32": {
+        "class_regex": "^UnityWndClass$",
+        "window_regex": "^hololive-Dreams$",
+        "screencap": "FramePool",
+        "mouse": "Seize",
+        "keyboard": "Seize"
+      }
+    }
+  ],
+  "resource": [
+    {
+      "name": "TraditionalChinese",
+      "label": "$resource",
+      "path": [
+        "./resource"
+      ]
+    }
+  ],
+  "agent": {
+    "child_exec": "./runtime/python/python.exe",
+    "child_args": [
+      "./agent/main.py"
+    ]
+  },
+  "task": [
+    {
+      "name": "connect",
+      "label": "$task_connect",
+      "entry": "Daily_connect",
+      "default_check": true,
+      "option": [
+        "connect_entry_only"
+      ]
+    },
+    {
+      "name": "holowork",
+      "label": "$task_holowork",
+      "entry": "Daily_holowork",
+      "default_check": false,
+      "option": [
+        "holowork_entry_only"
+      ]
+    },
+    {
+      "name": "park_gifts",
+      "label": "$task_park_gifts",
+      "entry": "Daily_park_gifts",
+      "default_check": false,
+      "option": [
+        "park_gifts_entry_only"
+      ]
+    },
+    {
+      "name": "lottery",
+      "label": "$task_lottery",
+      "entry": "Daily_lottery",
+      "default_check": false,
+      "option": [
+        "lottery_entry_only"
+      ]
+    },
+    {
+      "name": "cooking",
+      "label": "$task_cooking",
+      "entry": "Daily_cooking",
+      "default_check": false,
+      "option": [
+        "cooking_rounds",
+        "cooking_multiplier",
+        "cooking_resource_budget",
+        "cooking_entry_only"
+      ]
+    },
+    {
+      "name": "solo_live",
+      "label": "$task_solo_live",
+      "entry": "Daily_solo_live",
+      "default_check": false,
+      "option": [
+        "solo_live_rounds",
+        "solo_live_multiplier",
+        "solo_live_resource_budget",
+        "solo_live_team",
+        "solo_live_song",
+        "solo_live_entry_only"
+      ]
+    },
+    {
+      "name": "high_low",
+      "label": "$task_high_low",
+      "entry": "Daily_high_low",
+      "default_check": false,
+      "option": [
+        "high_low_target",
+        "high_low_entry_only"
+      ]
+    },
+    {
+      "name": "jump_rope",
+      "label": "$task_jump_rope",
+      "entry": "Daily_jump_rope",
+      "default_check": false,
+      "option": [
+        "jump_rope_rounds",
+        "jump_rope_multiplier",
+        "jump_rope_resource_budget",
+        "jump_rope_entry_only"
+      ]
+    },
+    {
+      "name": "multi_live",
+      "label": "$task_multi_live",
+      "entry": "Daily_multi_live",
+      "default_check": false,
+      "option": [
+        "multi_live_rounds",
+        "multi_live_multiplier",
+        "multi_live_resource_budget",
+        "multi_live_team",
+        "multi_live_entry_only"
+      ]
+    },
+    {
+      "name": "fishing",
+      "label": "$task_fishing",
+      "entry": "Daily_fishing",
+      "default_check": false,
+      "option": [
+        "fishing_target",
+        "fishing_entry_only"
+      ]
+    },
+    {
+      "name": "rewards",
+      "label": "$task_rewards",
+      "entry": "Daily_rewards",
+      "default_check": false,
+      "option": [
+        "rewards_entry_only"
+      ]
+    }
+  ],
+  "option": {
+    "connect_entry_only": {
+      "type": "switch",
+      "label": "$entry_only",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "$no",
+          "pipeline_override": {
+            "Daily_connect": {
+              "custom_action_param": {
+                "entry_only": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "$yes",
+          "pipeline_override": {
+            "Daily_connect": {
+              "custom_action_param": {
+                "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "holowork_entry_only": {
+      "type": "switch",
+      "label": "$entry_only",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "$no",
+          "pipeline_override": {
+            "Daily_holowork": {
+              "custom_action_param": {
+                "entry_only": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "$yes",
+          "pipeline_override": {
+            "Daily_holowork": {
+              "custom_action_param": {
+                "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "park_gifts_entry_only": {
+      "type": "switch",
+      "label": "$entry_only",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "$no",
+          "pipeline_override": {
+            "Daily_park_gifts": {
+              "custom_action_param": {
+                "entry_only": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "$yes",
+          "pipeline_override": {
+            "Daily_park_gifts": {
+              "custom_action_param": {
+                "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "lottery_entry_only": {
+      "type": "switch",
+      "label": "$entry_only",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "$no",
+          "pipeline_override": {
+            "Daily_lottery": {
+              "custom_action_param": {
+                "entry_only": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "$yes",
+          "pipeline_override": {
+            "Daily_lottery": {
+              "custom_action_param": {
+                "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "cooking_rounds": {
+      "type": "input",
+      "label": "$cooking_rounds",
+      "inputs": [
+        {
+          "name": "rounds",
+          "label": "$cooking_rounds",
+          "pipeline_type": "string",
+          "verify": "^[1-9][0-9]{0,2}$",
+          "pattern_msg": "$invalid_rounds"
+        }
+      ],
+      "pipeline_override": {
+        "Daily_cooking": {
+          "custom_action_param": {
+            "rounds": "{rounds}"
+          }
+        }
+      }
+    },
+    "cooking_multiplier": {
+      "type": "input",
+      "label": "$cooking_multiplier",
+      "inputs": [
+        {
+          "name": "multiplier",
+          "label": "$cooking_multiplier",
+          "pipeline_type": "string",
+          "verify": "^[1-9][0-9]?$",
+          "pattern_msg": "$invalid_multiplier",
+          "default": "1"
+        }
+      ],
+      "pipeline_override": {
+        "Daily_cooking": {
+          "custom_action_param": {
+            "multiplier": "{multiplier}"
+          }
+        }
+      }
+    },
+    "cooking_resource_budget": {
+      "type": "input",
+      "label": "$cooking_resource_budget",
+      "inputs": [
+        {
+          "name": "resource_budget",
+          "label": "$cooking_resource_budget",
+          "pipeline_type": "string",
+          "verify": "^$|^[1-9][0-9]{0,8}$",
+          "pattern_msg": "$invalid_resource_budget",
+          "default": ""
+        }
+      ],
+      "pipeline_override": {
+        "Daily_cooking": {
+          "custom_action_param": {
+            "resource_budget": "{resource_budget}"
+          }
+        }
+      },
+      "description": "空白時以現有資源餘量為限，不會自動補充。"
+    },
+    "cooking_entry_only": {
+      "type": "switch",
+      "label": "$entry_only",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "$no",
+          "pipeline_override": {
+            "Daily_cooking": {
+              "custom_action_param": {
+                "entry_only": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "$yes",
+          "pipeline_override": {
+            "Daily_cooking": {
+              "custom_action_param": {
+                "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "solo_live_rounds": {
+      "type": "input",
+      "label": "$solo_live_rounds",
+      "inputs": [
+        {
+          "name": "rounds",
+          "label": "$solo_live_rounds",
+          "pipeline_type": "string",
+          "verify": "^[1-9][0-9]{0,2}$",
+          "pattern_msg": "$invalid_rounds"
+        }
+      ],
+      "pipeline_override": {
+        "Daily_solo_live": {
+          "custom_action_param": {
+            "rounds": "{rounds}"
+          }
+        }
+      }
+    },
+    "solo_live_multiplier": {
+      "type": "input",
+      "label": "$solo_live_multiplier",
+      "inputs": [
+        {
+          "name": "multiplier",
+          "label": "$solo_live_multiplier",
+          "pipeline_type": "string",
+          "verify": "^[1-9][0-9]?$",
+          "pattern_msg": "$invalid_multiplier",
+          "default": "1"
+        }
+      ],
+      "pipeline_override": {
+        "Daily_solo_live": {
+          "custom_action_param": {
+            "multiplier": "{multiplier}"
+          }
+        }
+      }
+    },
+    "solo_live_resource_budget": {
+      "type": "input",
+      "label": "$solo_live_resource_budget",
+      "inputs": [
+        {
+          "name": "resource_budget",
+          "label": "$solo_live_resource_budget",
+          "pipeline_type": "string",
+          "verify": "^$|^[1-9][0-9]{0,8}$",
+          "pattern_msg": "$invalid_resource_budget",
+          "default": ""
+        }
+      ],
+      "pipeline_override": {
+        "Daily_solo_live": {
+          "custom_action_param": {
+            "resource_budget": "{resource_budget}"
+          }
+        }
+      },
+      "description": "空白時以現有資源餘量為限，不會自動補充。"
+    },
+    "solo_live_team": {
+      "type": "input",
+      "label": "$solo_live_team",
+      "inputs": [
+        {
+          "name": "team",
+          "label": "$solo_live_team",
+          "pipeline_type": "string",
+          "verify": "^current$|^[1-9][0-9]?$",
+          "pattern_msg": "$invalid_team",
+          "default": "current"
+        }
+      ],
+      "pipeline_override": {
+        "Daily_solo_live": {
+          "custom_action_param": {
+            "team": "{team}"
+          }
+        }
+      }
+    },
+    "solo_live_song": {
+      "type": "input",
+      "label": "$solo_live_song",
+      "inputs": [
+        {
+          "name": "song",
+          "label": "$solo_live_song",
+          "pipeline_type": "string",
+          "verify": "^.*$",
+          "pattern_msg": "$invalid_song",
+          "default": ""
+        }
+      ],
+      "pipeline_override": {
+        "Daily_solo_live": {
+          "custom_action_param": {
+            "song": "{song}"
+          }
+        }
+      }
+    },
+    "solo_live_entry_only": {
+      "type": "switch",
+      "label": "$entry_only",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "$no",
+          "pipeline_override": {
+            "Daily_solo_live": {
+              "custom_action_param": {
+                "entry_only": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "$yes",
+          "pipeline_override": {
+            "Daily_solo_live": {
+              "custom_action_param": {
+                "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "high_low_target": {
+      "type": "input",
+      "label": "$high_low_target",
+      "inputs": [
+        {
+          "name": "target",
+          "label": "$high_low_target",
+          "pipeline_type": "string",
+          "verify": "^$|^[1-9][0-9]{0,8}$",
+          "pattern_msg": "$invalid_target",
+          "default": ""
+        }
+      ],
+      "pipeline_override": {
+        "Daily_high_low": {
+          "custom_action_param": {
+            "target": "{target}"
+          }
+        }
+      }
+    },
+    "high_low_entry_only": {
+      "type": "switch",
+      "label": "$entry_only",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "$no",
+          "pipeline_override": {
+            "Daily_high_low": {
+              "custom_action_param": {
+                "entry_only": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "$yes",
+          "pipeline_override": {
+            "Daily_high_low": {
+              "custom_action_param": {
+                "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "jump_rope_rounds": {
+      "type": "input",
+      "label": "$jump_rope_rounds",
+      "inputs": [
+        {
+          "name": "rounds",
+          "label": "$jump_rope_rounds",
+          "pipeline_type": "string",
+          "verify": "^[1-9][0-9]{0,2}$",
+          "pattern_msg": "$invalid_rounds",
+          "default": "1"
+        }
+      ],
+      "pipeline_override": {
+        "Daily_jump_rope": {
+          "custom_action_param": {
+            "rounds": "{rounds}"
+          }
+        }
+      }
+    },
+    "jump_rope_multiplier": {
+      "type": "input",
+      "label": "$jump_rope_multiplier",
+      "inputs": [
+        {
+          "name": "multiplier",
+          "label": "$jump_rope_multiplier",
+          "pipeline_type": "string",
+          "verify": "^[1-9][0-9]?$",
+          "pattern_msg": "$invalid_multiplier",
+          "default": "1"
+        }
+      ],
+      "pipeline_override": {
+        "Daily_jump_rope": {
+          "custom_action_param": {
+            "multiplier": "{multiplier}"
+          }
+        }
+      }
+    },
+    "jump_rope_resource_budget": {
+      "type": "input",
+      "label": "$jump_rope_resource_budget",
+      "inputs": [
+        {
+          "name": "resource_budget",
+          "label": "$jump_rope_resource_budget",
+          "pipeline_type": "string",
+          "verify": "^$|^[1-9][0-9]{0,8}$",
+          "pattern_msg": "$invalid_resource_budget",
+          "default": ""
+        }
+      ],
+      "pipeline_override": {
+        "Daily_jump_rope": {
+          "custom_action_param": {
+            "resource_budget": "{resource_budget}"
+          }
+        }
+      },
+      "description": "空白時以現有資源餘量為限，不會自動補充。"
+    },
+    "jump_rope_entry_only": {
+      "type": "switch",
+      "label": "$entry_only",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "$no",
+          "pipeline_override": {
+            "Daily_jump_rope": {
+              "custom_action_param": {
+                "entry_only": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "$yes",
+          "pipeline_override": {
+            "Daily_jump_rope": {
+              "custom_action_param": {
+                "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "multi_live_rounds": {
+      "type": "input",
+      "label": "$multi_live_rounds",
+      "inputs": [
+        {
+          "name": "rounds",
+          "label": "$multi_live_rounds",
+          "pipeline_type": "string",
+          "verify": "^[1-9][0-9]{0,2}$",
+          "pattern_msg": "$invalid_rounds"
+        }
+      ],
+      "pipeline_override": {
+        "Daily_multi_live": {
+          "custom_action_param": {
+            "rounds": "{rounds}"
+          }
+        }
+      }
+    },
+    "multi_live_multiplier": {
+      "type": "input",
+      "label": "$multi_live_multiplier",
+      "inputs": [
+        {
+          "name": "multiplier",
+          "label": "$multi_live_multiplier",
+          "pipeline_type": "string",
+          "verify": "^[1-9][0-9]?$",
+          "pattern_msg": "$invalid_multiplier",
+          "default": "1"
+        }
+      ],
+      "pipeline_override": {
+        "Daily_multi_live": {
+          "custom_action_param": {
+            "multiplier": "{multiplier}"
+          }
+        }
+      }
+    },
+    "multi_live_resource_budget": {
+      "type": "input",
+      "label": "$multi_live_resource_budget",
+      "inputs": [
+        {
+          "name": "resource_budget",
+          "label": "$multi_live_resource_budget",
+          "pipeline_type": "string",
+          "verify": "^$|^[1-9][0-9]{0,8}$",
+          "pattern_msg": "$invalid_resource_budget",
+          "default": ""
+        }
+      ],
+      "pipeline_override": {
+        "Daily_multi_live": {
+          "custom_action_param": {
+            "resource_budget": "{resource_budget}"
+          }
+        }
+      },
+      "description": "空白時以現有資源餘量為限，不會自動補充。"
+    },
+    "multi_live_team": {
+      "type": "input",
+      "label": "$multi_live_team",
+      "inputs": [
+        {
+          "name": "team",
+          "label": "$multi_live_team",
+          "pipeline_type": "string",
+          "verify": "^current$|^[1-9][0-9]?$",
+          "pattern_msg": "$invalid_team",
+          "default": "current"
+        }
+      ],
+      "pipeline_override": {
+        "Daily_multi_live": {
+          "custom_action_param": {
+            "team": "{team}"
+          }
+        }
+      }
+    },
+    "multi_live_entry_only": {
+      "type": "switch",
+      "label": "$entry_only",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "$no",
+          "pipeline_override": {
+            "Daily_multi_live": {
+              "custom_action_param": {
+                "entry_only": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "$yes",
+          "pipeline_override": {
+            "Daily_multi_live": {
+              "custom_action_param": {
+                "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "fishing_target": {
+      "type": "input",
+      "label": "$fishing_target",
+      "inputs": [
+        {
+          "name": "target",
+          "label": "$fishing_target",
+          "pipeline_type": "string",
+          "verify": "^$|^[1-9][0-9]{0,8}$",
+          "pattern_msg": "$invalid_target",
+          "default": "3"
+        }
+      ],
+      "pipeline_override": {
+        "Daily_fishing": {
+          "custom_action_param": {
+            "target": "{target}"
+          }
+        }
+      }
+    },
+    "fishing_entry_only": {
+      "type": "switch",
+      "label": "$entry_only",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "$no",
+          "pipeline_override": {
+            "Daily_fishing": {
+              "custom_action_param": {
+                "entry_only": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "$yes",
+          "pipeline_override": {
+            "Daily_fishing": {
+              "custom_action_param": {
+                "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "rewards_entry_only": {
+      "type": "switch",
+      "label": "$entry_only",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "$no",
+          "pipeline_override": {
+            "Daily_rewards": {
+              "custom_action_param": {
+                "entry_only": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "$yes",
+          "pipeline_override": {
+            "Daily_rewards": {
+              "custom_action_param": {
+                "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

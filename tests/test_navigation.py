@@ -1,0 +1,39 @@
+from types import SimpleNamespace
+from pathlib import Path
+
+import numpy as np
+
+from daily.navigation import Navigator
+
+
+class Capture:
+    succeeded = True
+    def wait(self): return self
+    def get(self): return np.zeros((720, 1280, 3), dtype=np.uint8)
+
+
+class Context:
+    def __init__(self, words):
+        self.tasker = SimpleNamespace(stopping=False,
+                                      controller=SimpleNamespace(post_screencap=lambda: Capture()))
+        self.words = words
+        self.recognition_calls = []
+
+    def run_recognition(self, name, image, override):
+        self.recognition_calls.append((name, override))
+        return SimpleNamespace(hit=True, filtered_results=[SimpleNamespace(text=w) for w in self.words])
+
+
+def test_changing_park_backdrop_requires_multiple_toolbar_labels(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    context = Context(['遊戲', 'Live', '任務', '成就'])
+    navigator = Navigator(context, root / 'resource', tmp_path)
+    assert navigator.observe().scene == 'home'
+    assert context.recognition_calls[0][1]['DailyOCR']['roi'] == [700, 15, 480, 100]
+
+
+def test_one_generic_label_does_not_classify_unknown_scene(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    context = Context(['任務'])
+    navigator = Navigator(context, root / 'resource', tmp_path)
+    assert navigator.observe().scene is None

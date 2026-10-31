@@ -1,0 +1,197 @@
+{
+  "DailyOCR": {
+    "recognition": "OCR",
+    "expected": [
+      ".*"
+    ],
+    "action": "DoNothing",
+    "threshold": 0.75
+  },
+  "Daily_connect": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "connect",
+      "rounds": "1",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  },
+  "Daily_holowork": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "holowork",
+      "rounds": "1",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  },
+  "Daily_park_gifts": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "park_gifts",
+      "rounds": "1",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  },
+  "Daily_lottery": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "lottery",
+      "rounds": "1",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  },
+  "Daily_cooking": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "cooking",
+      "rounds": "",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  },
+  "Daily_solo_live": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "solo_live",
+      "rounds": "",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  },
+  "Daily_high_low": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "high_low",
+      "rounds": "1",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  },
+  "Daily_jump_rope": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "jump_rope",
+      "rounds": "1",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  },
+  "Daily_multi_live": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "multi_live",
+      "rounds": "",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  },
+  "Daily_fishing": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "fishing",
+      "rounds": "1",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  },
+  "Daily_rewards": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "rewards",
+      "rounds": "1",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  }
+}
