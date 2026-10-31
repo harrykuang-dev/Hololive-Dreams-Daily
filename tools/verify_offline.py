@@ -21,6 +21,7 @@ from daily.vision import Vision
 from daily.navigation import Navigator, Observation
 from daily.resources import EnergySettings
 from daily.live import LiveControls
+from daily.holowork import HoloWorkRunner
 from offline_controller import OfflineController
 
 
@@ -45,7 +46,9 @@ class InspectRecordings(CustomAction):
             scene = navigator.interpret(frame).scene
             expected = {'auto_playing': 'live_playing', 'cooking_energy': 'energy_settings',
                         'energy_controls': 'energy_settings', 'fishing_map_initial': 'fishing_map_second',
-                        'fishing_map_popup': 'fishing_map_second', 'holowork_dispatch': 'holowork'}.get(path.stem, path.stem)
+                        'fishing_map_popup': 'fishing_map_second', 'holowork_dispatch': 'holowork',
+                        'holowork_summary': 'holowork', 'holowork_assignment_empty': 'holowork',
+                        'holowork_assignment': 'holowork', 'holowork_working': 'holowork'}.get(path.stem, path.stem)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
             if path.stem in ('solo_setup', 'multi_ready'):
@@ -65,6 +68,17 @@ class InspectRecordings(CustomAction):
             if scene == 'live_result':
                 result['auto_result'] = bool(navigator.text(Observation(frame, scene, time.monotonic()),
                                                            '^AUTO LIVE$', (650, 180, 530, 330)))
+            if path.stem.startswith('holowork'):
+                work = HoloWorkRunner(navigator).read(Observation(frame, scene, time.monotonic()))
+                result['holowork'] = {'kind': work.kind, 'scores': work.scores,
+                                      'empty_slots': work.empty_slots, 'timers': work.timers}
+                expected_kind = {'holowork': 'completed', 'holowork_dispatch': 'available',
+                                 'holowork_summary': 'summary', 'holowork_get': 'get',
+                                 'holowork_assignment_empty': 'assignment',
+                                 'holowork_assignment': 'assignment', 'holowork_started': 'started',
+                                 'holowork_working': 'working'}[path.stem]
+                if work.kind != expected_kind:
+                    raise ValueError(f'{path.stem}: expected {expected_kind}, got {work.kind}')
             self.report.append(result)
         return True
 

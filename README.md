@@ -14,7 +14,7 @@ Cooking, Jump Rope and solo Live have reached their final setup screens in entry
 
 Solo Live has passed a one-round foreground test: verifying built-in Auto and its remaining uses, setting a one-energy cost, waiting for the game's Auto play, verifying the Auto Live result and returning to song selection. Multi-round execution and per-round budget checks are implemented; multi-round live testing remains pending. The current song, difficulty and team must be retained. Multiplayer matchmaking and play remain disabled.
 
-holoWork entry has been verified through the completed-work notification. Automatic collection and redispatch remain disabled; navigation stops when no completed-work notification is available.
+holoWork collection, reward confirmation, built-in team recommendation and redispatch are implemented. Recorded foreground tests verified collection and a subsequent recovered dispatch, including fresh countdowns. A single uninterrupted collection-to-dispatch test remains pending. Existing filled teams are retained; partially filled visible teams stop for review. Navigation stops when no completed-work notification is available.
 
 ## Development
 

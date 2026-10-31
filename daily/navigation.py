@@ -64,6 +64,13 @@ class Navigator:
             if len(words.intersection({'遊戲', 'Live', '任務', '成就'})) >= 3:
                 scene = 'home'
             else:
+                # GET overlays inherit the underlying page's colour. Require
+                # both labels instead of matching a blue header on a red page.
+                reward = self.text(observation, '^GET!$', (530, 20, 230, 95))
+                if any(getattr(item, 'text', '').strip() == 'GET!' for item in reward):
+                    close = self.text(observation, '^點擊關閉$', (480, 620, 350, 85))
+                    if any(getattr(item, 'text', '').strip() == '點擊關閉' for item in close):
+                        return Observation(frame, 'holowork_get', captured)
                 work = [item for item in self.text(observation, r'^[Hh]olo[Ww]ork$', (90, 0, 270, 95))
                         if re.fullmatch(r'[Hh]olo[Ww]ork', getattr(item, 'text', '').strip())]
                 menu = self.text(observation, r'^(個人檔案|會員資格|持有物|其他)$', (680, 110, 530, 440)) if not work else []
@@ -232,8 +239,8 @@ class Navigator:
         return self.click_text('home', '^任務$', 'daily_missions', roi=(730, 10, 400, 110))
 
     def to_holowork(self):
-        if self.observe().scene == 'holowork':
-            return self.wait_for({'holowork'})
+        if self.observe().scene in {'holowork', 'holowork_get', 'holowork_started'}:
+            return self.wait_for({'holowork', 'holowork_get', 'holowork_started'})
         self.to_home()
         self.inputs.click(260, 45)  # Recorded notification speaker shortcut.
         self.wait_for({'notifications'}, timeout=8)

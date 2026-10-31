@@ -17,6 +17,7 @@ from .navigation import NavigationError, Navigator
 from .settings import read_settings
 from .resources import EnergySettings, ResourceUnavailable
 from .live import SoloLiveRunner
+from .holowork import HoloWorkRunner
 from .recording import GameRecording, recording_directory
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -118,6 +119,8 @@ class RunDailyTask(CustomAction):
                               '已驗證選單導航，尚未驗證遊戲開始入口', evidence=evidence)
         if config.task == 'solo_live':
             return SoloLiveRunner(navigator, progress).run(config)
+        if config.task == 'holowork':
+            return HoloWorkRunner(navigator, progress).run()
         if config.task in ('cooking', 'jump_rope'):
             EnergySettings(navigator).configure(config.task, config.multiplier, config.resource_budget)
         raise NavigationError('已到達導航入口；完整任務執行尚未啟用')

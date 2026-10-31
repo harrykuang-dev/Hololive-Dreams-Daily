@@ -49,3 +49,11 @@ def test_main_menu_requires_multiple_distinct_menu_labels(tmp_path):
     root = Path(__file__).resolve().parents[1]
     navigator = Navigator(Context(['個人檔案', '會員資格', '持有物', '其他']), root / 'resource', tmp_path)
     assert navigator.observe().scene == 'main_menu'
+
+
+def test_reward_overlay_requires_title_and_close_hint_on_any_background(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    navigator = Navigator(Context(['GET!', '點擊關閉']), root / 'resource', tmp_path)
+    assert navigator.observe().scene == 'holowork_get'
+    navigator = Navigator(Context(['GET!']), root / 'resource', tmp_path)
+    assert navigator.observe().scene is None

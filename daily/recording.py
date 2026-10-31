@@ -179,6 +179,7 @@ class GameRecording:
         self._process = None
         self._log = None
         self._capture_paths = {}
+        self._last_status = None
         self._started = time.monotonic()
 
     def mark(self, event, **details):
@@ -195,9 +196,14 @@ class GameRecording:
     def _status(self):
         try:
             status = json.loads(self.status_file.read_text(encoding='utf-8'))
-            return status if status.get('job_id') == self.job_id else None
+            if status.get('job_id') != self.job_id:
+                return None
+            self._last_status = status
+            return status
         except (OSError, ValueError, AttributeError):
-            return None
+            # A cached heartbeat is usable only within the same three-second
+            # freshness check. A transient read race is not a new heartbeat.
+            return self._last_status
 
     def start(self):
         if self._process is not None:
@@ -235,7 +241,7 @@ class GameRecording:
         if self._process is None or self._process.poll() is not None:
             raise RecordingError((status or {}).get('error', '錄影程序已停止'))
         if not status or status.get('state') != 'ready':
-            raise RecordingError('尚未確認遊戲畫面已開始錄影')
+            raise RecordingError((status or {}).get('error', '尚未確認遊戲畫面已開始錄影'))
         updated = status.get('updated_monotonic', 0)
         if not 0 <= time.monotonic() - updated <= FrameRecording.MAX_FRAME_AGE:
             raise RecordingError('錄影超過三秒未更新，停止遊戲操作')

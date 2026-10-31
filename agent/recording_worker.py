@@ -18,6 +18,25 @@ from maa.define import MaaWin32InputMethodEnum, MaaWin32ScreencapMethodEnum
 from daily.recording import FrameRecording, RecordingError
 
 
+def publish_status(path, record):
+    temporary = path.with_suffix(f'.{uuid.uuid4().hex}.pending')
+    try:
+        temporary.write_text(json.dumps(record), encoding='utf-8')
+        deadline = time.monotonic() + .5
+        while True:
+            try:
+                temporary.replace(path)
+                return
+            except PermissionError:
+                # Windows can refuse replacement while the parent briefly has
+                # status.json open for reading. Do not change file permissions.
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(.01)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def parent_alive(pid):
     if os.name != 'nt':
         return os.getppid() == pid
@@ -42,10 +61,8 @@ def run(config_path):
 
     def status(state, **details):
         path = directory / 'status.json'
-        temporary = directory / f'{uuid.uuid4().hex}.pending'
-        temporary.write_text(json.dumps({'job_id': config['job_id'], 'state': state,
-                                        'updated_monotonic': time.monotonic(), **details}), encoding='utf-8')
-        temporary.replace(path)
+        publish_status(path, {'job_id': config['job_id'], 'state': state,
+                              'updated_monotonic': time.monotonic(), **details})
 
     try:
         # Null input methods make this controller incapable of issuing game input.

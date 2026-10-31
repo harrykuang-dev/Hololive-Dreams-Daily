@@ -269,6 +269,60 @@
     },
     "sha256": "11018d68357c57b6387ec54454e7ed40031272ae403549780a5c2410c6ac5e98"
   },
+  "holowork_get": {
+    "file": "anchors/holowork_get.png",
+    "roi": [
+      555,
+      40,
+      172,
+      65
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "holowork_get",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 49,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "8d66a8546ee78feb86c317f922b0162f51c6fe5262b9ee9787c526ab00c63b9e"
+    },
+    "sha256": "e842791adfb18f427e941ee9275c12aac5ba0a223c7926367681bde58581dac2"
+  },
+  "holowork_started": {
+    "file": "anchors/holowork_started.png",
+    "roi": [
+      350,
+      290,
+      520,
+      170
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "holowork_started",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 54.5,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "5028055a3606b5c45aae3a757d7f9039e2c7563c3a724f3a75087776372f0e78"
+    },
+    "sha256": "417dbb226b332617cee48281eea530c9c99f50d8466b835e19acfcbcf5445b67"
+  },
   "minigame_portal": {
     "file": "anchors/minigame_portal.png",
     "roi": [
@@ -818,6 +872,34 @@
       "sha256": "a1cdb1c683c016eb2bea1c69f57e1edba57fa786b41160935e5071b2f337bbff"
     },
     "sha256": "794126f6ae0a2a3204f1a77ebaf1764fb4ccdd98a499f0f3e54f3b4ccda7580b",
+    "scene": false
+  },
+  "work_empty_slot": {
+    "file": "anchors/work_empty_slot.png",
+    "roi": [
+      464,
+      155,
+      80,
+      80
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "holowork_assignment_empty",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 51,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "13f744e3c499334ad5cb36d6ef24ea5cfbfbe6f84a77807cbf98a7500ebde31d"
+    },
+    "sha256": "63e2993026dd2e614344efb29a881ccaf3de5d35c125bf8f9467c9bf1f9ea815",
     "scene": false
   }
 }
