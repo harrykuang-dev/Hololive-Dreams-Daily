@@ -21,7 +21,7 @@ GIFT_PLACES = (
     ParkPlace('park_gift_the_cell', r'^可在The\s*Cell\s*重臨領取禮物$', r'禮物$', r'^[Bb]ijou$'),
     ParkPlace('park_gift_rock_mountain', r'^可在.{1,3}岩山領取禮物$', r'禮物$', r'^[Aa][Zz][Kk][Ii]$'),
 )
-LOTTERY_PLACE = ParkPlace('lottery', r'^可遊玩洽馬洽馬極運輪盤$', r'^刮刮樂$', r'^心$')
+LOTTERY_PLACE = ParkPlace('lottery', r'^可遊玩洽馬洽馬極運輪盤$', r'^刮刮樂$')
 
 
 @dataclass(frozen=True)
@@ -56,6 +56,12 @@ class ParkRunner:
         if observation.scene == 'home':
             labels = self.nav.text(observation, place.prompt, (860, 405, 370, 85))
             key = self.nav.vision.match(observation.image, 'park_interact_key')
+            if not key:
+                # The key's glow changes its template pixels. Require the exact
+                # E in its own small box instead of lowering template confidence.
+                keys = [item for item in self.nav.text(observation, '^E$', (790, 410, 70, 65))
+                        if getattr(item, 'text', '').strip() == 'E']
+                key = len(keys) == 1
             icon = (place == LOTTERY_PLACE or any(self.nav.vision.find_all(
                 observation.image, name, roi=(850, 415, 110, 65))
                 for name in ('park_gift_prompt', 'park_gift_prompt_compact')))
@@ -101,6 +107,10 @@ class ParkRunner:
 
     def consume(self, place, before_input=lambda: None):
         view = self.read(self.nav.observe(), place)
+        deadline = time.monotonic()+3
+        while view.kind in ('park', 'prompt_loading') and time.monotonic() < deadline:
+            self.nav.inputs.pause(.2)
+            view = self.read(self.nav.observe(), place)
         if view.kind != 'entry':
             raise NavigationError('每日互動提示已改變，未消耗次數')
         # This exclusive, flushed record precedes the very first E. A crash or
@@ -163,7 +173,21 @@ class ParkRunner:
         self.nav.inputs.click(int(x+w/2), int(y+h/2))
 
     def run(self, config):
-        completed, excluded, evidence = 0, set(), None
+        if config.task == 'lottery' and not config.entry_only:
+            view = self.read(self.nav.observe(), LOTTERY_PLACE)
+            if (view.kind == 'dialogue' and '刮出什麼' in view.signature
+                    and '玩一張看看' in view.signature):
+                attempt = self.nav.daily_attempts.resume_open_dialogue('lottery')
+                self.progress(TaskResult(TaskStatus.RUNNING, '接續本日已開啟的抽獎對話', pending_round=True))
+                try:
+                    evidence = self.finish_interaction(LOTTERY_PLACE)
+                    attempt.finish(evidence=evidence)
+                    return TaskResult(TaskStatus.COMPLETE, '已接續原抽獎對話並確認結果', 1, evidence)
+                except Exception as error:
+                    attempt.finish(error=error)
+                    raise
+        excluded = set() if config.entry_only else self.nav.daily_attempts.attempted_tasks()
+        completed, evidence = 0, None
         for _ in range(3 if config.task == 'park_gifts' else 1):
             try:
                 place, view = self.entry(config.task, exclude=excluded)

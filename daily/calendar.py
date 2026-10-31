@@ -38,6 +38,9 @@ class DailyAttempt:
         updated = {**self.record, 'state': 'failed' if error else 'complete',
                    'finished_at': datetime.now(timezone.utc).isoformat(),
                    'evidence': evidence, 'error': str(error) if error else None}
+        self.replace(updated)
+
+    def replace(self, updated):
         temporary = self.path.with_suffix(f'.{uuid.uuid4().hex}.pending')
         with temporary.open('w', encoding='utf-8') as stream:
             json.dump(updated, stream, ensure_ascii=False, indent=2)
@@ -88,3 +91,56 @@ class DailyAttempts:
         except FileExistsError:
             raise DailyUnavailable(f'{task} 本遊戲日已有嘗試紀錄；未重複消耗次數') from None
         return DailyAttempt(path, record)
+
+    def attempted_tasks(self):
+        directory = self.directory / game_day(self.clock())
+        return {path.stem for path in directory.glob('*.json') if path.is_file()}
+
+    def resume_open_dialogue(self, task: str) -> DailyAttempt:
+        # Caller must verify the exact, still-open lottery introduction. This
+        # resumes that interaction; it never authorizes another initial E.
+        if task != 'lottery':
+            raise DailyUnavailable('此每日項目未啟用對話接續')
+        self.guard()
+        now = self.clock()
+        day = game_day(now)
+        if self.not_before is not None and now < max(self.not_before, test_window_start(now)):
+            raise DailyUnavailable('每日對話接續尚未到實測時間')
+        path = self.directory / day / 'lottery.json'
+        try:
+            record = json.loads(path.read_text(encoding='utf-8'))
+            if (record.get('task') != task or record.get('game_day') != day or
+                    record.get('state') != 'failed' or record.get('recovered_at')):
+                raise ValueError('Attempt cannot be resumed')
+            previous = record['recording']
+            if not Path(previous['video']).is_file():
+                raise ValueError('Original recording is missing')
+            ready = started = closed = False
+            with Path(previous['timeline']).open(encoding='utf-8') as stream:
+                for line in stream:
+                    event = json.loads(line)
+                    if event.get('event') == 'recording_ready':
+                        ready = True
+                    elif event.get('event') == 'key_down' and event.get('key') == 0x45:
+                        started |= ready
+                    elif event.get('event') == 'recording_stopped':
+                        closed |= started
+            if not started or not closed:
+                raise ValueError('Original interaction recording is not finalized')
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            raise DailyUnavailable('沒有可接續且已錄影的本日抽獎嘗試，未輸入') from None
+        self.guard()
+        recovery = {'resumed_at': now.astimezone(timezone.utc).isoformat(),
+                    'recording': self.recording()}
+        try:
+            with path.with_suffix('.recovery').open('x', encoding='utf-8') as stream:
+                json.dump(recovery, stream, ensure_ascii=False)
+                stream.flush()
+                os.fsync(stream.fileno())
+        except FileExistsError:
+            raise DailyUnavailable('本日抽獎對話已接續過，未重試') from None
+        attempt = DailyAttempt(path, record)
+        attempt.replace({**record, 'state': 'pending', 'recovered_at': recovery['resumed_at'],
+                         'recovery_recording': recovery['recording'],
+                         'prior_outcome': {key: record.get(key) for key in ('state', 'error', 'finished_at')}})
+        return attempt

@@ -68,3 +68,63 @@ def test_corrupt_attempt_still_blocks_replay(tmp_path):
     attempt.path.write_text('interrupted write')
     with pytest.raises(DailyUnavailable):
         ledger.reserve('lottery')
+
+
+def recorded_attempt(tmp_path):
+    video, timeline = tmp_path / 'original.avi', tmp_path / 'events.jsonl'
+    video.write_bytes(b'test recording')
+    timeline.write_text('\n'.join(json.dumps(row) for row in (
+        {'event': 'recording_ready'}, {'event': 'key_down', 'key': 0x45},
+        {'event': 'recording_stopped'}))+'\n')
+    ledger = DailyAttempts(tmp_path / 'ledger', clock=lambda: moment('2026-11-01T05:00:00+08:00'),
+                           recording=lambda: {'video': str(video), 'timeline': str(timeline)})
+    return ledger, ledger.reserve('lottery'), timeline
+
+
+def test_recorded_open_dialogue_can_resume_once_without_a_new_daily_reservation(tmp_path):
+    ledger, original, _ = recorded_attempt(tmp_path)
+    original.finish(error='unknown speaker')
+    recovery = ledger.resume_open_dialogue('lottery')
+    assert recovery.record['prior_outcome']['state'] == 'failed'
+    recovery.finish(evidence='received.png')
+    assert recovery.record['state'] == 'complete'
+    with pytest.raises(DailyUnavailable):
+        ledger.resume_open_dialogue('lottery')
+    with pytest.raises(DailyUnavailable):
+        ledger.reserve('lottery')
+
+
+def test_recovery_requires_original_first_e_and_live_recording_guard(tmp_path):
+    ledger, original, timeline = recorded_attempt(tmp_path)
+    original.finish(error='unknown speaker')
+    timeline.write_text('')
+    with pytest.raises(DailyUnavailable):
+        ledger.resume_open_dialogue('lottery')
+    assert not original.path.with_suffix('.recovery').exists()
+    def failed():
+        raise RuntimeError('recording lost')
+    ledger.guard = failed
+    with pytest.raises(RuntimeError, match='recording lost'):
+        ledger.resume_open_dialogue('lottery')
+
+
+def test_recovery_does_not_compete_with_a_pending_or_unfinalized_original_run(tmp_path):
+    ledger, original, timeline = recorded_attempt(tmp_path)
+    with pytest.raises(DailyUnavailable):
+        ledger.resume_open_dialogue('lottery')
+    original.finish(error='lost result')
+    timeline.write_text('\n'.join(json.dumps(row) for row in (
+        {'event': 'recording_ready'}, {'event': 'key_down', 'key': 0x45}))+'\n')
+    with pytest.raises(DailyUnavailable):
+        ledger.resume_open_dialogue('lottery')
+    assert not original.path.with_suffix('.recovery').exists()
+
+
+def test_attempted_task_snapshot_includes_corrupt_records_and_changes_with_game_day(tmp_path):
+    now = [moment('2026-11-01T05:00:00+08:00')]
+    ledger = DailyAttempts(tmp_path, clock=lambda: now[0])
+    first = ledger.reserve('park_gift_holo_house')
+    first.path.write_text('interrupted')
+    assert ledger.attempted_tasks() == {'park_gift_holo_house'}
+    now[0] = moment('2026-11-02T04:05:00+08:00')
+    assert ledger.attempted_tasks() == set()

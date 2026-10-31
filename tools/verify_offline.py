@@ -58,7 +58,8 @@ class InspectRecordings(CustomAction):
                         'gifts_empty': 'gifts', 'reward_season_empty_native': 'daily_missions',
                         'event_free': 'event_missions', 'arena_map': 'park_map',
                         'arena_popup': 'park_map', 'high_low_entry': 'home',
-                        'login_reward': 'holowork_get'}.get(path.stem, expected)
+                        'login_reward': 'holowork_get', 'lottery_entry_native': 'home',
+                        'lottery_dialogue_native': 'home'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
             if path.stem == 'date_changed':
@@ -155,7 +156,9 @@ class InspectRecordings(CustomAction):
                 'gift_azki_dialogue': (GIFT_PLACES[2], 'dialogue'),
                 'gift_azki_result': (GIFT_PLACES[2], 'reward'),
                 'lottery_entry': (LOTTERY_PLACE, 'entry'),
+                'lottery_entry_native': (LOTTERY_PLACE, 'entry'),
                 'lottery_dialogue': (LOTTERY_PLACE, 'dialogue'),
+                'lottery_dialogue_native': (LOTTERY_PLACE, 'dialogue'),
                 'lottery_scratch': (LOTTERY_PLACE, 'scratch'),
                 'lottery_result': (LOTTERY_PLACE, 'reward'),
             }.get(path.stem)
