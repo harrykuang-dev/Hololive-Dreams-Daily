@@ -53,6 +53,21 @@ def test_main_menu_requires_multiple_distinct_menu_labels(tmp_path):
     assert navigator.observe().scene == 'main_menu'
 
 
+def test_closing_gifts_returns_through_observed_main_menu():
+    navigator = Navigator.__new__(Navigator)
+    navigator.observe = lambda: Observation(None, 'gifts', 0)
+    navigator.vision = SimpleNamespace(match=lambda *args: None)
+    clicks, destinations = [], []
+    navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args))
+    def wait(scenes):
+        destinations.append(scenes)
+        return Observation(None, next(iter(scenes)), 0)
+    navigator.wait_for = wait
+    assert navigator.to_home().scene == 'home'
+    assert destinations == [{'main_menu'}, {'home'}]
+    assert clicks == [(1223, 55)]*2
+
+
 def test_reward_overlay_requires_title_and_close_hint_on_any_background(tmp_path):
     root = Path(__file__).resolve().parents[1]
     navigator = Navigator(Context(['GET!', '點擊關閉']), root / 'resource', tmp_path)

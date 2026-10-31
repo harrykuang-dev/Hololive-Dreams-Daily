@@ -24,6 +24,7 @@ from daily.live import LiveControls
 from daily.holowork import HoloWorkRunner
 from daily.park import ParkRunner, GIFT_PLACES, LOTTERY_PLACE
 from daily.fishing import FishingRunner
+from daily.rewards import RewardsRunner
 from offline_controller import OfflineController
 
 
@@ -51,6 +52,10 @@ class InspectRecordings(CustomAction):
                         'fishing_map_popup': 'fishing_map_second', 'holowork_dispatch': 'holowork',
                         'holowork_summary': 'holowork', 'holowork_assignment_empty': 'holowork',
                         'holowork_assignment': 'holowork', 'holowork_working': 'holowork'}.get(path.stem, path.stem)
+            expected = {'daily_claimable': 'daily_missions', 'pass_claimable': 'daily_missions',
+                        'pass_empty': 'daily_missions', 'rewards_get': 'daily_missions',
+                        'achievements_claimable': 'achievements', 'event_claimable': 'event_missions',
+                        'gifts_empty': 'gifts', 'reward_season_empty_native': 'daily_missions'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
             if path.stem in ('solo_setup', 'multi_ready'):
@@ -79,6 +84,18 @@ class InspectRecordings(CustomAction):
                     Observation(frame, scene, time.monotonic()), r'^[×xX✕]?\s*取消$', (720, 620, 230, 80)))
                 if result['cancel_buttons'] != 1:
                     raise ValueError('Fishing result cancel is not unique')
+            reward_expected = {
+                'daily_claimable': ('daily', 'claimable'), 'daily_missions': ('daily', 'empty'),
+                'reward_season_empty_native': ('season', 'empty'),
+                'pass_claimable': ('pass', 'claimable'), 'pass_empty': ('pass', 'empty'),
+                'achievements_claimable': ('achievements', 'claimable'),
+                'achievements': ('achievements', 'empty'),
+                'gifts': ('gifts', 'claimable'), 'gifts_empty': ('gifts', 'empty')}.get(path.stem)
+            if reward_expected:
+                view = RewardsRunner(navigator).read(Observation(frame, scene, time.monotonic()))
+                result['rewards'] = {'page': view.page, 'state': view.state}
+                if (view.page, view.state) != reward_expected:
+                    raise ValueError(f'{path.stem}: expected {reward_expected}, got {view.page}/{view.state}')
             if path.stem.startswith('holowork'):
                 work = HoloWorkRunner(navigator).read(Observation(frame, scene, time.monotonic()))
                 result['holowork'] = {'kind': work.kind, 'scores': work.scores,

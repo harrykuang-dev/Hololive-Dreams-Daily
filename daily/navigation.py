@@ -161,6 +161,7 @@ class Navigator:
             observation = self.cancel_energy_settings()
         for _ in range(4):
             destination = {'cooking_setup': 'minigame_portal', 'jump_setup': 'minigame_portal',
+                           'gifts': 'main_menu',
                            'solo_setup': 'song_select', 'song_select': 'live_portal'}.get(observation.scene)
             if destination is None:
                 break

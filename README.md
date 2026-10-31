@@ -8,7 +8,7 @@ Cooking, solo Live and multiplayer Live each require a user-entered round count.
 
 Game-window recordings and time-aligned step logs are required for live task execution. Recording failure stops further actions while still releasing held keys. Recordings remain local; development staging places them beside the staged application under `recordings`. Once-daily full tests use fresh attempts after04:05 UTC+8; the game day resets at04:00.
 
-Live testing has verified map selection, teleport, bounded approach and the fishing setup entry at the second site, 菈米的冰天雪堡. A recorded foreground test from that setup caught three fish with infinite practice bait, stopped at the configured target and returned to the park. Other bait remains disabled. Navigation verifies the place name before teleporting and handles the player marker covering the fishing icon.
+Live testing has verified map selection, teleport, bounded approach and the fishing setup entry at the second site, 菈米的冰天雪堡. A recorded foreground test from that setup caught three fish with infinite practice bait. A subsequent uninterrupted test navigated from the park, caught one fish at that site, stopped at the configured target and returned to the park. Other bait remains disabled. Navigation verifies the place name before teleporting and handles the player marker covering the fishing icon.
 
 Cooking, Jump Rope and solo Live have reached their final setup screens in entry checks. Cooking and Jump Rope gameplay modules remain disabled. User settings are stored in independent Maa nodes; native integration checks verify that round counts and budgets survive multiple UI option overrides.
 
@@ -17,6 +17,8 @@ Solo Live has passed a one-round foreground test: verifying built-in Auto and it
 holoWork collection, reward confirmation, built-in team recommendation and redispatch are implemented. Recorded foreground tests verified collection and a subsequent recovered dispatch, including fresh countdowns. A single uninterrupted collection-to-dispatch test remains pending. Existing filled teams are retained; partially filled visible teams stop for review. The task is skipped when no completed-work notification is available.
 
 Park gifts and lottery have notification teleport, bounded approach, dialogue and reward handling. Recording replays verify interaction prompts, dialogue and scratch-card states. A foreground test verified skipping when today's notifications are unavailable; full fresh-day execution remains pending. Once-daily attempts are recorded before the first interaction and are not repeated after an uncertain result or restart.
+
+Reward collection checks daily, weekly and season missions, the pass, achievements and the gift box. Recorded tests verified an achievement claim and an uninterrupted empty-page check returning to the park. A claim is clicked once and requires a confirmed received or disabled state before proceeding. Event reward navigation remains in development.
 
 ## Development
 
