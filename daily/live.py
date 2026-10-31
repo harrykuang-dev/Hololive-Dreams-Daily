@@ -132,9 +132,11 @@ class SoloLiveRunner:
         for _ in range(8):
             if observation.scene in {'live_portal', 'song_select', 'solo_setup'}:
                 return observation
-            if observation.scene != 'live_result':
+            if observation.scene not in {'live_result', 'holowork_get', 'live_achievement', None}:
                 raise NavigationError('Live 結果畫面不符')
             observation, buttons = self.wait_next_button(observation)
+            if not buttons:
+                return observation
             before = observation.image[180:580, 600:1200].copy()
             x, y, w, h = buttons[0].box
             self.nav.inputs.click(int(x+w/2), int(y+h/2))
@@ -143,6 +145,8 @@ class SoloLiveRunner:
             self.nav.inputs.pause(.5)
             while True:
                 updated = self.nav.observe()
+                if updated.scene in {'holowork_get', 'live_achievement', None}:
+                    updated, _ = self.wait_next_button(updated)
                 if updated.scene in {'live_portal', 'song_select', 'solo_setup'}:
                     return updated
                 if updated.scene == 'live_result':
@@ -155,6 +159,8 @@ class SoloLiveRunner:
                         # fast-forward the page. Retry once only after a fresh,
                         # stable result page still exposes the same Next button.
                         stable, next_buttons = self.wait_next_button(updated)
+                        if not next_buttons:
+                            return stable
                         x, y, w, h = next_buttons[0].box
                         self.nav.inputs.click(int(x+w/2), int(y+h/2))
                         retried = True
@@ -167,19 +173,40 @@ class SoloLiveRunner:
     def wait_next_button(self, observation):
         deadline = time.monotonic()+15
         not_before, stable_since, previous = time.monotonic()+1.5, None, None
+        reward_closed = False
+        achievement_closed = False
         while True:
-            if observation.scene != 'live_result':
+            if observation.scene in {'live_portal', 'song_select', 'solo_setup'}:
+                return observation, []
+            reward = self.nav.received_reward_button(observation)
+            achievement = self.nav.live_achievement_button(observation) if reward is None else None
+            close = reward if reward is not None and not reward_closed else (
+                achievement if achievement is not None and not achievement_closed else None)
+            if close is not None:
+                x, y, w, h = close
+                self.nav.inputs.click(int(x+w/2), int(y+h/2))
+                if reward is not None:
+                    reward_closed = True
+                else:
+                    achievement_closed = True
+                    reward_closed = False
+                deadline, not_before = time.monotonic()+15, time.monotonic()+1.5
+                stable_since = previous = None
+            elif observation.scene == 'live_result' and reward is None and achievement is None:
+                buttons = self.nav.text(observation, '下一步$', (1020, 610, 230, 100))
+                panel = observation.image[180:580, 600:1200]
+                if previous is not None and float(np.mean(cv2.absdiff(previous, panel))) < 1:
+                    if stable_since is None: stable_since = time.monotonic()
+                else:
+                    stable_since = None
+                previous = panel.copy()
+                if (len(buttons) == 1 and stable_since is not None and
+                        time.monotonic()-stable_since >= .8 and time.monotonic() >= not_before):
+                    return observation, buttons
+            elif observation.scene not in {'holowork_get', 'live_achievement', None, 'live_result'}:
                 raise NavigationError('等待 Live 下一步時畫面已改變')
-            buttons = self.nav.text(observation, '下一步$', (1020, 610, 230, 100))
-            panel = observation.image[180:580, 600:1200]
-            if previous is not None and float(np.mean(cv2.absdiff(previous, panel))) < 1:
-                if stable_since is None: stable_since = time.monotonic()
             else:
-                stable_since = None
-            previous = panel.copy()
-            if (len(buttons) == 1 and stable_since is not None and
-                    time.monotonic()-stable_since >= .8 and time.monotonic() >= not_before):
-                return observation, buttons
+                stable_since = previous = None
             if time.monotonic() >= deadline:
                 self.nav.save(observation, 'live-next-not-found')
                 raise NavigationError('無法唯一確認 Live 下一步按鈕')

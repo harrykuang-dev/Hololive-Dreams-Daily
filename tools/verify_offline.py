@@ -58,9 +58,11 @@ class InspectRecordings(CustomAction):
                         'gifts_empty': 'gifts', 'reward_season_empty_native': 'daily_missions',
                         'event_free': 'event_missions', 'arena_map': 'park_map',
                         'arena_popup': 'park_map', 'high_low_entry': 'home',
-                        'login_reward': 'holowork_get', 'lottery_entry_native': 'home',
+                        'login_reward': 'holowork_get', 'live_reward': 'holowork_get',
+                        'lottery_entry_native': 'home',
                         'lottery_dialogue_native': 'home', 'gift_house_unreached_native': 'home',
-                        'gift_house_wall_native': 'home'}.get(path.stem, expected)
+                        'gift_house_wall_native': 'home', 'live_achievement_native': 'live_achievement',
+                        'live_reward_transition': 'holowork_get'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
             if path.stem == 'date_changed':
@@ -73,7 +75,7 @@ class InspectRecordings(CustomAction):
                 if scene != 'login_bonus' or button is None:
                     raise ValueError('Observed login-bonus page did not have its exact continue hint')
                 result['bonus_continue'] = list(button)
-            if path.stem == 'login_reward':
+            if path.stem in {'login_reward', 'live_reward', 'live_reward_transition'}:
                 button = navigator.received_reward_button(Observation(frame, scene, time.monotonic()))
                 if scene != 'holowork_get' or button is None:
                     raise ValueError('Login reward did not have its received/close confirmation')
@@ -88,6 +90,11 @@ class InspectRecordings(CustomAction):
                 if scene != 'login_notice' or button is None:
                     raise ValueError('Observed membership announcement was not uniquely recognized')
                 result['notice_close'] = list(button)
+            if path.stem in {'live_achievement', 'live_achievement_native'}:
+                button = navigator.live_achievement_button(Observation(frame, scene, time.monotonic()))
+                if scene != 'live_achievement' or button is None:
+                    raise ValueError('Live achievement details were not uniquely recognized')
+                result['achievement_close'] = list(button)
             if path.stem in {'gift_house_entry', 'gift_house_unreached_native', 'gift_house_wall_native'}:
                 markers = vision.find_all(frame, 'park_character_gift_marker', roi=(300, 150, 800, 300))
                 expected_count = 0 if path.stem == 'gift_house_wall_native' else 1

@@ -23,7 +23,7 @@ class Context:
 
     def run_recognition(self, name, image, override):
         self.recognition_calls.append((name, override))
-        return SimpleNamespace(hit=True, filtered_results=[SimpleNamespace(text=w) for w in self.words])
+        return SimpleNamespace(hit=True, filtered_results=[SimpleNamespace(text=w, box=(1, 2, 3, 4)) for w in self.words])
 
 
 def test_changing_park_backdrop_requires_multiple_toolbar_labels(tmp_path):

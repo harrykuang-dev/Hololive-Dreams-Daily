@@ -76,13 +76,12 @@ class Navigator:
                     return Observation(frame, 'login_bonus_standard', captured)
                 if self.login_notice_button(observation):
                     return Observation(frame, 'login_notice', captured)
+                if self.live_achievement_button(observation):
+                    return Observation(frame, 'live_achievement', captured)
                 # GET overlays inherit the underlying page's colour. Require
                 # both labels instead of matching a blue header on a red page.
-                reward = self.text(observation, '^GET!$', (530, 20, 230, 95))
-                if any(getattr(item, 'text', '').strip() == 'GET!' for item in reward):
-                    close = self.text(observation, '^點擊關閉$', (480, 620, 350, 85))
-                    if any(getattr(item, 'text', '').strip() == '點擊關閉' for item in close):
-                        return Observation(frame, 'holowork_get', captured)
+                if self.received_reward_button(observation):
+                    return Observation(frame, 'holowork_get', captured)
                 work = [item for item in self.text(observation, r'^[Hh]olo[Ww]ork$', (90, 0, 270, 95))
                         if re.fullmatch(r'[Hh]olo[Ww]ork', getattr(item, 'text', '').strip())]
                 menu = self.text(observation, r'^(個人檔案|會員資格|持有物|其他)$', (680, 110, 530, 440)) if not work else []
@@ -118,6 +117,7 @@ class Navigator:
         bonus_acknowledged = set()
         reward_closed = False
         notice_closed = False
+        achievement_closed = False
         while True:
             observation = self.observe()
             recovery = None
@@ -132,6 +132,8 @@ class Navigator:
                     recovery = self.received_reward_button
                 elif observation.scene == 'login_notice' and not notice_closed:
                     recovery = self.login_notice_button
+                elif observation.scene == 'live_achievement' and not achievement_closed:
+                    recovery = self.live_achievement_button
             if recovery is not None:
                 button = recovery(observation)
                 if button is None:
@@ -146,6 +148,9 @@ class Navigator:
                     reward_closed = True
                 elif observation.scene == 'login_notice':
                     notice_closed = True
+                elif observation.scene == 'live_achievement':
+                    achievement_closed = True
+                    reward_closed = False
                 deadline = time.monotonic() + timeout
                 stable_since = last_scene = None
                 continue
@@ -215,6 +220,17 @@ class Navigator:
                 return None
         return (1060, 85, 60, 60)
 
+    def live_achievement_button(self, observation):
+        titles = [item for item in self.text(observation, '^達成獎勵$', (500, 90, 280, 90))
+                  if getattr(item, 'text', '').strip() == '達成獎勵']
+        if len(titles) != 1:
+            return None
+        words = [re.sub(r'\s+', '', getattr(item, 'text', '')).casefold() for item in self.text(
+            observation, r'^(HI-SCORE|最大[Cc]ombo|[Ff]ull\s*[Cc]ombo)$', (240, 180, 760, 340))]
+        if len(words) != 3 or set(words) != {'hi-score', '最大combo', 'fullcombo'}:
+            return None
+        return (1015, 70, 60, 60)
+
     def text(self, observation: Observation, expected: str, roi=None, *, only_rec=False):
         # This is recognition only. The OCR pipeline has no input action.
         node = {'recognition': 'OCR', 'expected': [expected], 'threshold': .75,
@@ -236,9 +252,17 @@ class Navigator:
 
     def to_home(self):
         observation = self.observe()
+        deadline = time.monotonic()+3
+        while observation.scene is None and time.monotonic() < deadline:
+            self.inputs.pause(.2)
+            observation = self.observe()
         if observation.scene in {'date_changed', 'login_bonus', 'login_bonus_standard',
-                                 'holowork_get', 'login_notice'}:
+                                 'login_notice'}:
             return self.wait_for({'home'}, timeout=45)
+        if observation.scene in {'holowork_get', 'live_achievement'}:
+            observation = self.wait_for({'home', 'live_result', 'song_select', 'solo_setup',
+                                         'holowork', 'daily_missions', 'achievements',
+                                         'event_missions', 'gifts'}, timeout=45)
         if self.vision.match(observation.image, 'park_dialogue_next'):
             raise NavigationError('角色對話尚未結束，未嘗試其他選單')
         if observation.scene == 'notifications':
@@ -288,7 +312,8 @@ class Navigator:
                                  'fishing_setup_second', 'main_menu', 'holowork'}:
             self.inputs.click(1223, 55)
             return self.wait_for({'home'})
-        raise NavigationError('目前不在可安全返回樂園的畫面')
+        evidence = self.save(observation, 'home-unrecognized')
+        raise NavigationError(f'目前不在可安全返回樂園的畫面；{evidence}')
 
     def to_live_portal(self):
         self.to_home()
