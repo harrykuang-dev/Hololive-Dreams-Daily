@@ -42,6 +42,11 @@ AUTO = {'solo_auto_on': ('solo_setup', [523, 635, 77, 41]),
         'energy_plus': ('energy_controls', [1080, 411, 42, 40]),
         'map_card_close': ('fishing_map_popup', [1165, 108, 55, 55])}
 AUTO['work_empty_slot'] = ('holowork_assignment_empty', [464, 155, 80, 80])
+AUTO['park_dialogue_next'] = ('gift_azki_dialogue', [980, 674, 74, 32])
+AUTO['park_interact_key'] = ('gift_house_entry', [808, 427, 32, 33])
+AUTO['park_gift_prompt'] = ('gift_house_entry', [901, 433, 23, 25])
+AUTO['park_gift_prompt_compact'] = ('gift_bijou_entry', [897, 432, 25, 27])
+AUTO['lottery_scratch_card'] = ('lottery_scratch', [630, 245, 350, 115])
 
 
 def build(samples: Path):
@@ -66,7 +71,7 @@ def build(samples: Path):
                          'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
         if name == 'map_fishing_hook':
             entries[name].update(scene=False, threshold=.82)
-        elif name.startswith('map_') or name in ('energy_minus', 'energy_plus', 'portal_go', 'work_empty_slot') or name.endswith('_boost_button'):
+        elif name.startswith(('map_', 'park_', 'lottery_')) or name in ('energy_minus', 'energy_plus', 'portal_go', 'work_empty_slot') or name.endswith('_boost_button'):
             entries[name].update(scene=False)
         if name == 'notifications':
             entries[name]['priority'] = 1

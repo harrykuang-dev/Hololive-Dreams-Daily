@@ -901,5 +901,145 @@
     },
     "sha256": "63e2993026dd2e614344efb29a881ccaf3de5d35c125bf8f9467c9bf1f9ea815",
     "scene": false
+  },
+  "park_dialogue_next": {
+    "file": "anchors/park_dialogue_next.png",
+    "roi": [
+      980,
+      674,
+      74,
+      32
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "gift_azki_dialogue",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 99,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "bec63a26f29a47853ed9703e56955d6b9ca06226cb6cd3e2c7ba73a52bc226c8"
+    },
+    "sha256": "37da1c595aae6851648fa2f892631a0d08df2d72f77b71389b614caa9ca2f19b",
+    "scene": false
+  },
+  "park_interact_key": {
+    "file": "anchors/park_interact_key.png",
+    "roi": [
+      808,
+      427,
+      32,
+      33
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "gift_house_entry",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 71,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "0af1aca762d9bf4ea41cdf9494e67592777c1ad81e087e2443722bc0364280c4"
+    },
+    "sha256": "c078d64e194af01d13fedb8af486fb7df5ba089f87fcd717079c8f18c9323f39",
+    "scene": false
+  },
+  "park_gift_prompt": {
+    "file": "anchors/park_gift_prompt.png",
+    "roi": [
+      901,
+      433,
+      23,
+      25
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "gift_house_entry",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 71,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "0af1aca762d9bf4ea41cdf9494e67592777c1ad81e087e2443722bc0364280c4"
+    },
+    "sha256": "4c87447ea9170dee3c00eb3d69333e2d8461b960007056b4690a3b0eace44d33",
+    "scene": false
+  },
+  "park_gift_prompt_compact": {
+    "file": "anchors/park_gift_prompt_compact.png",
+    "roi": [
+      897,
+      432,
+      25,
+      27
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "gift_bijou_entry",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 88.2,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "352d7341d90eec0fdfeb8c4942aacc2bf967d7749f8bc7466bfd3ebf4f2323bb"
+    },
+    "sha256": "e205f681e875b8a8f17040a7284a5ff868b1b2861d93a09818af34eedd73f412",
+    "scene": false
+  },
+  "lottery_scratch_card": {
+    "file": "anchors/lottery_scratch_card.png",
+    "roi": [
+      630,
+      245,
+      350,
+      115
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "lottery_scratch",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 113,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "9da71627d438efe8afb86b4bae4a352386bc3749c5800a10dcf9dff6a738dd28"
+    },
+    "sha256": "7553cb1b2141ef07acaba5aad0e18c1dc58d479d90c0b02f77f465f77a2de1e8",
+    "scene": false
   }
 }

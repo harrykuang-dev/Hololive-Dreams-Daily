@@ -20,6 +20,7 @@ from .live import SoloLiveRunner
 from .holowork import HoloWorkRunner
 from .recording import GameRecording, recording_directory
 from .calendar import DailyAttempts, DailyUnavailable
+from .park import ParkRunner
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -96,6 +97,8 @@ class RunDailyTask(CustomAction):
                                  TaskStatus.NAVIGATION_VERIFIED, TaskStatus.SKIPPED)
 
     def execute(self, navigator: Navigator, config: TaskConfig, *, progress=lambda result: None) -> TaskResult:
+        if config.task in ('park_gifts', 'lottery'):
+            return ParkRunner(navigator, progress).run(config)
         if config.task == 'connect':
             observation = navigator.observe()
             evidence = navigator.save(observation, 'connected')

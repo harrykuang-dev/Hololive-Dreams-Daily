@@ -143,6 +143,11 @@ class Navigator:
 
     def to_home(self):
         observation = self.observe()
+        if self.vision.match(observation.image, 'park_dialogue_next'):
+            raise NavigationError('角色對話尚未結束，未嘗試其他選單')
+        if observation.scene == 'notifications':
+            self.inputs.click(260, 45)
+            return self.wait_for({'home'})
         if observation.scene == 'other_menu':
             observation = self.click_text('other_menu', '取消$', 'main_menu', roi=(990, 610, 240, 100))
         if observation.scene == 'live_result':
@@ -241,6 +246,14 @@ class Navigator:
     def to_daily_missions(self):
         self.to_home()
         return self.click_text('home', '^任務$', 'daily_missions', roi=(730, 10, 400, 110))
+
+    def open_notifications(self):
+        if self.observe().scene == 'notifications':
+            return self.wait_for({'notifications'}, timeout=5)
+        self.to_home()
+        self.wait_for({'home'}, timeout=5)
+        self.inputs.click(260, 45)
+        return self.wait_for({'notifications'})
 
     def to_holowork(self):
         if self.observe().scene in {'holowork', 'holowork_get', 'holowork_started'}:

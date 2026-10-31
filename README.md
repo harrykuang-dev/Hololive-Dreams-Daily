@@ -16,6 +16,8 @@ Solo Live has passed a one-round foreground test: verifying built-in Auto and it
 
 holoWork collection, reward confirmation, built-in team recommendation and redispatch are implemented. Recorded foreground tests verified collection and a subsequent recovered dispatch, including fresh countdowns. A single uninterrupted collection-to-dispatch test remains pending. Existing filled teams are retained; partially filled visible teams stop for review. The task is skipped when no completed-work notification is available.
 
+Park gifts and lottery have notification teleport, bounded approach, dialogue and reward handling. Recording replays verify interaction prompts, dialogue and scratch-card states. A foreground test verified skipping when today's notifications are unavailable; full fresh-day execution remains pending. Once-daily attempts are recorded before the first interaction and are not repeated after an uncertain result or restart.
+
 ## Development
 
 Use Python 3.13 x64 and .NET 10. Install `requirements-dev.txt`, then run:

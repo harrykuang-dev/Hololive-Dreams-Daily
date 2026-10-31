@@ -22,6 +22,7 @@ from daily.navigation import Navigator, Observation
 from daily.resources import EnergySettings
 from daily.live import LiveControls
 from daily.holowork import HoloWorkRunner
+from daily.park import ParkRunner, GIFT_PLACES, LOTTERY_PLACE
 from offline_controller import OfflineController
 
 
@@ -79,6 +80,26 @@ class InspectRecordings(CustomAction):
                                  'holowork_working': 'working'}[path.stem]
                 if work.kind != expected_kind:
                     raise ValueError(f'{path.stem}: expected {expected_kind}, got {work.kind}')
+            park_reference = {
+                'gift_house_entry': (GIFT_PLACES[0], 'entry'),
+                'gift_house_result': (GIFT_PLACES[0], 'unknown'),
+                'gift_bijou_entry': (GIFT_PLACES[1], 'entry'),
+                'gift_bijou_dialogue': (GIFT_PLACES[1], 'dialogue'),
+                'gift_bijou_result': (GIFT_PLACES[1], 'unknown'),
+                'gift_azki_approach': (GIFT_PLACES[2], 'park'),
+                'gift_azki_dialogue': (GIFT_PLACES[2], 'dialogue'),
+                'gift_azki_result': (GIFT_PLACES[2], 'reward'),
+                'lottery_entry': (LOTTERY_PLACE, 'entry'),
+                'lottery_dialogue': (LOTTERY_PLACE, 'dialogue'),
+                'lottery_scratch': (LOTTERY_PLACE, 'scratch'),
+                'lottery_result': (LOTTERY_PLACE, 'reward'),
+            }.get(path.stem)
+            if park_reference:
+                place, expected_kind = park_reference
+                park = ParkRunner(navigator).read(Observation(frame, scene, time.monotonic()), place)
+                result['park'] = {'kind': park.kind, 'signature': park.signature}
+                if park.kind != expected_kind:
+                    raise ValueError(f'{path.stem}: expected {expected_kind}, got {park.kind}')
             self.report.append(result)
         return True
 
