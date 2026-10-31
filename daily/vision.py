@@ -52,14 +52,32 @@ class Vision:
         return Match(name, score, (x0+location[0], y0+location[1], w, h))
 
     def scene(self, frame) -> str | None:
-        candidates = [match for name in self.anchors if '_auto_on' not in name
+        candidates = [match for name in self.anchors if self.anchors[name].get('scene', True)
+                      and '_auto_on' not in name
                       and (match := self.match(frame, name))]
         if not candidates:
             return None
+        highest_priority = max(self.anchors[match.name].get('priority', 0) for match in candidates)
+        candidates = [match for match in candidates
+                      if self.anchors[match.name].get('priority', 0) == highest_priority]
         candidates.sort(key=lambda value: value.score, reverse=True)
         if len(candidates) > 1 and candidates[0].score - candidates[1].score < .025:
             return None
         return candidates[0].name
+
+    def find_all(self, frame, name: str, *, roi=None) -> list[Match]:
+        x, y, w, h = roi or (0, 0, 1280, 720)
+        template = self.images[name]
+        th, tw = template.shape[:2]
+        scores = cv2.matchTemplate(frame[y:y+h, x:x+w], template, cv2.TM_CCOEFF_NORMED)
+        results = []
+        while len(results) < 12:
+            _, score, _, location = cv2.minMaxLoc(scores)
+            if not np.isfinite(score) or score < self.anchors[name]['threshold']: break
+            px, py = location
+            results.append(Match(name, score, (x+px, y+py, tw, th)))
+            scores[max(0,py-th):py+th, max(0,px-tw):px+tw] = -1
+        return sorted(results, key=lambda result: (result.box[0], result.box[1]))
 
     def auto(self, frame, scene: str, remaining_text: str | None,
              captured_at: float | None = None) -> AutoObservation:

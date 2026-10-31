@@ -3,13 +3,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import math
 import re
 import time
 
 import cv2
 
 from .inputs import Inputs
-from .vision import Vision
+from .vision import Match, Vision
 
 
 class NavigationError(RuntimeError):
@@ -41,6 +42,11 @@ class Navigator:
         frame = self.vision.normalize(job.get())
         scene = self.vision.scene(frame)
         observation = Observation(frame, scene, captured)
+        if scene == 'fishing_map_second':
+            # MAP's large shared header cannot distinguish the three areas.
+            area = self.text(observation, '汽水泡泡灣', (65, 5, 350, 110))
+            if not any('汽水泡泡灣' in getattr(item, 'text', '') for item in area):
+                scene = 'park_map'
         if scene is None:
             # The park backdrop and notification badges change. Require three
             # independently read toolbar labels instead of weakening a template.
@@ -48,6 +54,12 @@ class Navigator:
             words = {getattr(item, 'text', '').strip() for item in toolbar}
             if len(words.intersection({'遊戲', 'Live', '任務', '成就'})) >= 3:
                 scene = 'home'
+            else:
+                heading = self.text(observation, r'^MAP$', (65, 5, 240, 95))
+                if any(getattr(item, 'text', '').strip() == 'MAP' for item in heading):
+                    area = self.text(observation, '汽水泡泡灣', (65, 5, 350, 110))
+                    scene = 'fishing_map_second' if any('汽水泡泡灣' in getattr(item, 'text', '')
+                                                       for item in area) else 'park_map'
         return Observation(frame, scene, captured)
 
     def save(self, observation: Observation, name: str) -> str:
@@ -56,12 +68,21 @@ class Navigator:
             raise OSError('Cannot save scene evidence')
         return str(path)
 
-    def wait_for(self, scenes, *, timeout=30) -> Observation:
+    def wait_for(self, scenes, *, timeout=30, stable_for=.35) -> Observation:
         deadline = time.monotonic() + timeout
+        stable_since = None
+        last_scene = None
         while True:
             observation = self.observe()
             if observation.scene in scenes:
-                return observation
+                if observation.scene != last_scene:
+                    stable_since = time.monotonic()
+                if time.monotonic() - stable_since >= stable_for:
+                    return observation
+                last_scene = observation.scene
+            else:
+                stable_since = None
+                last_scene = None
             if time.monotonic() >= deadline:
                 evidence = self.save(observation, 'unknown')
                 raise NavigationError(f'等待畫面逾時：{", ".join(scenes)}；{evidence}')
@@ -89,10 +110,24 @@ class Navigator:
         observation = self.observe()
         if observation.scene == 'home':
             return observation
+        if observation.scene in {'park_map', 'fishing_map_second'}:
+            # A modal information card disables the background X and M key.
+            # Close its observed X before closing the map itself.
+            card_close = self.vision.match(observation.image, 'map_card_close')
+            if card_close:
+                x, y, w, h = card_close.box
+                self.inputs.click(x+w//2, y+h//2)
+                deadline = time.monotonic()+5
+                while self.vision.match(self.observe().image, 'map_card_close'):
+                    if time.monotonic() >= deadline:
+                        raise NavigationError('地圖資訊卡尚未關閉')
+                    self.inputs.pause(.15)
+            self.inputs.click(1223, 55)
+            return self.wait_for({'home'})
         # These screens have the visibly recorded close button at top right.
         if observation.scene in {'live_portal', 'minigame_portal', 'daily_missions',
                                  'achievements', 'event_missions', 'gifts',
-                                 'fishing_map_second', 'fishing_setup_second'}:
+                                 'fishing_setup_second'}:
             self.inputs.click(1223, 55)
             return self.wait_for({'home'})
         raise NavigationError('目前不在可安全返回樂園的畫面')
@@ -111,14 +146,128 @@ class Navigator:
 
     def to_fishing_second(self):
         self.to_home()
-        # The minimap opens the full map. Match its area title before selecting
-        # the recorded second hook: upper hook is the first location, not ours.
-        self.inputs.click(100, 100)
-        self.wait_for({'fishing_map_second'})
-        self.inputs.click(360, 462)
+        # The recording uses M, not a click on the small minimap. Selecting a
+        # fishing icon opens an information card; Move is a separate action.
+        map_view = self.open_map()
+        self.save(map_view, 'map-open')
+        map_view = self.center_fishing_map(map_view)
+        self.save(map_view, 'lagoon-map')
+        hooks = self.wait_for_hooks(map_view)
+        map_view = self.observe()
+        moved = False
+        # Reopen and normalize the overview after a wrong information card;
+        # selecting a card pans the map, invalidating earlier coordinates.
+        for index in range(min(4, len(hooks))):
+            if index:
+                self.to_home()
+                map_view = self.open_map()
+                map_view = self.center_fishing_map(map_view)
+                hooks = self.wait_for_hooks(map_view)
+            if index >= len(hooks): break
+            x, y, w, h = hooks[index].box
+            self.inputs.click(x+w//2, y+h//2)
+            card = self.wait_for_map_card()
+            self.save(card, f'fishing-card-{index}')
+            title = self.text(card, '菈米的冰天雪堡', (780, 120, 450, 180))
+            if not title:
+                continue
+            moves = self.text(card, '^移動$', (780, 400, 450, 240))
+            if len(moves) != 1:
+                raise NavigationError('已找到第二釣點，但無法確認移動按鈕')
+            bx, by, bw, bh = moves[0].box
+            self.inputs.click(bx+bw//2, by+bh//2)
+            moved = True
+            break
+        if not moved:
+            raise NavigationError('未找到菈米的冰天雪堡釣點')
         home = self.wait_for({'home'}, timeout=45)
-        matches = self.text(home, '開始釣魚', roi=(800, 360, 450, 220))
-        if len(matches) != 1:
-            raise NavigationError('第二釣點尚未出現開始釣魚的互動提示')
-        self.inputs.key(0x45)  # E, from the recorded interaction prompt.
+        self.save(home, 'fishing-arrival')
+        self.approach('開始釣魚')
+        self.inputs.key(0x45, .12)  # E, from the recorded interaction prompt.
         return self.wait_for({'fishing_setup_second'})
+
+    def wait_for_map_card(self):
+        deadline = time.monotonic()+6
+        while True:
+            card = self.observe()
+            if (self.vision.match(card.image, 'map_card_close') and
+                    self.text(card, '^釣魚場$', (780, 180, 450, 180))):
+                return card
+            if time.monotonic() >= deadline:
+                self.save(card, 'map-card-not-open')
+                raise NavigationError('釣點資訊卡尚未顯示')
+            self.inputs.pause(.2)
+
+    def center_fishing_map(self, observation):
+        # M centers on the player and each region preserves its last viewport.
+        # Use the visible zoom slider's minimum before looking for hooks, so the
+        # northern site cannot remain hidden behind the map header/counter.
+        if observation.scene == 'park_map':
+            self.inputs.click(75, 610)
+            self.wait_for({'fishing_map_second'})
+        self.inputs.click(994, 668)
+        self.inputs.pause(.35)
+        return self.wait_for({'fishing_map_second'})
+
+    def approach(self, interaction: str, *, segments=10):
+        for index in range(segments+1):
+            observation = self.observe()
+            if observation.scene != 'home':
+                raise NavigationError('接近互動點時畫面已改變，停止移動')
+            matches = self.text(observation, interaction, roi=(700, 300, 560, 310))
+            if len(matches) == 1:
+                return observation
+            if len(matches) > 1:
+                raise NavigationError('互動提示不唯一，停止移動')
+            if index < segments:
+                self.inputs.key(0x57, .30)  # Bounded W segments from the recording.
+                self.inputs.pause(.1)
+        self.save(observation, 'interaction-not-reached')
+        raise NavigationError(f'未在有限移動距離內找到互動提示：{interaction}')
+
+    def open_map(self):
+        for attempt in range(2):
+            self.wait_for({'home'}, timeout=5)
+            self.inputs.key(0x4D, .18)
+            try:
+                return self.wait_for({'park_map', 'fishing_map_second'}, timeout=6)
+            except NavigationError:
+                if attempt or self.observe().scene != 'home':
+                    raise
+        raise NavigationError('無法開啟地圖')
+
+    def wait_for_hooks(self, observation: Observation, timeout=10):
+        deadline = time.monotonic() + timeout
+        while True:
+            hooks = self.fishing_candidates(observation.image)
+            if observation.scene == 'fishing_map_second' and hooks:
+                return hooks
+            if time.monotonic() >= deadline:
+                self.save(observation, 'missing-map-hooks')
+                raise NavigationError('地圖中找不到釣魚圖示')
+            self.inputs.pause(.2)
+            observation = self.observe()
+
+    def fishing_candidates(self, image):
+        hooks = self.vision.find_all(image, 'map_fishing_hook', roi=(150, 100, 1020, 590))
+        # The player's marker covers the hook at their current fishing site.
+        # Locate that destination from two independent, fixed map landmarks.
+        # A candidate is never a teleport authorization: the information card's
+        # exact place name and Move button are still required before moving.
+        clock = self.vision.find_all(image, 'map_clock', roi=(150, 90, 1020, 560))
+        shop = self.vision.find_all(image, 'map_shop', roi=(150, 90, 1020, 560))
+        if len(clock) == len(shop) == 1:
+            def center(box):
+                x, y, w, h = box
+                return x+w/2, y+h/2
+            ca, sa = (center(self.vision.anchors[name]['roi']) for name in ('map_clock', 'map_shop'))
+            c, s = center(clock[0].box), center(shop[0].box)
+            sx, sy = (s[0]-c[0])/(sa[0]-ca[0]), (s[1]-c[1])/(sa[1]-ca[1])
+            if .3 <= sx <= 2 and .3 <= sy <= 2 and abs(sx-sy) <= .12:
+                target = center(self.vision.anchors['map_fishing_hook']['roi'])
+                x, y = c[0]+sx*(target[0]-ca[0]), c[1]+sy*(target[1]-ca[1])
+                if 160 <= x <= 1150 and 110 <= y <= 650:
+                    estimate = Match('map_lami_candidate', min(clock[0].score, shop[0].score),
+                                     (round(x)-4, round(y)-4, 8, 8))
+                    hooks = [estimate]+[h for h in hooks if math.dist(center(h.box), (x,y)) > 30]
+        return hooks

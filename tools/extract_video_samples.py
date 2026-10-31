@@ -20,13 +20,17 @@ SAMPLES = [
     ('achievements', '13.51.56.03', 2010),
     ('event_missions', '13.51.56.03', 2020),
     ('fishing_map_second', '13.51.56.03', 1910),
+    ('fishing_map_popup', '13.51.56.03', 1910.6),
     ('fishing_setup_second', '13.51.56.03', 1918),
     ('fishing_setup_first', '13.51.56.03', 1906),
     ('multi_ready', '13.51.56.03', 1630),
     ('holowork', '09.52.54.01', 45),
     ('holowork_dispatch', '09.52.54.01', 50),
+    ('notifications', '09.52.54.01', 43),
     ('minigame_portal', '09.52.54.01', 125),
-    ('cooking_setup', '09.52.54.01', 140),
+    ('cooking_setup', '09.52.54.01', 127),
+    ('cooking_energy', '09.52.54.01', 129),
+    ('jump_setup', '13.51.56.03', 1370),
     ('gifts', '14.25.52.04', 6),
 ]
 

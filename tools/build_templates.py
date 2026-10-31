@@ -17,13 +17,20 @@ ANCHORS = {
     'fishing_map_second': [20, 12, 285, 78],
     'holowork': [12, 8, 230, 75],
     'minigame_portal': [12, 8, 230, 75],
+    'cooking_setup': [15, 15, 300, 175],
+    'jump_setup': [15, 15, 300, 175],
+    'notifications': [26, 32, 110, 50],
     'daily_missions': [12, 8, 240, 75],
     'achievements': [12, 8, 240, 75],
     'event_missions': [12, 8, 240, 75],
     'gifts': [12, 8, 240, 75],
 }
 AUTO = {'solo_auto_on': ('solo_setup', [523, 635, 77, 41]),
-        'multi_auto_on': ('multi_ready', [217, 632, 77, 41])}
+        'multi_auto_on': ('multi_ready', [217, 632, 77, 41]),
+        'map_fishing_hook': ('fishing_map_second', [330, 433, 55, 58]),
+        'map_clock': ('fishing_map_second', [365, 114, 60, 58]),
+        'map_shop': ('fishing_map_second', [275, 249, 58, 57]),
+        'map_card_close': ('fishing_map_popup', [1165, 108, 55, 55])}
 
 
 def build(samples: Path):
@@ -45,6 +52,12 @@ def build(samples: Path):
         entries[name] = {'file': f'anchors/{name}.png', 'roi': roi, 'threshold': 0.90,
                          'source': provenance[scene],
                          'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+        if name == 'map_fishing_hook':
+            entries[name].update(scene=False, threshold=.82)
+        elif name.startswith('map_'):
+            entries[name].update(scene=False)
+        if name == 'notifications':
+            entries[name]['priority'] = 1
     (ROOT / 'resource/anchors.json').write_text(
         json.dumps(entries, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(f'Built {len(entries)} UI anchors.')

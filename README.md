@@ -6,6 +6,8 @@ Development is in progress. The current source includes the task configuration i
 
 Cooking, solo Live and multiplayer Live each require a user-entered round count. Fishing uses the second location shown in the reference recording. Once-daily features can be validated at their interaction entry without consuming a play.
 
+Live testing has verified map selection, teleport, bounded approach and the fishing setup entry at the second site, 菈米的冰天雪堡. Validation stops before Start; fishing gameplay has not been accepted. Navigation verifies the place name before teleporting and handles the player marker covering the fishing icon.
+
 ## Development
 
 Use Python 3.13 x64 and .NET 10. Install `requirements-dev.txt`, then run:

@@ -58,3 +58,12 @@ def test_cancellation_does_not_click():
     with pytest.raises(Cancelled):
         inputs.click(10, 20)
     assert not controller.events
+
+
+def test_cancellation_while_showing_cursor_releases_alt():
+    controller = Controller()
+    inputs = Inputs(controller, stopping=lambda: any(e[0] == 'move' for e in controller.events))
+    with pytest.raises(Cancelled):
+        inputs.click(10, 20)
+    assert controller.events[-1] == ('up', 0xA5)
+    assert not any(e[0] == 'click' for e in controller.events)

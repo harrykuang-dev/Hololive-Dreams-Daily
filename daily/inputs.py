@@ -49,9 +49,11 @@ class Inputs:
     def cursor(self):
         try:
             self.down(self.RIGHT_ALT)
-            self.check()
+            self.pause(.08)
             self.wait(self.controller.post_relative_move(1, 0))
+            self.pause(.08)
             yield
+            self.pause(.05)
         finally:
             self.release_all()
 
@@ -66,12 +68,15 @@ class Inputs:
             raise ValueError('Movement segments must be bounded to 750 ms')
         try:
             self.down(key)
-            deadline = time.monotonic() + duration
-            while time.monotonic() < deadline:
-                self.check()
-                time.sleep(min(0.02, max(0, deadline - time.monotonic())))
+            self.pause(duration)
         finally:
             self.release_all()
+
+    def pause(self, duration: float):
+        deadline = time.monotonic() + duration
+        while time.monotonic() < deadline:
+            self.check()
+            time.sleep(min(.02, max(0, deadline - time.monotonic())))
 
     def release_all(self):
         failures = []
