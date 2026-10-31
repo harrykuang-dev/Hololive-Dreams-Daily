@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ANCHORS = {
     'home': [800, 24, 185, 85],
     'live_portal': [12, 8, 230, 75],
+    'live_playing': [984, 20, 68, 35],
+    'live_result': [12, 8, 230, 75],
     'solo_setup': [1020, 100, 200, 60],
     'multi_ready': [585, 12, 190, 45],
     'song_select': [680, 678, 290, 30],
@@ -20,6 +22,7 @@ ANCHORS = {
     'cooking_setup': [15, 15, 300, 175],
     'jump_setup': [15, 15, 300, 175],
     'notifications': [26, 32, 110, 50],
+    'energy_settings': [875, 105, 175, 38],
     'daily_missions': [12, 8, 240, 75],
     'achievements': [12, 8, 240, 75],
     'event_missions': [12, 8, 240, 75],
@@ -31,6 +34,10 @@ AUTO = {'solo_auto_on': ('solo_setup', [523, 635, 77, 41]),
         'map_clock': ('fishing_map_second', [365, 114, 60, 58]),
         'map_shop': ('fishing_map_second', [275, 249, 58, 57]),
         'portal_go': ('minigame_portal', [175, 581, 164, 57]),
+        'solo_boost_button': ('solo_setup', [904, 631, 46, 52]),
+        'minigame_boost_button': ('cooking_setup', [901, 625, 56, 60]),
+        'energy_minus': ('energy_controls', [800, 410, 38, 35]),
+        'energy_plus': ('energy_controls', [1080, 411, 42, 40]),
         'map_card_close': ('fishing_map_popup', [1165, 108, 55, 55])}
 
 
@@ -42,6 +49,7 @@ def build(samples: Path):
     provenance = {record['scene']: record for record in records}
     for name, (scene, roi) in {
         **{scene: (scene, roi) for scene, roi in ANCHORS.items()}, **AUTO}.items():
+        scene = {'energy_settings': 'cooking_energy', 'live_playing': 'auto_playing'}.get(scene, scene)
         source = cv2.imread(str(samples / f'{scene}.png'))
         if source is None or source.shape[:2] != (720, 1280):
             raise ValueError(f'Invalid calibrated sample: {scene}')
@@ -55,10 +63,12 @@ def build(samples: Path):
                          'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
         if name == 'map_fishing_hook':
             entries[name].update(scene=False, threshold=.82)
-        elif name.startswith('map_') or name == 'portal_go':
+        elif name.startswith('map_') or name in ('energy_minus', 'energy_plus', 'portal_go') or name.endswith('_boost_button'):
             entries[name].update(scene=False)
         if name == 'notifications':
             entries[name]['priority'] = 1
+        elif name == 'energy_settings':
+            entries[name]['priority'] = 2
     (ROOT / 'resource/anchors.json').write_text(
         json.dumps(entries, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(f'Built {len(entries)} UI anchors.')

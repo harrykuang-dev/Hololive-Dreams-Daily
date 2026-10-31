@@ -15,6 +15,7 @@ SAMPLES = [
     ('song_select', '13.51.56.03', 40),
     ('live_portal', '13.51.56.03', 20),
     ('auto_playing', '13.51.56.03', 100),
+    ('live_result', '13.51.56.03', 223),
     ('home', '13.51.56.03', 1995),
     ('daily_missions', '13.51.56.03', 2000),
     ('achievements', '13.51.56.03', 2010),
@@ -30,6 +31,7 @@ SAMPLES = [
     ('minigame_portal', '09.52.54.01', 125),
     ('cooking_setup', '09.52.54.01', 127),
     ('cooking_energy', '09.52.54.01', 129),
+    ('energy_controls', '09.52.54.01', 129.4),
     ('jump_setup', '13.51.56.03', 1370),
     ('gifts', '14.25.52.04', 6),
 ]

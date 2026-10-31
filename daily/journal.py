@@ -41,5 +41,6 @@ class Journal:
     def verified_complete(record: dict | None) -> bool:
         # Entry-only, skipped and interrupted runs are never complete runs.
         return bool(record and record.get('result', {}).get('status') == TaskStatus.COMPLETE
+                    and not record.get('result', {}).get('pending_round', False)
                     and record.get('result', {}).get('evidence'))
 

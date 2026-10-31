@@ -37,3 +37,9 @@ def test_one_generic_label_does_not_classify_unknown_scene(tmp_path):
     context = Context(['任務'])
     navigator = Navigator(context, root / 'resource', tmp_path)
     assert navigator.observe().scene is None
+
+
+def test_holowork_header_ocr_handles_changing_dispatch_background(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    navigator = Navigator(Context(['holowork']), root / 'resource', tmp_path)
+    assert navigator.observe().scene == 'holowork'

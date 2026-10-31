@@ -39,7 +39,11 @@ class Navigator:
         if not job.succeeded:
             raise NavigationError('無法擷取遊戲畫面')
         captured = time.monotonic()
-        frame = self.vision.normalize(job.get())
+        return self.interpret(job.get(), captured_at=captured)
+
+    def interpret(self, image, *, captured_at=None):
+        captured = time.monotonic() if captured_at is None else captured_at
+        frame = self.vision.normalize(image)
         scene = self.vision.scene(frame)
         observation = Observation(frame, scene, captured)
         if scene == 'fishing_map_second':
@@ -55,8 +59,11 @@ class Navigator:
             if len(words.intersection({'遊戲', 'Live', '任務', '成就'})) >= 3:
                 scene = 'home'
             else:
-                heading = self.text(observation, r'^MAP$', (65, 5, 240, 95))
-                if any(getattr(item, 'text', '').strip() == 'MAP' for item in heading):
+                work = self.text(observation, r'^[Hh]olo[Ww]ork$', (90, 0, 270, 95))
+                heading = self.text(observation, r'^MAP$', (65, 5, 240, 95)) if not work else []
+                if len(work) == 1 and re.fullmatch(r'[Hh]olo[Ww]ork', getattr(work[0], 'text', '').strip()):
+                    scene = 'holowork'
+                elif any(getattr(item, 'text', '').strip() == 'MAP' for item in heading):
                     area = self.text(observation, '汽水泡泡灣', (65, 5, 350, 110))
                     scene = 'fishing_map_second' if any('汽水泡泡灣' in getattr(item, 'text', '')
                                                        for item in area) else 'park_map'
@@ -88,9 +95,10 @@ class Navigator:
                 raise NavigationError(f'等待畫面逾時：{", ".join(scenes)}；{evidence}')
             time.sleep(.2)
 
-    def text(self, observation: Observation, expected: str, roi=None):
+    def text(self, observation: Observation, expected: str, roi=None, *, only_rec=False):
         # This is recognition only. The OCR pipeline has no input action.
-        node = {'recognition': 'OCR', 'expected': [expected], 'threshold': .75}
+        node = {'recognition': 'OCR', 'expected': [expected], 'threshold': .75,
+                'only_rec': only_rec}
         if roi is not None:
             node['roi'] = list(roi)
         detail = self.context.run_recognition('DailyOCR', observation.image,
@@ -108,6 +116,13 @@ class Navigator:
 
     def to_home(self):
         observation = self.observe()
+        if observation.scene == 'live_result':
+            # Recover a result left open by an earlier run without starting or
+            # counting another song. This path only advances reward pages.
+            from .live import SoloLiveRunner
+            observation = SoloLiveRunner(self).finish_result(observation)
+        if observation.scene == 'energy_settings':
+            observation = self.cancel_energy_settings()
         for _ in range(4):
             destination = {'cooking_setup': 'minigame_portal', 'jump_setup': 'minigame_portal',
                            'solo_setup': 'song_select', 'song_select': 'live_portal'}.get(observation.scene)
@@ -172,9 +187,49 @@ class Navigator:
         self.inputs.click(int(x+w/2), int(y+h/2))
         return self.wait_for({destination}, timeout=45)
 
+    def open_energy_settings(self, task):
+        scene = {'solo_live': 'solo_setup', 'cooking': 'cooking_setup', 'jump_rope': 'jump_setup'}[task]
+        observation = self.wait_for({scene}, timeout=5)
+        anchor = 'solo_boost_button' if task == 'solo_live' else 'minigame_boost_button'
+        button = self.vision.match(observation.image, anchor)
+        if button is None:
+            raise NavigationError('無法確認能量設定按鈕')
+        x, y, w, h = button.box
+        self.inputs.click(x+w//2, y+h//2)
+        observation = self.wait_for({'energy_settings'}, timeout=8)
+        self.save(observation, task+'-energy-settings')
+        return observation
+
+    def cancel_energy_settings(self):
+        observation = self.wait_for({'energy_settings'}, timeout=5)
+        buttons = self.text(observation, '取消$', roi=(730, 625, 230, 75))
+        if len(buttons) != 1:
+            raise NavigationError('無法確認能量設定的取消按鈕')
+        x, y, w, h = buttons[0].box
+        self.inputs.click(int(x+w/2), int(y+h/2))
+        return self.wait_for({'solo_setup', 'cooking_setup', 'jump_setup'})
+
     def to_daily_missions(self):
         self.to_home()
         return self.click_text('home', '^任務$', 'daily_missions', roi=(730, 10, 400, 110))
+
+    def to_holowork(self):
+        if self.observe().scene == 'holowork':
+            return self.wait_for({'holowork'})
+        self.to_home()
+        self.inputs.click(1217, 55)  # Recorded main menu control, not a resource button.
+        deadline = time.monotonic()+8
+        while True:
+            menu = self.observe()
+            buttons = self.text(menu, '^[Hh]olo[Ww]ork$', (0, 100, 1280, 570))
+            if len(buttons) == 1:
+                x, y, w, h = buttons[0].box
+                self.inputs.click(int(x+w/2), int(y+h/2))
+                return self.wait_for({'holowork'}, timeout=30)
+            if time.monotonic() >= deadline:
+                self.save(menu, 'holowork-menu-not-found')
+                raise NavigationError('無法唯一確認主選單的 holoWork 入口')
+            self.inputs.pause(.2)
 
     def to_fishing_second(self):
         self.to_home()

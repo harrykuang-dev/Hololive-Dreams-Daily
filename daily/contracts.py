@@ -110,6 +110,7 @@ class TaskResult:
     reason: str
     completed_rounds: int = 0
     evidence: str | None = None
+    pending_round: bool = False
 
     def to_dict(self):
         return asdict(self)

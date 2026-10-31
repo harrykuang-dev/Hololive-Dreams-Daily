@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 import time
+from dataclasses import asdict
 
 import cv2
 
@@ -17,6 +18,9 @@ from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
 from daily.vision import Vision
+from daily.navigation import Navigator, Observation
+from daily.resources import EnergySettings
+from daily.live import LiveControls
 from offline_controller import OfflineController
 
 
@@ -27,12 +31,23 @@ class InspectRecordings(CustomAction):
         self.report = []
 
     def run(self, context, argv):
+        try:
+            return self.inspect(context, argv)
+        except Exception as error:
+            self.report.append({'error': f'{type(error).__name__}: {error}'})
+            return False
+
+    def inspect(self, context, argv):
         vision = Vision(ROOT / 'resource')
+        navigator = Navigator(context, ROOT / 'resource', self.samples.parent / 'offline-evidence')
         for path in sorted(self.samples.glob('*.png')):
             frame = cv2.imread(str(path))
-            scene = vision.scene(frame)
+            scene = navigator.interpret(frame).scene
+            expected = {'auto_playing': 'live_playing', 'cooking_energy': 'energy_settings',
+                        'energy_controls': 'energy_settings', 'fishing_map_initial': 'fishing_map_second',
+                        'fishing_map_popup': 'fishing_map_second', 'holowork_dispatch': 'holowork'}.get(path.stem, path.stem)
             result = {'sample': path.stem, 'scene': scene,
-                      'matching_scene': scene == path.stem}
+                      'expected_scene': expected, 'matching_scene': scene == expected}
             if path.stem in ('solo_setup', 'multi_ready'):
                 roi = [420, 588, 180, 40] if path.stem == 'solo_setup' else [145, 585, 150, 40]
                 captured = time.monotonic()
@@ -42,6 +57,14 @@ class InspectRecordings(CustomAction):
                 observation = vision.auto(frame, scene, text, captured_at=captured)
                 result.update(auto_text=text, auto_enabled=observation.enabled,
                               auto_remaining=observation.remaining)
+                result['live_state'] = asdict(LiveControls(navigator).read(
+                    Observation(frame, scene, time.monotonic())))
+            if scene == 'energy_settings':
+                result['energy_selection'] = asdict(EnergySettings(navigator).read(
+                    Observation(frame, scene, time.monotonic())))
+            if scene == 'live_result':
+                result['auto_result'] = bool(navigator.text(Observation(frame, scene, time.monotonic()),
+                                                           '^AUTO LIVE$', (650, 180, 530, 330)))
             self.report.append(result)
         return True
 
@@ -66,6 +89,10 @@ def verify(samples, output):
                                   ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(action.report, ensure_ascii=False, indent=2))
     if not job.succeeded or controller.input_attempts: raise SystemExit(1)
+    anchors = Vision(ROOT / 'resource').anchors
+    if any(not row['matching_scene'] for row in action.report
+           if row['expected_scene'] in anchors and anchors[row['expected_scene']].get('scene', True)):
+        raise SystemExit('A positive scene reference did not match')
 
 
 if __name__ == '__main__':

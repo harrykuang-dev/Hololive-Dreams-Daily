@@ -8,7 +8,9 @@ Cooking, solo Live and multiplayer Live each require a user-entered round count.
 
 Live testing has verified map selection, teleport, bounded approach and the fishing setup entry at the second site, 菈米的冰天雪堡. Validation stops before Start; fishing gameplay has not been accepted. Navigation verifies the place name before teleporting and handles the player marker covering the fishing icon.
 
-Cooking, Jump Rope and solo Live have also reached their final setup screens in live entry-only checks, with no play started. User settings are stored in independent Maa nodes; native integration checks verify that round counts and budgets survive multiple UI option overrides.
+Cooking, Jump Rope and solo Live have reached their final setup screens in entry checks. Cooking and Jump Rope gameplay modules remain disabled. User settings are stored in independent Maa nodes; native integration checks verify that round counts and budgets survive multiple UI option overrides.
+
+Solo Live has passed a one-round foreground test: verifying built-in Auto and its remaining uses, setting a one-energy cost, waiting for the game's Auto play, verifying the Auto Live result and returning to song selection. Multi-round execution and per-round budget checks are implemented; multi-round live testing remains pending. The current song, difficulty and team must be retained. Multiplayer matchmaking and play remain disabled.
 
 ## Development
 

@@ -15,6 +15,8 @@ from .inputs import Cancelled
 from .journal import Journal
 from .navigation import NavigationError, Navigator
 from .settings import read_settings
+from .resources import EnergySettings, ResourceUnavailable
+from .live import SoloLiveRunner
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -37,13 +39,19 @@ class RunDailyTask(CustomAction):
             journal = Journal(data / 'results')
             navigator = Navigator(context, ROOT / 'resource', data / 'evidence' / self.session)
             journal.record(config, TaskResult(TaskStatus.RUNNING, '執行中'), session=self.session)
-            result = self.execute(navigator, config)
+            result = self.execute(navigator, config,
+                                  progress=lambda value: journal.record(config, value, session=self.session))
             journal.record(config, result, session=self.session)
             print(json.dumps(result.to_dict(), ensure_ascii=False), flush=True)
             # Skipped tasks remain explicit in the journal; an entry check is
             # successful navigation, not a completed daily gameplay task.
             return result.status in (TaskStatus.COMPLETE, TaskStatus.ENTRY_VERIFIED,
                                      TaskStatus.NAVIGATION_VERIFIED, TaskStatus.SKIPPED)
+        except ResourceUnavailable as error:
+            if 'journal' in locals() and 'config' in locals():
+                journal.record(config, TaskResult(TaskStatus.SKIPPED, str(error)), session=self.session)
+            print(f'任務略過：{error}', flush=True)
+            return True
         except (ConfigurationError, ValueError, NavigationError) as error:
             print(f'任務停止：{error}', flush=True)
             if 'journal' in locals() and 'config' in locals():
@@ -65,7 +73,7 @@ class RunDailyTask(CustomAction):
             finally:
                 self._lock.release()
 
-    def execute(self, navigator: Navigator, config: TaskConfig) -> TaskResult:
+    def execute(self, navigator: Navigator, config: TaskConfig, *, progress=lambda result: None) -> TaskResult:
         if config.task == 'connect':
             observation = navigator.observe()
             evidence = navigator.save(observation, 'connected')
@@ -73,6 +81,7 @@ class RunDailyTask(CustomAction):
                 raise NavigationError('已連接遊戲，但目前畫面尚未辨識；請先回到樂園')
             return TaskResult(TaskStatus.COMPLETE, f'已確認畫面：{observation.scene}', evidence=evidence)
         routes = {'fishing': navigator.to_fishing_second,
+                  'holowork': navigator.to_holowork,
                   'solo_live': navigator.to_solo_setup,
                   'multi_live': navigator.to_live_portal,
                   'cooking': lambda: navigator.to_minigame_setup('cooking'),
@@ -84,8 +93,12 @@ class RunDailyTask(CustomAction):
         observation = route()
         evidence = navigator.save(observation, config.task + '-entry')
         if config.entry_only:
-            actual_entry = config.task in ('fishing', 'rewards', 'cooking', 'jump_rope', 'solo_live')
+            actual_entry = config.task in ('fishing', 'rewards', 'cooking', 'jump_rope', 'solo_live', 'holowork')
             return TaskResult(TaskStatus.ENTRY_VERIFIED if actual_entry else TaskStatus.NAVIGATION_VERIFIED,
                               '互動入口已驗證，未執行消耗操作' if actual_entry else
                               '已驗證選單導航，尚未驗證遊戲開始入口', evidence=evidence)
+        if config.task == 'solo_live':
+            return SoloLiveRunner(navigator, progress).run(config)
+        if config.task in ('cooking', 'jump_rope'):
+            EnergySettings(navigator).configure(config.task, config.multiplier, config.resource_budget)
         raise NavigationError('已到達導航入口；完整任務執行尚未啟用')

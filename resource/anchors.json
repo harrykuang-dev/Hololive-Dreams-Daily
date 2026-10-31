@@ -53,6 +53,60 @@
     },
     "sha256": "44d801961164b89b5e486fc196d7bb5b41fa7fb8f10255b3ef3aa92b540fcb25"
   },
+  "live_playing": {
+    "file": "anchors/live_playing.png",
+    "roi": [
+      984,
+      20,
+      68,
+      35
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "auto_playing",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 100,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "ef69a878d7a6fbaa13244477356e5d934a796ed4a67ee45d43f72deb53fad8ed"
+    },
+    "sha256": "2a8becec85cb9a114faa9766ec33a2ab78b4a347eedb05581248df903fe94447"
+  },
+  "live_result": {
+    "file": "anchors/live_result.png",
+    "roi": [
+      12,
+      8,
+      230,
+      75
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "live_result",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 223,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "8899d01bfb62c98d6cbb3db6cfd51815c584c6a22fd9c66e6897219541a06270"
+    },
+    "sha256": "95750be122fa507049b428829680ecb6561bd497cf2eaf4ff6b6355b6635388e"
+  },
   "solo_setup": {
     "file": "anchors/solo_setup.png",
     "roi": [
@@ -323,6 +377,34 @@
     },
     "sha256": "f51d007b328048c012ec8902f95313802143f93bf1a48ec3904cb05147216890",
     "priority": 1
+  },
+  "energy_settings": {
+    "file": "anchors/energy_settings.png",
+    "roi": [
+      875,
+      105,
+      175,
+      38
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "cooking_energy",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 129,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "df70417d68e9e05a396eef7e7a3b57692f67e0acaf1343bcf35616e486f59f6f"
+    },
+    "sha256": "0ff0c93ea1f403a2df9b6f190687a4b60dafa916f32fb701c1c8547d9850c2d6",
+    "priority": 2
   },
   "daily_missions": {
     "file": "anchors/daily_missions.png",
@@ -596,6 +678,118 @@
       "sha256": "3dd81b9397e672dd4f662dbf7e914db3efdf9f4f76cc87da4bf58c01d8a37a59"
     },
     "sha256": "36d10e6f4004665e134a4bb29fa043fc4565dbb13c5a54e92c5b592fa741ede5",
+    "scene": false
+  },
+  "solo_boost_button": {
+    "file": "anchors/solo_boost_button.png",
+    "roi": [
+      904,
+      631,
+      46,
+      52
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "solo_setup",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 50,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "c1c81eb03533ebf87c797af9d425334b8831d0e58b0e977be12db5fad1225b66"
+    },
+    "sha256": "83be250b2b64dc980e86d268dcc762f2f044d4b78f46f7211a385c70f6127dd9",
+    "scene": false
+  },
+  "minigame_boost_button": {
+    "file": "anchors/minigame_boost_button.png",
+    "roi": [
+      901,
+      625,
+      56,
+      60
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "cooking_setup",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 127,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "7eaac0adbf9697a35bfc0a22228b295fb25b87562de40fda517a492ca5b2e7e2"
+    },
+    "sha256": "e4910e769044942999da4f3158fbc09358854b2db6b898201279184ec411a15c",
+    "scene": false
+  },
+  "energy_minus": {
+    "file": "anchors/energy_minus.png",
+    "roi": [
+      800,
+      410,
+      38,
+      35
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "energy_controls",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 129.4,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "2eb881c5c1de532a465c554ea3aec60075a5bcfeb9bf5d7d28f706d87a0a2255"
+    },
+    "sha256": "8a71f8b63cf4678f85f75ec55e64798f846c0456c6991ac4720830f9d1cfd98c",
+    "scene": false
+  },
+  "energy_plus": {
+    "file": "anchors/energy_plus.png",
+    "roi": [
+      1080,
+      411,
+      42,
+      40
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "energy_controls",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 129.4,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "2eb881c5c1de532a465c554ea3aec60075a5bcfeb9bf5d7d28f706d87a0a2255"
+    },
+    "sha256": "eb20698987bedf225ade61e078493679968e01ec04bb0d598ea2cbe21c14d851",
     "scene": false
   },
   "map_card_close": {
