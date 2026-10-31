@@ -112,7 +112,7 @@ class RunDailyTask(CustomAction):
                   'high_low': navigator.to_high_low_entry,
                   'holowork': navigator.to_holowork,
                   'solo_live': navigator.to_solo_setup,
-                  'multi_live': navigator.to_live_portal,
+                  'multi_live': navigator.to_multi_portal,
                   'cooking': lambda: navigator.to_minigame_setup('cooking'),
                   'jump_rope': lambda: navigator.to_minigame_setup('jump_rope'),
                   'rewards': navigator.to_daily_missions}

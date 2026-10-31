@@ -14,6 +14,7 @@ ANCHORS = {
     'live_result': [12, 8, 230, 75],
     'solo_setup': [1020, 100, 200, 60],
     'multi_ready': [585, 12, 190, 45],
+    'multi_portal': [12, 8, 230, 75],
     'song_select': [680, 678, 290, 30],
     'fishing_setup_second': [790, 95, 330, 45],
     'fishing_result': [670, 15, 140, 65],

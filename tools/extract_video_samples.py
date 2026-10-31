@@ -38,6 +38,7 @@ SAMPLES = [
     ('fishing_result', '13.51.56.03', 1945),
     ('fishing_setup_first', '13.51.56.03', 1906),
     ('multi_ready', '13.51.56.03', 1630),
+    ('multi_portal', '13.51.56.03', 1608),
     ('holowork', '09.52.54.01', 45),
     ('holowork_dispatch', '09.52.54.01', 50),
     ('holowork_summary', '09.52.54.01', 48),

@@ -55,6 +55,7 @@ def test_main_menu_requires_multiple_distinct_menu_labels(tmp_path):
 
 @pytest.mark.parametrize('scene,expected', [
     ('gifts', [{'main_menu'}, {'home'}]),
+    ('multi_portal', [{'live_portal'}, {'home'}]),
     ('event_missions', [{'event_home'}, {'event_list'}, {'home'}])])
 def test_nested_reward_pages_return_through_observed_parents(scene, expected):
     navigator = Navigator.__new__(Navigator)

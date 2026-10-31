@@ -161,6 +161,33 @@
     },
     "sha256": "d0c4ee7027b7f70c8121fc3bac17bb507daa2523141cc651bbf4b2c349ed5326"
   },
+  "multi_portal": {
+    "file": "anchors/multi_portal.png",
+    "roi": [
+      12,
+      8,
+      230,
+      75
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "multi_portal",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 1608,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "b1100534495b19cb54812cf86e9fa2af4bb15aea0decda14e5030a7ecbe1fa81"
+    },
+    "sha256": "f71fee4b39e98753da00e48cbfb95915514287000728f7398c691d1bd117e515"
+  },
   "song_select": {
     "file": "anchors/song_select.png",
     "roi": [

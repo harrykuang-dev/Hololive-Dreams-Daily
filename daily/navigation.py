@@ -162,6 +162,7 @@ class Navigator:
         for _ in range(4):
             destination = {'cooking_setup': 'minigame_portal', 'jump_setup': 'minigame_portal',
                            'gifts': 'main_menu',
+                           'multi_portal': 'live_portal',
                            'event_missions': 'event_home', 'event_home': 'event_list',
                            'solo_setup': 'song_select', 'song_select': 'live_portal'}.get(observation.scene)
             if destination is None:
@@ -196,6 +197,12 @@ class Navigator:
     def to_live_portal(self):
         self.to_home()
         return self.click_text('home', '^Live$', 'live_portal', roi=(730, 10, 380, 100))
+
+    def to_multi_portal(self):
+        if self.observe().scene == 'multi_portal':
+            return self.wait_for({'multi_portal'}, timeout=5)
+        self.to_live_portal()
+        return self.click_text('live_portal', '^MULTI$', 'multi_portal', roi=(950, 140, 250, 340))
 
     def to_minigame_portal(self):
         self.to_home()
