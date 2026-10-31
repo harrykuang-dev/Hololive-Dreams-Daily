@@ -17,6 +17,7 @@ from .navigation import NavigationError, Navigator
 from .settings import read_settings
 from .resources import EnergySettings, ResourceUnavailable
 from .live import SoloLiveRunner
+from .recording import GameRecording, recording_directory
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -31,47 +32,65 @@ class RunDailyTask(CustomAction):
         if not self._lock.acquire(blocking=False):
             print('另一項日常仍持有遊戲控制權', flush=True)
             return False
-        navigator = None
+        navigator = recording = journal = config = result = None
+
+        def report(value):
+            nonlocal result
+            result = value
+            if recording:
+                recording.mark('task_result', **value.to_dict())
+            journal.record(config, value, session=self.session,
+                           recording=recording.paths() if recording else None)
+
+        def stopped(status, reason):
+            return TaskResult(status, reason,
+                              result.completed_rounds if result else 0,
+                              result.evidence if result else None,
+                              pending_round=result.pending_round if result else False)
+
         try:
             raw = read_settings(context, argv.node_name.removeprefix('Daily_'))
             config = TaskConfig.parse(raw)
             data = Path(os.environ.get('PI_USER_DATA_DIR', ROOT / 'userdata')) / 'daily'
             journal = Journal(data / 'results')
-            navigator = Navigator(context, ROOT / 'resource', data / 'evidence' / self.session)
-            journal.record(config, TaskResult(TaskStatus.RUNNING, '執行中'), session=self.session)
-            result = self.execute(navigator, config,
-                                  progress=lambda value: journal.record(config, value, session=self.session))
-            journal.record(config, result, session=self.session)
-            print(json.dumps(result.to_dict(), ensure_ascii=False), flush=True)
-            # Skipped tasks remain explicit in the journal; an entry check is
-            # successful navigation, not a completed daily gameplay task.
-            return result.status in (TaskStatus.COMPLETE, TaskStatus.ENTRY_VERIFIED,
-                                     TaskStatus.NAVIGATION_VERIFIED, TaskStatus.SKIPPED)
+            recording = GameRecording(context.tasker.controller, recording_directory(ROOT, data),
+                                      f'{self.session}-{config.task}')
+            recording.start()
+            navigator = Navigator(context, ROOT / 'resource', data / 'evidence' / self.session,
+                                  recording=recording)
+            report(TaskResult(TaskStatus.RUNNING, '執行中'))
+            report(self.execute(navigator, config, progress=report))
         except ResourceUnavailable as error:
-            if 'journal' in locals() and 'config' in locals():
-                journal.record(config, TaskResult(TaskStatus.SKIPPED, str(error)), session=self.session)
-            print(f'任務略過：{error}', flush=True)
-            return True
-        except (ConfigurationError, ValueError, NavigationError) as error:
-            print(f'任務停止：{error}', flush=True)
-            if 'journal' in locals() and 'config' in locals():
-                journal.record(config, TaskResult(TaskStatus.FAILED, str(error)), session=self.session)
-            return False
+            result = stopped(TaskStatus.SKIPPED, str(error))
         except Cancelled:
-            if 'journal' in locals() and 'config' in locals():
-                journal.record(config, TaskResult(TaskStatus.CANCELLED, '已停止'), session=self.session)
-            return False
+            result = stopped(TaskStatus.CANCELLED, '已停止')
         except Exception as error:
             print(f'執行錯誤：{type(error).__name__}: {error}', flush=True)
-            if 'journal' in locals() and 'config' in locals():
-                journal.record(config, TaskResult(TaskStatus.FAILED, str(error)), session=self.session)
-            return False
+            result = stopped(TaskStatus.FAILED, str(error))
         finally:
             try:
-                if navigator is not None:
-                    navigator.inputs.release_all()
+                try:
+                    if navigator is not None:
+                        navigator.inputs.release_all()
+                except Exception as error:
+                    result = stopped(TaskStatus.FAILED, f'釋放輸入失敗：{error}')
+                try:
+                    if recording is not None:
+                        try:
+                            recording.mark('task_end', **result.to_dict())
+                        finally:
+                            recording.stop()
+                except Exception as error:
+                    result = stopped(TaskStatus.FAILED, f'{result.reason}；錄影未完整驗證：{error}')
+                if journal is not None and config is not None:
+                    journal.record(config, result, session=self.session,
+                                   recording=recording.paths() if recording else None)
             finally:
                 self._lock.release()
+        print(json.dumps(result.to_dict(), ensure_ascii=False), flush=True)
+        # An entry check is successful navigation, not completed gameplay.
+        return result.status in (TaskStatus.COMPLETE, TaskStatus.ENTRY_VERIFIED,
+                                 TaskStatus.NAVIGATION_VERIFIED, TaskStatus.SKIPPED)
 
     def execute(self, navigator: Navigator, config: TaskConfig, *, progress=lambda result: None) -> TaskResult:
         if config.task == 'connect':

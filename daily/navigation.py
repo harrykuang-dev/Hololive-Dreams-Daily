@@ -25,10 +25,12 @@ class Observation:
 
 
 class Navigator:
-    def __init__(self, context, resources: Path, evidence: Path):
+    def __init__(self, context, resources: Path, evidence: Path, *, recording=None):
         self.context = context
         self.controller = context.tasker.controller
-        self.inputs = Inputs(self.controller, stopping=lambda: context.tasker.stopping)
+        self.recording = recording
+        options = {'guard': recording.check, 'trace': recording.mark} if recording else {}
+        self.inputs = Inputs(self.controller, stopping=lambda: context.tasker.stopping, **options)
         self.vision = Vision(resources)
         self.evidence = evidence
         evidence.mkdir(parents=True, exist_ok=True)
@@ -39,7 +41,10 @@ class Navigator:
         if not job.succeeded:
             raise NavigationError('無法擷取遊戲畫面')
         captured = time.monotonic()
-        return self.interpret(job.get(), captured_at=captured)
+        observation = self.interpret(job.get(), captured_at=captured)
+        if self.recording:
+            self.recording.mark('observation', scene=observation.scene)
+        return observation
 
     def interpret(self, image, *, captured_at=None):
         captured = time.monotonic() if captured_at is None else captured_at
@@ -82,6 +87,8 @@ class Navigator:
         path = self.evidence / f'{name}-{time.time_ns()}.png'
         if not cv2.imwrite(str(path), observation.image):
             raise OSError('Cannot save scene evidence')
+        if self.recording:
+            self.recording.mark('evidence', scene=observation.scene, path=str(path))
         return str(path)
 
     def wait_for(self, scenes, *, timeout=30, stable_for=.35) -> Observation:

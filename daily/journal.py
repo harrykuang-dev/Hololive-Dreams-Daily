@@ -15,10 +15,12 @@ class Journal:
         self.root = root
         root.mkdir(parents=True, exist_ok=True)
 
-    def record(self, config: TaskConfig, result: TaskResult, *, session: str) -> Path:
+    def record(self, config: TaskConfig, result: TaskResult, *, session: str, recording=None) -> Path:
         record = {'schema_version': 1, 'session': session,
                   'recorded_at': datetime.now(timezone.utc).isoformat(),
                   'config': config.to_dict(), 'result': result.to_dict()}
+        if recording is not None:
+            record['recording'] = recording
         destination = self.root / f'{session}-{config.task}.json'
         temporary = destination.with_suffix(f'.{uuid.uuid4().hex}.pending')
         with temporary.open('w', encoding='utf-8') as stream:

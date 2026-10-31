@@ -17,9 +17,11 @@ class InputFailure(RuntimeError):
 class Inputs:
     RIGHT_ALT = 0xA5
 
-    def __init__(self, controller, *, stopping=lambda: False):
+    def __init__(self, controller, *, stopping=lambda: False, guard=lambda: None,
+                 trace=lambda *args, **kwargs: None):
         self.controller = controller
         self.stopping = stopping
+        self.guard, self.trace = guard, trace
         self.held: set[int] = set()
         self._owner = threading.get_ident()
 
@@ -28,6 +30,7 @@ class Inputs:
             raise InputFailure('Input ownership changed')
         if self.stopping():
             raise Cancelled('已停止')
+        self.guard()
 
     @staticmethod
     def wait(job):
@@ -39,11 +42,13 @@ class Inputs:
         self.check()
         # Remember it before posting: a failed acknowledgement can still mean key-down happened.
         self.held.add(key)
+        self.trace('key_down', key=key)
         self.wait(self.controller.post_key_down(key))
 
     def up(self, key: int):
         self.wait(self.controller.post_key_up(key))
         self.held.discard(key)
+        self.trace('key_up', key=key)
 
     @contextmanager
     def cursor(self):
@@ -51,6 +56,7 @@ class Inputs:
             self.down(self.RIGHT_ALT)
             self.pause(.08)
             self.wait(self.controller.post_relative_move(1, 0))
+            self.trace('mouse_move', dx=1, dy=0)
             self.pause(.08)
             yield
             self.pause(.05)
@@ -61,6 +67,7 @@ class Inputs:
         self.check()
         with self.cursor():
             self.check()
+            self.trace('click', x=x, y=y)
             self.wait(self.controller.post_click(x, y))
 
     def key(self, key: int, duration: float = 0.05):

@@ -7,4 +7,7 @@ config/
 userdata/
 dist/
 *.log
+recordings/
+*.avi
+*.mp4
 

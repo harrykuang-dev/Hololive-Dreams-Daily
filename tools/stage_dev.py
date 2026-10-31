@@ -32,6 +32,8 @@ def stage(gui: Path, python: Path, output: Path):
     config = output / 'config'
     config.mkdir(exist_ok=True)
     shutil.copy2(ROOT / 'config.template.json', config / 'config.template.json')
+    (config / 'recording.json').write_text(json.dumps(
+        {'directory': str((output.parent / 'recordings').resolve())}, indent=2), encoding='utf-8')
     print(output / 'MFAAvalonia.exe')
 
 
