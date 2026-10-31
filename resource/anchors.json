@@ -1152,5 +1152,33 @@
     },
     "sha256": "d5a977201b5e1087190f0975f6de33e65375bbe13882bda018b77742a82d97d9",
     "scene": false
+  },
+  "map_game_portal": {
+    "file": "anchors/map_game_portal.png",
+    "roi": [
+      817,
+      207,
+      65,
+      66
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "arena_map",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 254,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "d80c9899d15b0482bb0d608ab6a717deeb8978a46c0ab7ab8821add6f5a47a99"
+    },
+    "sha256": "5aa320ac5ab87f26adceabd65270b9a4a38e4ca69a876b89a594ebfb9a7e10ae",
+    "scene": false
   }
 }

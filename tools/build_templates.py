@@ -51,6 +51,7 @@ AUTO['park_gift_prompt'] = ('gift_house_entry', [901, 433, 23, 25])
 AUTO['park_gift_prompt_compact'] = ('gift_bijou_entry', [897, 432, 25, 27])
 AUTO['lottery_scratch_card'] = ('lottery_scratch', [630, 245, 350, 115])
 AUTO['fishing_practice_infinite'] = ('fishing_setup_second', [1128, 512, 35, 25])
+AUTO['map_game_portal'] = ('arena_map', [817, 207, 65, 66])
 
 
 def build(samples: Path):

@@ -12,6 +12,8 @@ Live testing has verified map selection, teleport, bounded approach and the fish
 
 Cooking, Jump Rope and solo Live have reached their final setup screens in entry checks. Cooking and Jump Rope gameplay modules remain disabled. User settings are stored in independent Maa nodes; native integration checks verify that round counts and budgets survive multiple UI option overrides.
 
+High & Low has passed recorded map navigation and interaction-entry verification. The route selects the arena's play-area map tab, confirms Shiori's table before teleporting and stops at the interaction prompt. It does not open or play the daily game; configurable-cap worker integration remains pending.
+
 Solo Live has passed a one-round foreground test: verifying built-in Auto and its remaining uses, setting a one-energy cost, waiting for the game's Auto play, verifying the Auto Live result and returning to song selection. Multi-round execution and per-round budget checks are implemented; multi-round live testing remains pending. The current song, difficulty and team must be retained. Multiplayer matchmaking and play remain disabled.
 
 holoWork collection, reward confirmation, built-in team recommendation and redispatch are implemented. Recorded foreground tests verified collection and a subsequent recovered dispatch, including fresh countdowns. A single uninterrupted collection-to-dispatch test remains pending. Existing filled teams are retained; partially filled visible teams stop for review. The task is skipped when no completed-work notification is available.

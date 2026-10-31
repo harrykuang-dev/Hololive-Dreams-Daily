@@ -109,6 +109,7 @@ class RunDailyTask(CustomAction):
                 raise NavigationError('已連接遊戲，但目前畫面尚未辨識；請先回到樂園')
             return TaskResult(TaskStatus.COMPLETE, f'已確認畫面：{observation.scene}', evidence=evidence)
         routes = {'fishing': navigator.to_fishing_second,
+                  'high_low': navigator.to_high_low_entry,
                   'holowork': navigator.to_holowork,
                   'solo_live': navigator.to_solo_setup,
                   'multi_live': navigator.to_live_portal,
@@ -121,7 +122,7 @@ class RunDailyTask(CustomAction):
         observation = route()
         evidence = navigator.save(observation, config.task + '-entry')
         if config.entry_only:
-            actual_entry = config.task in ('fishing', 'rewards', 'cooking', 'jump_rope', 'solo_live', 'holowork')
+            actual_entry = config.task in ('fishing', 'rewards', 'cooking', 'jump_rope', 'solo_live', 'holowork', 'high_low')
             return TaskResult(TaskStatus.ENTRY_VERIFIED if actual_entry else TaskStatus.NAVIGATION_VERIFIED,
                               '互動入口已驗證，未執行消耗操作' if actual_entry else
                               '已驗證選單導航，尚未驗證遊戲開始入口', evidence=evidence)

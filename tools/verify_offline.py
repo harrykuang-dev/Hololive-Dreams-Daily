@@ -56,7 +56,8 @@ class InspectRecordings(CustomAction):
                         'pass_empty': 'daily_missions', 'rewards_get': 'daily_missions',
                         'achievements_claimable': 'achievements', 'event_claimable': 'event_missions',
                         'gifts_empty': 'gifts', 'reward_season_empty_native': 'daily_missions',
-                        'event_free': 'event_missions'}.get(path.stem, expected)
+                        'event_free': 'event_missions', 'arena_map': 'park_map',
+                        'arena_popup': 'park_map', 'high_low_entry': 'home'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
             if path.stem in ('solo_setup', 'multi_ready'):
@@ -85,6 +86,13 @@ class InspectRecordings(CustomAction):
                     Observation(frame, scene, time.monotonic()), r'^[×xX✕]?\s*取消$', (720, 620, 230, 80)))
                 if result['cancel_buttons'] != 1:
                     raise ValueError('Fishing result cancel is not unique')
+            if path.stem == 'arena_popup':
+                observation = Observation(frame, scene, time.monotonic())
+                for text, roi in [('^比大小$', (780, 180, 450, 170)),
+                                  ('^Shiori的卡牌遊戲桌$', (810, 400, 390, 90)),
+                                  ('^移動$', (780, 480, 450, 100))]:
+                    if len(navigator.text(observation, text, roi)) != 1:
+                        raise ValueError('High & Low map card is not uniquely verified: '+text)
             reward_expected = {
                 'daily_claimable': ('daily', 'claimable'), 'daily_missions': ('daily', 'empty'),
                 'reward_season_empty_native': ('season', 'empty'),

@@ -325,6 +325,62 @@ class Navigator:
         self.inputs.key(0x45, .12)  # E, from the recorded interaction prompt.
         return self.wait_for({'fishing_setup_second'})
 
+    def to_high_low_entry(self):
+        # Teleport only after reading the actual card title. Opening the game
+        # with E is a separate once-daily boundary and is not enabled here.
+        self.to_home()
+        for index in range(4):
+            if index:
+                self.to_home()
+            map_view = self.open_map()
+            if not self.text(map_view, '電玩巨蛋城', (65, 5, 350, 110)):
+                self.inputs.click(75, 530)  # Recorded middle region selector.
+                deadline = time.monotonic()+6
+                while True:
+                    map_view = self.observe()
+                    if (map_view.scene == 'park_map' and
+                            self.text(map_view, '電玩巨蛋城', (65, 5, 350, 110))):
+                        break
+                    if time.monotonic() >= deadline:
+                        raise NavigationError('無法確認電玩巨蛋城地圖，未選取互動點')
+                    self.inputs.pause(.2)
+            tabs = self.text(map_view, '^遊玩區域$', (150, 620, 330, 80))
+            if len(tabs) != 1:
+                raise NavigationError('無法唯一確認電玩巨蛋城的遊玩區域分頁')
+            x, y, w, h = tabs[0].box
+            self.inputs.click(int(x+w/2), int(y+h/2))
+            self.wait_for({'park_map'}, timeout=6)
+            self.inputs.click(994, 668)
+            self.inputs.pause(.35)
+            map_view = self.wait_for({'park_map'}, timeout=6)
+            candidates = self.vision.find_all(map_view.image, 'map_game_portal', roi=(150, 95, 1030, 530))
+            if index >= len(candidates):
+                self.save(map_view, 'arena-no-game-candidate')
+                break
+            x, y, w, h = candidates[index].box
+            self.inputs.click(x+w//2, y+h//2)
+            deadline = time.monotonic()+6
+            while True:
+                card = self.observe()
+                if card.scene == 'park_map' and self.vision.match(card.image, 'map_card_close'):
+                    break
+                if time.monotonic() >= deadline:
+                    raise NavigationError('遊戲地圖資訊卡尚未顯示')
+                self.inputs.pause(.2)
+            self.save(card, 'high-low-map-card')
+            title = self.text(card, '^比大小$', (780, 180, 450, 170))
+            description = self.text(card, r'^Shiori的卡牌遊戲桌$', (810, 400, 390, 90))
+            if len(title) != 1 or len(description) != 1:
+                continue
+            moves = self.text(card, '^移動$', (780, 480, 450, 100))
+            if len(moves) != 1:
+                raise NavigationError('比大小資訊卡的移動按鈕不唯一')
+            x, y, w, h = moves[0].box
+            self.inputs.click(int(x+w/2), int(y+h/2))
+            self.wait_for({'home'}, timeout=45)
+            return self.approach('^比大小$')
+        raise NavigationError('未找到可唯一確認的 Shiori 比大小遊戲桌')
+
     def wait_for_map_card(self):
         deadline = time.monotonic()+6
         while True:
