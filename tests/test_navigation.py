@@ -53,9 +53,12 @@ def test_main_menu_requires_multiple_distinct_menu_labels(tmp_path):
     assert navigator.observe().scene == 'main_menu'
 
 
-def test_closing_gifts_returns_through_observed_main_menu():
+@pytest.mark.parametrize('scene,expected', [
+    ('gifts', [{'main_menu'}, {'home'}]),
+    ('event_missions', [{'event_home'}, {'event_list'}, {'home'}])])
+def test_nested_reward_pages_return_through_observed_parents(scene, expected):
     navigator = Navigator.__new__(Navigator)
-    navigator.observe = lambda: Observation(None, 'gifts', 0)
+    navigator.observe = lambda: Observation(None, scene, 0)
     navigator.vision = SimpleNamespace(match=lambda *args: None)
     clicks, destinations = [], []
     navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args))
@@ -64,8 +67,8 @@ def test_closing_gifts_returns_through_observed_main_menu():
         return Observation(None, next(iter(scenes)), 0)
     navigator.wait_for = wait
     assert navigator.to_home().scene == 'home'
-    assert destinations == [{'main_menu'}, {'home'}]
-    assert clicks == [(1223, 55)]*2
+    assert destinations == expected
+    assert clicks == [(1223, 55)]*len(expected)
 
 
 def test_reward_overlay_requires_title_and_close_hint_on_any_background(tmp_path):

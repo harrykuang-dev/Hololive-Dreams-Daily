@@ -568,6 +568,62 @@
     },
     "sha256": "f628e35e5925b507422c9414d632263d293eaf6ecc93eaa1eb8ee7914052b2b3"
   },
+  "event_list": {
+    "file": "anchors/event_list.png",
+    "roi": [
+      80,
+      95,
+      170,
+      45
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "event_list",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 2014,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "534a4e73928638731969268d8d66dc287e523c9a6d392c76f0240b5093b968b3"
+    },
+    "sha256": "6c1743bada13519d234b295bbb53418ca8418dd26f8f54c78daabb98055770fc",
+    "priority": 1
+  },
+  "event_home": {
+    "file": "anchors/event_home.png",
+    "roi": [
+      1190,
+      375,
+      55,
+      80
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "event_home",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 2025,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "2a8252bfa7103adda03f8879f39f0934c11fd85a200747b12eb1fd1a244d61e7"
+    },
+    "sha256": "3fb439fe4470bba5709876e2e73da8918bc190813301a24dd305d61c0f0d4315",
+    "priority": 1
+  },
   "gifts": {
     "file": "anchors/gifts.png",
     "roi": [

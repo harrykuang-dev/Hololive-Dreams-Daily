@@ -29,6 +29,8 @@ ANCHORS = {
     'daily_missions': [12, 8, 240, 75],
     'achievements': [12, 8, 240, 75],
     'event_missions': [12, 8, 240, 75],
+    'event_list': [80, 95, 170, 45],
+    'event_home': [1190, 375, 55, 80],
     'gifts': [12, 8, 240, 75],
 }
 AUTO = {'solo_auto_on': ('solo_setup', [523, 635, 77, 41]),
@@ -76,6 +78,8 @@ def build(samples: Path):
         elif name.startswith(('map_', 'park_', 'lottery_')) or name in ('energy_minus', 'energy_plus', 'portal_go', 'work_empty_slot', 'fishing_practice_infinite') or name.endswith('_boost_button'):
             entries[name].update(scene=False)
         if name == 'notifications':
+            entries[name]['priority'] = 1
+        elif name in ('event_list', 'event_home'):
             entries[name]['priority'] = 1
         elif name == 'energy_settings':
             entries[name]['priority'] = 2

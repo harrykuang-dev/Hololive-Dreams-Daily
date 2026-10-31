@@ -63,7 +63,17 @@ class RewardsRunner:
                     observation, r'^(免費|豪華)$', (85, 290, 150, 260))}
                 if labels == {'免費', '豪華'}:
                     page = 'pass'
-        elif scene in ('achievements', 'gifts', 'event_missions'):
+        elif scene == 'event_missions':
+            selected = []
+            for name, x in (('event_daily', 430), ('event_free', 850)):
+                underline = observation.image[170:177, x:x+320]
+                hsv = cv2.cvtColor(underline, cv2.COLOR_BGR2HSV)
+                if np.mean((hsv[:, :, 0] >= 85) & (hsv[:, :, 0] <= 115)
+                           & (hsv[:, :, 1] >= 100)) >= .25:
+                    selected.append(name)
+            if len(selected) == 1:
+                page = selected[0]
+        elif scene in ('achievements', 'gifts'):
             page = scene
         if page is None:
             return RewardView(observation, None, 'unknown')
@@ -76,11 +86,13 @@ class RewardsRunner:
         if not items and page == 'achievements':
             items = self.nav.text(observation, expected, (1055, 615, 120, 45), only_rec=True)
         if len(items) != 1:
+            if not items and page in ('event_daily', 'event_free'):
+                statuses = self.nav.text(observation, r'^(達成|[→➜]?\s*GO|[√✔]?\s*[領领]取)$', (1030, 210, 200, 370))
+                if statuses and not any('取' in item.text for item in statuses):
+                    return RewardView(observation, page, 'empty')
             return RewardView(observation, page, 'unknown')
         button = tuple(items[0].box)
         state = cyan_button_state(observation.image, button)
-        # Event buttons disappear/dim to gray after claiming; that case is
-        # intentionally unknown until its own disabled reference is validated.
         return RewardView(observation, page, state, button)
 
     def stable(self, page, *, states=('claimable', 'empty'), timeout=12):
@@ -158,6 +170,19 @@ class RewardsRunner:
         self.nav.wait_for({'main_menu'})
         self.nav.click_text('main_menu', '^禮物$', 'gifts', roi=(20, 170, 170, 300))
         self.collect('gifts')
+        self.collect_event()
         evidence = self.nav.save(self.nav.to_home(), 'rewards-returned-home')
-        return TaskResult(TaskStatus.COMPLETE, '已檢查任務、通行證、成就與禮物；活動領獎尚未啟用',
+        return TaskResult(TaskStatus.COMPLETE, '已檢查任務、通行證、成就、禮物及目前活動獎勵',
                           self.claimed, evidence)
+
+    def collect_event(self):
+        self.nav.to_home()
+        self.nav.click_text('home', '^活動$', 'event_list', roi=(700, 10, 200, 110))
+        self.nav.click_text('event_list', r'^[→➜]?\s*GO$', 'event_home', roi=(1000, 610, 230, 85))
+        self.nav.click_text('event_home', '^任務$', 'event_missions', roi=(1170, 400, 100, 70))
+        for page, label, roi in (('event_daily', '每日', (560, 115, 110, 50)),
+                                 ('event_free', '自由', (980, 115, 110, 50))):
+            observation = self.nav.wait_for({'event_missions'}, timeout=5)
+            if self.read(observation).page != page:
+                self.nav.click_text('event_missions', '^'+label+'$', 'event_missions', roi=roi)
+            self.collect(page)

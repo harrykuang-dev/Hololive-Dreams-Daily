@@ -162,6 +162,7 @@ class Navigator:
         for _ in range(4):
             destination = {'cooking_setup': 'minigame_portal', 'jump_setup': 'minigame_portal',
                            'gifts': 'main_menu',
+                           'event_missions': 'event_home', 'event_home': 'event_list',
                            'solo_setup': 'song_select', 'song_select': 'live_portal'}.get(observation.scene)
             if destination is None:
                 break
@@ -186,6 +187,7 @@ class Navigator:
         # These screens have the visibly recorded close button at top right.
         if observation.scene in {'live_portal', 'minigame_portal', 'daily_missions',
                                  'achievements', 'event_missions', 'gifts',
+                                 'event_list',
                                  'fishing_setup_second', 'main_menu', 'holowork'}:
             self.inputs.click(1223, 55)
             return self.wait_for({'home'})

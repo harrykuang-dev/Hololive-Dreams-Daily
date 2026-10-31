@@ -55,7 +55,8 @@ class InspectRecordings(CustomAction):
             expected = {'daily_claimable': 'daily_missions', 'pass_claimable': 'daily_missions',
                         'pass_empty': 'daily_missions', 'rewards_get': 'daily_missions',
                         'achievements_claimable': 'achievements', 'event_claimable': 'event_missions',
-                        'gifts_empty': 'gifts', 'reward_season_empty_native': 'daily_missions'}.get(path.stem, expected)
+                        'gifts_empty': 'gifts', 'reward_season_empty_native': 'daily_missions',
+                        'event_free': 'event_missions'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
             if path.stem in ('solo_setup', 'multi_ready'):
@@ -91,6 +92,9 @@ class InspectRecordings(CustomAction):
                 'achievements_claimable': ('achievements', 'claimable'),
                 'achievements': ('achievements', 'empty'),
                 'gifts': ('gifts', 'claimable'), 'gifts_empty': ('gifts', 'empty')}.get(path.stem)
+            reward_expected = {'event_claimable': ('event_daily', 'claimable'),
+                               'event_missions': ('event_daily', 'empty'),
+                               'event_free': ('event_free', 'empty')}.get(path.stem, reward_expected)
             if reward_expected:
                 view = RewardsRunner(navigator).read(Observation(frame, scene, time.monotonic()))
                 result['rewards'] = {'page': view.page, 'state': view.state}

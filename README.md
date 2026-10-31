@@ -18,7 +18,7 @@ holoWork collection, reward confirmation, built-in team recommendation and redis
 
 Park gifts and lottery have notification teleport, bounded approach, dialogue and reward handling. Recording replays verify interaction prompts, dialogue and scratch-card states. A foreground test verified skipping when today's notifications are unavailable; full fresh-day execution remains pending. Once-daily attempts are recorded before the first interaction and are not repeated after an uncertain result or restart.
 
-Reward collection checks daily, weekly and season missions, the pass, achievements and the gift box. Recorded tests verified an achievement claim and an uninterrupted empty-page check returning to the park. A claim is clicked once and requires a confirmed received or disabled state before proceeding. Event reward navigation remains in development.
+Reward collection checks daily, weekly and season missions, the pass, achievements, the gift box and the current event's daily and free missions. Recorded tests verified an achievement claim and an uninterrupted empty-page check including the event, returning to the park. A claim is clicked once and requires a confirmed received or disabled state before proceeding. Actual event reward receipt remains verified only against the reference recording; future event layouts require validation.
 
 ## Development
 
