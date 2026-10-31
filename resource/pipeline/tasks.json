@@ -24,6 +24,14 @@
       "Node.Action.Failed": "$failed"
     }
   },
+  "DailyConfig_connect_entry_only": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "entry_only": false
+    }
+  },
   "Daily_holowork": {
     "recognition": "DirectHit",
     "action": "Custom",
@@ -39,6 +47,14 @@
       "Node.Action.Starting": "$starting",
       "Node.Action.Succeeded": "$finished",
       "Node.Action.Failed": "$failed"
+    }
+  },
+  "DailyConfig_holowork_entry_only": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "entry_only": false
     }
   },
   "Daily_park_gifts": {
@@ -58,6 +74,14 @@
       "Node.Action.Failed": "$failed"
     }
   },
+  "DailyConfig_park_gifts_entry_only": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "entry_only": false
+    }
+  },
   "Daily_lottery": {
     "recognition": "DirectHit",
     "action": "Custom",
@@ -73,6 +97,14 @@
       "Node.Action.Starting": "$starting",
       "Node.Action.Succeeded": "$finished",
       "Node.Action.Failed": "$failed"
+    }
+  },
+  "DailyConfig_lottery_entry_only": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "entry_only": false
     }
   },
   "Daily_cooking": {
@@ -92,6 +124,38 @@
       "Node.Action.Failed": "$failed"
     }
   },
+  "DailyConfig_cooking_entry_only": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "entry_only": false
+    }
+  },
+  "DailyConfig_cooking_rounds": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "rounds": ""
+    }
+  },
+  "DailyConfig_cooking_multiplier": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "multiplier": "1"
+    }
+  },
+  "DailyConfig_cooking_resource_budget": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "resource_budget": ""
+    }
+  },
   "Daily_solo_live": {
     "recognition": "DirectHit",
     "action": "Custom",
@@ -107,6 +171,54 @@
       "Node.Action.Starting": "$starting",
       "Node.Action.Succeeded": "$finished",
       "Node.Action.Failed": "$failed"
+    }
+  },
+  "DailyConfig_solo_live_entry_only": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "entry_only": false
+    }
+  },
+  "DailyConfig_solo_live_rounds": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "rounds": ""
+    }
+  },
+  "DailyConfig_solo_live_multiplier": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "multiplier": "1"
+    }
+  },
+  "DailyConfig_solo_live_resource_budget": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "resource_budget": ""
+    }
+  },
+  "DailyConfig_solo_live_team": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "team": "current"
+    }
+  },
+  "DailyConfig_solo_live_song": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "song": ""
     }
   },
   "Daily_high_low": {
@@ -126,6 +238,22 @@
       "Node.Action.Failed": "$failed"
     }
   },
+  "DailyConfig_high_low_entry_only": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "entry_only": false
+    }
+  },
+  "DailyConfig_high_low_target": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "target": ""
+    }
+  },
   "Daily_jump_rope": {
     "recognition": "DirectHit",
     "action": "Custom",
@@ -141,6 +269,38 @@
       "Node.Action.Starting": "$starting",
       "Node.Action.Succeeded": "$finished",
       "Node.Action.Failed": "$failed"
+    }
+  },
+  "DailyConfig_jump_rope_entry_only": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "entry_only": false
+    }
+  },
+  "DailyConfig_jump_rope_rounds": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "rounds": "1"
+    }
+  },
+  "DailyConfig_jump_rope_multiplier": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "multiplier": "1"
+    }
+  },
+  "DailyConfig_jump_rope_resource_budget": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "resource_budget": ""
     }
   },
   "Daily_multi_live": {
@@ -160,6 +320,46 @@
       "Node.Action.Failed": "$failed"
     }
   },
+  "DailyConfig_multi_live_entry_only": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "entry_only": false
+    }
+  },
+  "DailyConfig_multi_live_rounds": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "rounds": ""
+    }
+  },
+  "DailyConfig_multi_live_multiplier": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "multiplier": "1"
+    }
+  },
+  "DailyConfig_multi_live_resource_budget": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "resource_budget": ""
+    }
+  },
+  "DailyConfig_multi_live_team": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "team": "current"
+    }
+  },
   "Daily_fishing": {
     "recognition": "DirectHit",
     "action": "Custom",
@@ -177,6 +377,22 @@
       "Node.Action.Failed": "$failed"
     }
   },
+  "DailyConfig_fishing_entry_only": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "entry_only": false
+    }
+  },
+  "DailyConfig_fishing_target": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "target": "3"
+    }
+  },
   "Daily_rewards": {
     "recognition": "DirectHit",
     "action": "Custom",
@@ -192,6 +408,14 @@
       "Node.Action.Starting": "$starting",
       "Node.Action.Succeeded": "$finished",
       "Node.Action.Failed": "$failed"
+    }
+  },
+  "DailyConfig_rewards_entry_only": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "entry_only": false
     }
   }
 }

@@ -14,6 +14,7 @@ from .contracts import ConfigurationError, TaskConfig, TaskResult, TaskStatus
 from .inputs import Cancelled
 from .journal import Journal
 from .navigation import NavigationError, Navigator
+from .settings import read_settings
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,8 +31,7 @@ class RunDailyTask(CustomAction):
             return False
         navigator = None
         try:
-            raw = json.loads(argv.custom_action_param)
-            raw.setdefault('task', argv.node_name.removeprefix('Daily_'))
+            raw = read_settings(context, argv.node_name.removeprefix('Daily_'))
             config = TaskConfig.parse(raw)
             data = Path(os.environ.get('PI_USER_DATA_DIR', ROOT / 'userdata')) / 'daily'
             journal = Journal(data / 'results')
@@ -73,10 +73,10 @@ class RunDailyTask(CustomAction):
                 raise NavigationError('已連接遊戲，但目前畫面尚未辨識；請先回到樂園')
             return TaskResult(TaskStatus.COMPLETE, f'已確認畫面：{observation.scene}', evidence=evidence)
         routes = {'fishing': navigator.to_fishing_second,
-                  'solo_live': navigator.to_live_portal,
+                  'solo_live': navigator.to_solo_setup,
                   'multi_live': navigator.to_live_portal,
-                  'cooking': navigator.to_minigame_portal,
-                  'jump_rope': navigator.to_minigame_portal,
+                  'cooking': lambda: navigator.to_minigame_setup('cooking'),
+                  'jump_rope': lambda: navigator.to_minigame_setup('jump_rope'),
                   'rewards': navigator.to_daily_missions}
         route = routes.get(config.task)
         if route is None:
@@ -84,7 +84,7 @@ class RunDailyTask(CustomAction):
         observation = route()
         evidence = navigator.save(observation, config.task + '-entry')
         if config.entry_only:
-            actual_entry = config.task in ('fishing', 'rewards')
+            actual_entry = config.task in ('fishing', 'rewards', 'cooking', 'jump_rope', 'solo_live')
             return TaskResult(TaskStatus.ENTRY_VERIFIED if actual_entry else TaskStatus.NAVIGATION_VERIFIED,
                               '互動入口已驗證，未執行消耗操作' if actual_entry else
                               '已驗證選單導航，尚未驗證遊戲開始入口', evidence=evidence)

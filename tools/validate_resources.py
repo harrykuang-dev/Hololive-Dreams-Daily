@@ -9,6 +9,7 @@ from referencing import Registry, Resource
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from daily.contracts import USER_ENTERED_ROUNDS
+from daily.settings import defaults, setting_node
 
 
 def load(path):
@@ -39,10 +40,14 @@ def validate():
     for task in interface['task']:
         assert task['entry'] in pipeline
         assert all(option in interface['option'] for option in task['option'])
+        for field, value in defaults(task['name']).items():
+            node = pipeline[setting_node(task['name'], field)]
+            assert node['custom_action_param'] == {field: value}
+            assert 'next' not in node
     for task in USER_ENTERED_ROUNDS:
         field = interface['option'][task + '_rounds']['inputs'][0]
         assert 'default' not in field
-        assert pipeline['Daily_' + task]['custom_action_param']['rounds'] == ''
+        assert pipeline[setting_node(task, 'rounds')]['custom_action_param']['rounds'] == ''
     print(f'Validated {len(interface["task"])} tasks, {len(interface["option"])} options and two languages.')
 
 

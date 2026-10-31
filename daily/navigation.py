@@ -108,6 +108,13 @@ class Navigator:
 
     def to_home(self):
         observation = self.observe()
+        for _ in range(4):
+            destination = {'cooking_setup': 'minigame_portal', 'jump_setup': 'minigame_portal',
+                           'solo_setup': 'song_select', 'song_select': 'live_portal'}.get(observation.scene)
+            if destination is None:
+                break
+            self.inputs.click(1223, 55)
+            observation = self.wait_for({destination})
         if observation.scene == 'home':
             return observation
         if observation.scene in {'park_map', 'fishing_map_second'}:
@@ -139,6 +146,31 @@ class Navigator:
     def to_minigame_portal(self):
         self.to_home()
         return self.click_text('home', '^遊戲$', 'minigame_portal', roi=(730, 10, 380, 100))
+
+    def to_solo_setup(self):
+        if self.observe().scene == 'solo_setup':
+            return self.wait_for({'solo_setup'})
+        self.to_live_portal()
+        self.click_text('live_portal', '^SOLO$', 'song_select', roi=(630, 140, 250, 340))
+        return self.click_text('song_select', '^決定$', 'solo_setup', roi=(1060, 575, 185, 110))
+
+    def to_minigame_setup(self, game):
+        title, destination = {'cooking': ('^食材[妙炒]廚房$', 'cooking_setup'),
+                              'jump_rope': ('^蹦蹦大跳繩$', 'jump_setup')}[game]
+        if self.observe().scene == destination:
+            return self.wait_for({destination})
+        portal = self.to_minigame_portal()
+        labels = self.text(portal, title, roi=(20, 470, 1180, 100))
+        if len(labels) != 1:
+            raise NavigationError('無法唯一確認小遊戲卡片')
+        x, y, w, h = labels[0].box
+        left = max(0, int(x+w/2)-120)
+        buttons = self.vision.find_all(portal.image, 'portal_go', roi=(left, 570, 240, 85))
+        if len(buttons) != 1:
+            raise NavigationError('無法確認所選小遊戲的 Go 按鈕')
+        x, y, w, h = buttons[0].box
+        self.inputs.click(int(x+w/2), int(y+h/2))
+        return self.wait_for({destination}, timeout=45)
 
     def to_daily_missions(self):
         self.to_home()

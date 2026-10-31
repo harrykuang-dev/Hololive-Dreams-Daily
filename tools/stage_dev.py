@@ -7,11 +7,20 @@ import shutil
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def copy_changed(source, destination):
+    source, destination = Path(source), Path(destination)
+    if destination.is_file():
+        old, new = destination.stat(), source.stat()
+        if (old.st_size, old.st_mtime_ns) == (new.st_size, new.st_mtime_ns):
+            return str(destination)
+    return shutil.copy2(source, destination)
+
+
 def stage(gui: Path, python: Path, output: Path):
     if not (gui / 'MFAAvalonia.exe').is_file() or not python.is_file():
         raise FileNotFoundError('GUI runtime or development interpreter is missing')
     output.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(gui, output, dirs_exist_ok=True)
+    shutil.copytree(gui, output, dirs_exist_ok=True, copy_function=copy_changed)
     for directory in ('daily', 'agent', 'resource'):
         shutil.copytree(ROOT / directory, output / directory, dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns('__pycache__'))

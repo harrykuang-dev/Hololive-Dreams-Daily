@@ -30,6 +30,7 @@ AUTO = {'solo_auto_on': ('solo_setup', [523, 635, 77, 41]),
         'map_fishing_hook': ('fishing_map_second', [330, 433, 55, 58]),
         'map_clock': ('fishing_map_second', [365, 114, 60, 58]),
         'map_shop': ('fishing_map_second', [275, 249, 58, 57]),
+        'portal_go': ('minigame_portal', [175, 581, 164, 57]),
         'map_card_close': ('fishing_map_popup', [1165, 108, 55, 55])}
 
 
@@ -54,7 +55,7 @@ def build(samples: Path):
                          'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
         if name == 'map_fishing_hook':
             entries[name].update(scene=False, threshold=.82)
-        elif name.startswith('map_'):
+        elif name.startswith('map_') or name == 'portal_go':
             entries[name].update(scene=False)
         if name == 'notifications':
             entries[name]['priority'] = 1

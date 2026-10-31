@@ -168,7 +168,7 @@
           "name": "No",
           "label": "$no",
           "pipeline_override": {
-            "Daily_connect": {
+            "DailyConfig_connect_entry_only": {
               "custom_action_param": {
                 "entry_only": false
               }
@@ -179,7 +179,7 @@
           "name": "Yes",
           "label": "$yes",
           "pipeline_override": {
-            "Daily_connect": {
+            "DailyConfig_connect_entry_only": {
               "custom_action_param": {
                 "entry_only": true
               }
@@ -197,7 +197,7 @@
           "name": "No",
           "label": "$no",
           "pipeline_override": {
-            "Daily_holowork": {
+            "DailyConfig_holowork_entry_only": {
               "custom_action_param": {
                 "entry_only": false
               }
@@ -208,7 +208,7 @@
           "name": "Yes",
           "label": "$yes",
           "pipeline_override": {
-            "Daily_holowork": {
+            "DailyConfig_holowork_entry_only": {
               "custom_action_param": {
                 "entry_only": true
               }
@@ -226,7 +226,7 @@
           "name": "No",
           "label": "$no",
           "pipeline_override": {
-            "Daily_park_gifts": {
+            "DailyConfig_park_gifts_entry_only": {
               "custom_action_param": {
                 "entry_only": false
               }
@@ -237,7 +237,7 @@
           "name": "Yes",
           "label": "$yes",
           "pipeline_override": {
-            "Daily_park_gifts": {
+            "DailyConfig_park_gifts_entry_only": {
               "custom_action_param": {
                 "entry_only": true
               }
@@ -255,7 +255,7 @@
           "name": "No",
           "label": "$no",
           "pipeline_override": {
-            "Daily_lottery": {
+            "DailyConfig_lottery_entry_only": {
               "custom_action_param": {
                 "entry_only": false
               }
@@ -266,7 +266,7 @@
           "name": "Yes",
           "label": "$yes",
           "pipeline_override": {
-            "Daily_lottery": {
+            "DailyConfig_lottery_entry_only": {
               "custom_action_param": {
                 "entry_only": true
               }
@@ -288,7 +288,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_cooking": {
+        "DailyConfig_cooking_rounds": {
           "custom_action_param": {
             "rounds": "{rounds}"
           }
@@ -309,7 +309,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_cooking": {
+        "DailyConfig_cooking_multiplier": {
           "custom_action_param": {
             "multiplier": "{multiplier}"
           }
@@ -330,7 +330,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_cooking": {
+        "DailyConfig_cooking_resource_budget": {
           "custom_action_param": {
             "resource_budget": "{resource_budget}"
           }
@@ -347,7 +347,7 @@
           "name": "No",
           "label": "$no",
           "pipeline_override": {
-            "Daily_cooking": {
+            "DailyConfig_cooking_entry_only": {
               "custom_action_param": {
                 "entry_only": false
               }
@@ -358,7 +358,7 @@
           "name": "Yes",
           "label": "$yes",
           "pipeline_override": {
-            "Daily_cooking": {
+            "DailyConfig_cooking_entry_only": {
               "custom_action_param": {
                 "entry_only": true
               }
@@ -380,7 +380,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_solo_live": {
+        "DailyConfig_solo_live_rounds": {
           "custom_action_param": {
             "rounds": "{rounds}"
           }
@@ -401,7 +401,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_solo_live": {
+        "DailyConfig_solo_live_multiplier": {
           "custom_action_param": {
             "multiplier": "{multiplier}"
           }
@@ -422,7 +422,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_solo_live": {
+        "DailyConfig_solo_live_resource_budget": {
           "custom_action_param": {
             "resource_budget": "{resource_budget}"
           }
@@ -444,7 +444,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_solo_live": {
+        "DailyConfig_solo_live_team": {
           "custom_action_param": {
             "team": "{team}"
           }
@@ -465,7 +465,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_solo_live": {
+        "DailyConfig_solo_live_song": {
           "custom_action_param": {
             "song": "{song}"
           }
@@ -481,7 +481,7 @@
           "name": "No",
           "label": "$no",
           "pipeline_override": {
-            "Daily_solo_live": {
+            "DailyConfig_solo_live_entry_only": {
               "custom_action_param": {
                 "entry_only": false
               }
@@ -492,7 +492,7 @@
           "name": "Yes",
           "label": "$yes",
           "pipeline_override": {
-            "Daily_solo_live": {
+            "DailyConfig_solo_live_entry_only": {
               "custom_action_param": {
                 "entry_only": true
               }
@@ -515,7 +515,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_high_low": {
+        "DailyConfig_high_low_target": {
           "custom_action_param": {
             "target": "{target}"
           }
@@ -531,7 +531,7 @@
           "name": "No",
           "label": "$no",
           "pipeline_override": {
-            "Daily_high_low": {
+            "DailyConfig_high_low_entry_only": {
               "custom_action_param": {
                 "entry_only": false
               }
@@ -542,7 +542,7 @@
           "name": "Yes",
           "label": "$yes",
           "pipeline_override": {
-            "Daily_high_low": {
+            "DailyConfig_high_low_entry_only": {
               "custom_action_param": {
                 "entry_only": true
               }
@@ -565,7 +565,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_jump_rope": {
+        "DailyConfig_jump_rope_rounds": {
           "custom_action_param": {
             "rounds": "{rounds}"
           }
@@ -586,7 +586,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_jump_rope": {
+        "DailyConfig_jump_rope_multiplier": {
           "custom_action_param": {
             "multiplier": "{multiplier}"
           }
@@ -607,7 +607,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_jump_rope": {
+        "DailyConfig_jump_rope_resource_budget": {
           "custom_action_param": {
             "resource_budget": "{resource_budget}"
           }
@@ -624,7 +624,7 @@
           "name": "No",
           "label": "$no",
           "pipeline_override": {
-            "Daily_jump_rope": {
+            "DailyConfig_jump_rope_entry_only": {
               "custom_action_param": {
                 "entry_only": false
               }
@@ -635,7 +635,7 @@
           "name": "Yes",
           "label": "$yes",
           "pipeline_override": {
-            "Daily_jump_rope": {
+            "DailyConfig_jump_rope_entry_only": {
               "custom_action_param": {
                 "entry_only": true
               }
@@ -657,7 +657,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_multi_live": {
+        "DailyConfig_multi_live_rounds": {
           "custom_action_param": {
             "rounds": "{rounds}"
           }
@@ -678,7 +678,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_multi_live": {
+        "DailyConfig_multi_live_multiplier": {
           "custom_action_param": {
             "multiplier": "{multiplier}"
           }
@@ -699,7 +699,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_multi_live": {
+        "DailyConfig_multi_live_resource_budget": {
           "custom_action_param": {
             "resource_budget": "{resource_budget}"
           }
@@ -721,7 +721,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_multi_live": {
+        "DailyConfig_multi_live_team": {
           "custom_action_param": {
             "team": "{team}"
           }
@@ -737,7 +737,7 @@
           "name": "No",
           "label": "$no",
           "pipeline_override": {
-            "Daily_multi_live": {
+            "DailyConfig_multi_live_entry_only": {
               "custom_action_param": {
                 "entry_only": false
               }
@@ -748,7 +748,7 @@
           "name": "Yes",
           "label": "$yes",
           "pipeline_override": {
-            "Daily_multi_live": {
+            "DailyConfig_multi_live_entry_only": {
               "custom_action_param": {
                 "entry_only": true
               }
@@ -771,7 +771,7 @@
         }
       ],
       "pipeline_override": {
-        "Daily_fishing": {
+        "DailyConfig_fishing_target": {
           "custom_action_param": {
             "target": "{target}"
           }
@@ -787,7 +787,7 @@
           "name": "No",
           "label": "$no",
           "pipeline_override": {
-            "Daily_fishing": {
+            "DailyConfig_fishing_entry_only": {
               "custom_action_param": {
                 "entry_only": false
               }
@@ -798,7 +798,7 @@
           "name": "Yes",
           "label": "$yes",
           "pipeline_override": {
-            "Daily_fishing": {
+            "DailyConfig_fishing_entry_only": {
               "custom_action_param": {
                 "entry_only": true
               }
@@ -816,7 +816,7 @@
           "name": "No",
           "label": "$no",
           "pipeline_override": {
-            "Daily_rewards": {
+            "DailyConfig_rewards_entry_only": {
               "custom_action_param": {
                 "entry_only": false
               }
@@ -827,7 +827,7 @@
           "name": "Yes",
           "label": "$yes",
           "pipeline_override": {
-            "Daily_rewards": {
+            "DailyConfig_rewards_entry_only": {
               "custom_action_param": {
                 "entry_only": true
               }

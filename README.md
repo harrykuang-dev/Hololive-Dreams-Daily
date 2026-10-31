@@ -8,6 +8,8 @@ Cooking, solo Live and multiplayer Live each require a user-entered round count.
 
 Live testing has verified map selection, teleport, bounded approach and the fishing setup entry at the second site, 菈米的冰天雪堡. Validation stops before Start; fishing gameplay has not been accepted. Navigation verifies the place name before teleporting and handles the player marker covering the fishing icon.
 
+Cooking, Jump Rope and solo Live have also reached their final setup screens in live entry-only checks, with no play started. User settings are stored in independent Maa nodes; native integration checks verify that round counts and budgets survive multiple UI option overrides.
+
 ## Development
 
 Use Python 3.13 x64 and .NET 10. Install `requirements-dev.txt`, then run:

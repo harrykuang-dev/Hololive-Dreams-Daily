@@ -8,6 +8,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from daily.contracts import TASKS, USER_ENTERED_ROUNDS
+from daily.settings import defaults, setting_node
 
 LABELS = {
     'connect': ('連接遊戲', 'Connect game'),
@@ -63,6 +64,13 @@ def generate():
                            'custom_action': 'RunDailyTask', 'custom_action_param': config,
                            'focus': {'Node.Action.Starting': '$starting',
                                      'Node.Action.Succeeded': '$finished', 'Node.Action.Failed': '$failed'}}
+        # custom_action_param is replaced as a whole by each Maa override.
+        # Keep one independent node per option so later options cannot discard
+        # previously entered counts, resource limits or the entry-only flag.
+        for field, value in defaults(task).items():
+            pipeline[setting_node(task, field)] = {
+                'recognition': 'DirectHit', 'action': 'Custom',
+                'custom_action': 'RunDailyTask', 'custom_action_param': {field: value}}
         row = {'name': task, 'label': '$task_' + task, 'entry': entry,
                'default_check': task == 'connect', 'option': []}
         for lang, index in [('zh_tw', 0), ('en_us', 1)]:
@@ -77,7 +85,7 @@ def generate():
                 input_item['default'] = default
             interface['option'][option_name] = {
                 'type': 'input', 'label': '$' + option_name, 'inputs': [input_item],
-                'pipeline_override': {entry: {'custom_action_param': {field: '{' + field + '}'}}}}
+                'pipeline_override': {setting_node(task, field): {'custom_action_param': {field: '{' + field + '}'}}}}
             row['option'].append(option_name)
             translations['zh_tw'][option_name] = zh
             translations['en_us'][option_name] = en
@@ -106,9 +114,9 @@ def generate():
         interface['option'][option_name] = {
             'type': 'switch', 'label': '$entry_only', 'default_case': 'No',
             'cases': [{'name': 'No', 'label': '$no',
-                       'pipeline_override': {entry: {'custom_action_param': {'entry_only': False}}}},
+                       'pipeline_override': {setting_node(task, 'entry_only'): {'custom_action_param': {'entry_only': False}}}},
                       {'name': 'Yes', 'label': '$yes',
-                       'pipeline_override': {entry: {'custom_action_param': {'entry_only': True}}}}]}
+                       'pipeline_override': {setting_node(task, 'entry_only'): {'custom_action_param': {'entry_only': True}}}}]}
         row['option'].append(option_name)
         interface['task'].append(row)
     for lang in translations:

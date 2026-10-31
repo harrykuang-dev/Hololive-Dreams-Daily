@@ -570,6 +570,34 @@
     "sha256": "030d5ded33db9a9e7b76597f84a2c851bc8288b5b4ff3b12bf47c2714a31e9b2",
     "scene": false
   },
+  "portal_go": {
+    "file": "anchors/portal_go.png",
+    "roi": [
+      175,
+      581,
+      164,
+      57
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "minigame_portal",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 125,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "3dd81b9397e672dd4f662dbf7e914db3efdf9f4f76cc87da4bf58c01d8a37a59"
+    },
+    "sha256": "36d10e6f4004665e134a4bb29fa043fc4565dbb13c5a54e92c5b592fa741ede5",
+    "scene": false
+  },
   "map_card_close": {
     "file": "anchors/map_card_close.png",
     "roi": [
