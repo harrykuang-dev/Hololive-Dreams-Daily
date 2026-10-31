@@ -1,0 +1,3 @@
+-r requirements-modules-fishing.txt
+dxcam==0.3.0; sys_platform == 'win32'
+onnxruntime-directml==1.22.0; sys_platform == 'win32'

@@ -34,3 +34,5 @@ python -m pytest -q
 
 Clone with submodules. `dependencies.lock.json` records the selected upstream commits. Upstream modules require their own runtime dependencies and models; the Maa agent environment is kept separate. See `THIRD_PARTY_NOTICES.md` and `upstream/holodori/LICENSES.md` for component notices.
 
+For the separate Jump Rope interpreter, install `requirements-modules-jump.txt` and run `python tools/check_jump_runtime.py`. This performs DirectML model warmup without game input; optional `--sample` arguments verify rope and player-marker detection on local game-only frames. Fifteen warmup frames and three reference frames passed on the development machine. This does not validate gameplay timing or enable the task's worker.
+

@@ -65,6 +65,9 @@ SAMPLES = [
     ('cooking_energy', '09.52.54.01', 129),
     ('energy_controls', '09.52.54.01', 129.4),
     ('jump_setup', '13.51.56.03', 1370),
+    ('jump_play_top', '13.51.56.03', 1388),
+    ('jump_play_level', '13.51.56.03', 1400),
+    ('jump_play_bottom', '13.51.56.03', 1416),
     ('gifts', '14.25.52.04', 6),
 ]
 
