@@ -59,7 +59,8 @@ class InspectRecordings(CustomAction):
                         'event_free': 'event_missions', 'arena_map': 'park_map',
                         'arena_popup': 'park_map', 'high_low_entry': 'home',
                         'login_reward': 'holowork_get', 'lottery_entry_native': 'home',
-                        'lottery_dialogue_native': 'home'}.get(path.stem, expected)
+                        'lottery_dialogue_native': 'home', 'gift_house_unreached_native': 'home',
+                        'gift_house_wall_native': 'home'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
             if path.stem == 'date_changed':
@@ -87,6 +88,12 @@ class InspectRecordings(CustomAction):
                 if scene != 'login_notice' or button is None:
                     raise ValueError('Observed membership announcement was not uniquely recognized')
                 result['notice_close'] = list(button)
+            if path.stem in {'gift_house_entry', 'gift_house_unreached_native', 'gift_house_wall_native'}:
+                markers = vision.find_all(frame, 'park_character_gift_marker', roi=(300, 150, 800, 300))
+                expected_count = 0 if path.stem == 'gift_house_wall_native' else 1
+                if len(markers) != expected_count:
+                    raise ValueError(f'{path.stem}: expected {expected_count} gift markers, got {len(markers)}')
+                result['gift_markers'] = [list(marker.box) for marker in markers]
             if path.stem in ('solo_setup', 'multi_ready'):
                 roi = [420, 588, 180, 40] if path.stem == 'solo_setup' else [145, 585, 150, 40]
                 captured = time.monotonic()

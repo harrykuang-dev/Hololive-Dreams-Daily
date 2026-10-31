@@ -1124,6 +1124,34 @@
     "sha256": "e205f681e875b8a8f17040a7284a5ff868b1b2861d93a09818af34eedd73f412",
     "scene": false
   },
+  "park_character_gift_marker": {
+    "file": "anchors/park_character_gift_marker.png",
+    "roi": [
+      643,
+      287,
+      37,
+      35
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "gift_house_entry",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 71,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "0af1aca762d9bf4ea41cdf9494e67592777c1ad81e087e2443722bc0364280c4"
+    },
+    "sha256": "fb11ad2b1f0493973e89357e829cd69b146aff3c0b0f12febe447a6a0c22f05e",
+    "scene": false
+  },
   "lottery_scratch_card": {
     "file": "anchors/lottery_scratch_card.png",
     "roi": [
