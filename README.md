@@ -8,6 +8,8 @@ Cooking, solo Live and multiplayer Live each require a user-entered round count.
 
 Game-window recordings and time-aligned step logs are required for live task execution. Recording failure stops further actions while still releasing held keys. Recordings remain local; development staging places them beside the staged application under `recordings`. Once-daily full tests use fresh attempts after04:05 UTC+8; the game day resets at04:00.
 
+Recorded recovery checks have verified the date-change notice, Halloween and standard login bonuses, received-reward pages and the November membership announcement. Each recognized page is confirmed once before waiting for its next state. These checks used separate recovery runs; an uninterrupted reset sequence remains pending. Other announcement layouts stop for validation.
+
 Live testing has verified map selection, teleport, bounded approach and the fishing setup entry at the second site, 菈米的冰天雪堡. A recorded foreground test from that setup caught three fish with infinite practice bait. A subsequent uninterrupted test navigated from the park, caught one fish at that site, stopped at the configured target and returned to the park. Other bait remains disabled. Navigation verifies the place name before teleporting and handles the player marker covering the fishing icon.
 
 Cooking, Jump Rope and solo Live have reached their final setup screens in entry checks. Cooking and Jump Rope gameplay modules remain disabled. User settings are stored in independent Maa nodes; native integration checks verify that round counts and budgets survive multiple UI option overrides.

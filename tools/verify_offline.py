@@ -57,9 +57,35 @@ class InspectRecordings(CustomAction):
                         'achievements_claimable': 'achievements', 'event_claimable': 'event_missions',
                         'gifts_empty': 'gifts', 'reward_season_empty_native': 'daily_missions',
                         'event_free': 'event_missions', 'arena_map': 'park_map',
-                        'arena_popup': 'park_map', 'high_low_entry': 'home'}.get(path.stem, expected)
+                        'arena_popup': 'park_map', 'high_low_entry': 'home',
+                        'login_reward': 'holowork_get'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
+            if path.stem == 'date_changed':
+                button = navigator.date_change_button(Observation(frame, scene, time.monotonic()))
+                if scene != 'date_changed' or button is None:
+                    raise ValueError('Date-change notice did not have its unique confirmation')
+                result['date_confirmation'] = list(button)
+            if path.stem == 'login_bonus':
+                button = navigator.login_bonus_button(Observation(frame, scene, time.monotonic()))
+                if scene != 'login_bonus' or button is None:
+                    raise ValueError('Observed login-bonus page did not have its exact continue hint')
+                result['bonus_continue'] = list(button)
+            if path.stem == 'login_reward':
+                button = navigator.received_reward_button(Observation(frame, scene, time.monotonic()))
+                if scene != 'holowork_get' or button is None:
+                    raise ValueError('Login reward did not have its received/close confirmation')
+                result['reward_close'] = list(button)
+            if path.stem == 'login_bonus_standard':
+                button = navigator.standard_login_bonus_button(Observation(frame, scene, time.monotonic()))
+                if scene != 'login_bonus_standard' or button is None:
+                    raise ValueError('Standard login-bonus page lacked its title and continue hint')
+                result['bonus_continue'] = list(button)
+            if path.stem == 'login_notice':
+                button = navigator.login_notice_button(Observation(frame, scene, time.monotonic()))
+                if scene != 'login_notice' or button is None:
+                    raise ValueError('Observed membership announcement was not uniquely recognized')
+                result['notice_close'] = list(button)
             if path.stem in ('solo_setup', 'multi_ready'):
                 roi = [420, 588, 180, 40] if path.stem == 'solo_setup' else [145, 585, 150, 40]
                 captured = time.monotonic()

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from daily import navigation
-from daily.navigation import EntryUnavailable, Navigator, Observation
+from daily.navigation import EntryUnavailable, NavigationError, Navigator, Observation
 
 
 class Capture:
@@ -39,6 +39,67 @@ def test_one_generic_label_does_not_classify_unknown_scene(tmp_path):
     context = Context(['任務'])
     navigator = Navigator(context, root / 'resource', tmp_path)
     assert navigator.observe().scene is None
+
+
+@pytest.mark.parametrize('labels,button_count,accepted', [
+    (['日期已變更'], 1, True), (['日期已變更'], 2, False),
+    (['其他確認'], 1, False), (['日期已變更'], 0, False)])
+def test_date_recovery_requires_exact_notice_and_unique_ok(labels, button_count, accepted):
+    navigator = Navigator.__new__(Navigator)
+    def text(observation, expected, roi):
+        words = labels if expected == '^日期已變更$' else ['OK'] * button_count
+        return [SimpleNamespace(text=word, box=(1100, 649, 33, 16)) for word in words]
+    navigator.text = text
+    assert (navigator.date_change_button(None) is not None) == accepted
+
+
+@pytest.mark.parametrize('scene', ['date_changed', 'login_bonus', 'login_bonus_standard', 'holowork_get', 'login_notice'])
+def test_unchanged_recovery_notice_is_acknowledged_once_then_times_out(monkeypatch, scene):
+    navigator = Navigator.__new__(Navigator)
+    now, clicks = [0.], []
+    def tick():
+        now[0] += 1
+        return now[0]
+    monkeypatch.setattr(navigation.time, 'monotonic', tick)
+    monkeypatch.setattr(navigation.time, 'sleep', lambda seconds: None)
+    navigator.observe = lambda: Observation(None, scene, 0)
+    navigator.date_change_button = lambda observation: (1100, 649, 33, 16)
+    navigator.login_bonus_button = navigator.date_change_button
+    navigator.received_reward_button = navigator.date_change_button
+    navigator.standard_login_bonus_button = navigator.date_change_button
+    navigator.login_notice_button = navigator.date_change_button
+    navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args))
+    navigator.save = lambda *args: 'date-stalled.png'
+    with pytest.raises(NavigationError, match='逾時'):
+        navigator.wait_for({'home'}, timeout=3)
+    assert clicks == [(1116, 657)]
+
+
+@pytest.mark.parametrize('title,hint,accepted', [
+    ('萬聖節', '點擊繼續', True), ('商店', '點擊繼續', False),
+    ('萬聖節', '購買', False), ('萬聖節', '', False)])
+def test_login_recovery_requires_event_title_and_exact_continue_hint(title, hint, accepted):
+    navigator = Navigator.__new__(Navigator)
+    navigator.text = lambda observation, expected, roi, **kw: [SimpleNamespace(
+        text=title if expected == '^萬聖節$' else hint, box=(560, 625, 180, 50))]
+    assert (navigator.login_bonus_button(None) is not None) == accepted
+
+
+def test_reset_login_reward_chain_returns_home_without_repeated_confirmations(monkeypatch):
+    navigator = Navigator.__new__(Navigator)
+    frames = iter(['date_changed', 'login_bonus', 'holowork_get',
+                   'login_bonus_standard', 'holowork_get', 'login_notice', 'home', 'home'])
+    navigator.observe = lambda: Observation(None, next(frames), 0)
+    navigator.date_change_button = lambda observation: (1100, 649, 33, 16)
+    navigator.login_bonus_button = lambda observation: (560, 625, 180, 50)
+    navigator.received_reward_button = lambda observation: (540, 635, 200, 40)
+    navigator.standard_login_bonus_button = lambda observation: (800, 580, 200, 55)
+    navigator.login_notice_button = lambda observation: (1060, 85, 60, 60)
+    clicks = []
+    navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args))
+    monkeypatch.setattr(navigation.time, 'sleep', lambda seconds: None)
+    assert navigator.wait_for({'home'}, stable_for=0).scene == 'home'
+    assert clicks == [(1116, 657), (650, 650), (640, 655), (900, 607), (640, 655), (1090, 115)]
 
 
 def test_holowork_header_ocr_handles_changing_dispatch_background(tmp_path):

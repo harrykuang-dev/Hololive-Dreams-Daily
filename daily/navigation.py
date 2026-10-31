@@ -68,6 +68,14 @@ class Navigator:
             if len(words.intersection({'遊戲', 'Live', '任務', '成就'})) >= 3:
                 scene = 'home'
             else:
+                if self.date_change_button(observation):
+                    return Observation(frame, 'date_changed', captured)
+                if self.login_bonus_button(observation):
+                    return Observation(frame, 'login_bonus', captured)
+                if self.standard_login_bonus_button(observation):
+                    return Observation(frame, 'login_bonus_standard', captured)
+                if self.login_notice_button(observation):
+                    return Observation(frame, 'login_notice', captured)
                 # GET overlays inherit the underlying page's colour. Require
                 # both labels instead of matching a blue header on a red page.
                 reward = self.text(observation, '^GET!$', (530, 20, 230, 95))
@@ -106,8 +114,41 @@ class Navigator:
         deadline = time.monotonic() + timeout
         stable_since = None
         last_scene = None
+        date_acknowledged = False
+        bonus_acknowledged = set()
+        reward_closed = False
+        notice_closed = False
         while True:
             observation = self.observe()
+            recovery = None
+            if 'home' in scenes:
+                if observation.scene == 'date_changed' and not date_acknowledged:
+                    recovery = self.date_change_button
+                elif observation.scene == 'login_bonus' and observation.scene not in bonus_acknowledged:
+                    recovery = self.login_bonus_button
+                elif observation.scene == 'login_bonus_standard' and observation.scene not in bonus_acknowledged:
+                    recovery = self.standard_login_bonus_button
+                elif observation.scene == 'holowork_get' and not reward_closed:
+                    recovery = self.received_reward_button
+                elif observation.scene == 'login_notice' and not notice_closed:
+                    recovery = self.login_notice_button
+            if recovery is not None:
+                button = recovery(observation)
+                if button is None:
+                    raise NavigationError('換日／登入獎勵提示已改變，未確認其他對話框')
+                x, y, w, h = button
+                self.inputs.click(int(x+w/2), int(y+h/2))
+                date_acknowledged |= observation.scene == 'date_changed'
+                if observation.scene in {'login_bonus', 'login_bonus_standard'}:
+                    bonus_acknowledged.add(observation.scene)
+                    reward_closed = False
+                elif observation.scene == 'holowork_get':
+                    reward_closed = True
+                elif observation.scene == 'login_notice':
+                    notice_closed = True
+                deadline = time.monotonic() + timeout
+                stable_since = last_scene = None
+                continue
             if observation.scene in scenes:
                 if observation.scene != last_scene:
                     stable_since = time.monotonic()
@@ -121,6 +162,58 @@ class Navigator:
                 evidence = self.save(observation, 'unknown')
                 raise NavigationError(f'等待畫面逾時：{", ".join(scenes)}；{evidence}')
             time.sleep(.2)
+
+    def date_change_button(self, observation):
+        labels = [item for item in self.text(observation, '^日期已變更$', (450, 290, 390, 140))
+                  if getattr(item, 'text', '').strip() == '日期已變更']
+        if len(labels) != 1:
+            return None
+        buttons = [item for item in self.text(observation, '^OK$', (980, 600, 260, 105))
+                   if getattr(item, 'text', '').strip() == 'OK']
+        return tuple(buttons[0].box) if len(buttons) == 1 else None
+
+    def login_bonus_button(self, observation):
+        # This observed event login page is not a generic "continue" handler.
+        titles = [item for item in self.text(observation, '^萬聖節$', (450, 140, 390, 160))
+                  if getattr(item, 'text', '').strip() == '萬聖節']
+        if len(titles) != 1:
+            return None
+        hints = [item for item in self.text(observation, '^點擊繼續$', (560, 625, 180, 50), only_rec=True)
+                 if getattr(item, 'text', '').strip() == '點擊繼續']
+        return tuple(hints[0].box) if len(hints) == 1 else None
+
+    def received_reward_button(self, observation):
+        titles = [item for item in self.text(observation, '^GET!$', (530, 20, 230, 110))
+                  if getattr(item, 'text', '').strip() == 'GET!']
+        if len(titles) != 1:
+            return None
+        hints = [item for item in self.text(observation, '^點擊關閉$', (480, 600, 350, 105))
+                 if getattr(item, 'text', '').strip() == '點擊關閉']
+        return tuple(hints[0].box) if len(hints) == 1 else None
+
+    def standard_login_bonus_button(self, observation):
+        titles = [getattr(item, 'text', '').strip() for item in self.text(
+            observation, r'^(LOGIN|BONUS)$', (680, 100, 440, 180))
+            if getattr(item, 'text', '').strip() in {'LOGIN', 'BONUS'}]
+        if len(titles) != 2 or set(titles) != {'LOGIN', 'BONUS'}:
+            return None
+        hints = [item for item in self.text(observation, '^點擊繼續$', (800, 580, 200, 55))
+                 if getattr(item, 'text', '').strip() == '點擊繼續']
+        return tuple(hints[0].box) if len(hints) == 1 else None
+
+    def login_notice_button(self, observation):
+        # Only the recorded November membership announcement has this layout.
+        # Close its top-right X; never enter the advertised pass or membership.
+        required = (
+            (r'^會員資格[/／]會員$', (200, 90, 460, 150), False),
+            ('^豪華任務通行證$', (620, 120, 460, 120), False),
+            (r'^2026年11月更新[!！]$', (320, 495, 640, 130), True))
+        for expected, roi, only_rec in required:
+            matches = [item for item in self.text(observation, expected, roi, only_rec=only_rec)
+                       if re.fullmatch(expected, getattr(item, 'text', '').strip())]
+            if len(matches) != 1:
+                return None
+        return (1060, 85, 60, 60)
 
     def text(self, observation: Observation, expected: str, roi=None, *, only_rec=False):
         # This is recognition only. The OCR pipeline has no input action.
@@ -143,6 +236,9 @@ class Navigator:
 
     def to_home(self):
         observation = self.observe()
+        if observation.scene in {'date_changed', 'login_bonus', 'login_bonus_standard',
+                                 'holowork_get', 'login_notice'}:
+            return self.wait_for({'home'}, timeout=45)
         if self.vision.match(observation.image, 'park_dialogue_next'):
             raise NavigationError('角色對話尚未結束，未嘗試其他選單')
         if observation.scene == 'notifications':
