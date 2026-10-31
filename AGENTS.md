@@ -8,4 +8,4 @@
 - Foreground execution is the initial support target. Release all held inputs on cancellation and failures.
 - Daily limited features may be validated at their interaction entry; report entry-only and complete-run evidence separately.
 - Keep English and Traditional Chinese documentation aligned. Preserve upstream source, notices, models, settings and records.
-- Do not publish or push without user authorization.
+- Commit and push source checkpoints to the independent GitHub repository after relevant checks pass and before quota pauses. Keep progress claims accurate and local recordings, settings, logs and diagnostics out of commits. Binary releases require a separate request.
