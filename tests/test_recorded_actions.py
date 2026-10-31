@@ -19,6 +19,9 @@ def recorded_action(monkeypatch, tmp_path):
         def start(self):
             events.append('start')
 
+        def check(self):
+            pass
+
         def mark(self, event, **details):
             events.append(event)
 

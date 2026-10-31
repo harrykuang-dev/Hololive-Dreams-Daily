@@ -17,6 +17,10 @@ class NavigationError(RuntimeError):
     pass
 
 
+class EntryUnavailable(NavigationError):
+    pass
+
+
 @dataclass(frozen=True)
 class Observation:
     image: object
@@ -247,6 +251,8 @@ class Navigator:
         deadline = time.monotonic()+8
         while True:
             menu = self.observe()
+            if menu.scene != 'notifications':
+                raise NavigationError('holoWork 通知頁已變更，未嘗試其他入口')
             buttons = self.text(menu, '[已巳]完成.*[Hh]olo[Ww]ork', (20, 90, 470, 480))
             if len(buttons) == 1:
                 x, y, w, h = buttons[0].box
@@ -254,7 +260,7 @@ class Navigator:
                 return self.wait_for({'holowork'}, timeout=30)
             if time.monotonic() >= deadline:
                 self.save(menu, 'holowork-notification-not-found')
-                raise NavigationError('沒有可唯一確認的已完成 holoWork 通知；尚未啟用其他入口')
+                raise EntryUnavailable('沒有可唯一確認的已完成 holoWork 通知，略過本次收取')
             self.inputs.pause(.2)
 
     def to_fishing_second(self):

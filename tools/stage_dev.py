@@ -1,5 +1,6 @@
 """Stage a local development GUI without modifying the canonical PI paths."""
 import argparse
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import shutil
@@ -33,7 +34,9 @@ def stage(gui: Path, python: Path, output: Path):
     config.mkdir(exist_ok=True)
     shutil.copy2(ROOT / 'config.template.json', config / 'config.template.json')
     (config / 'recording.json').write_text(json.dumps(
-        {'directory': str((output.parent / 'recordings').resolve())}, indent=2), encoding='utf-8')
+        {'directory': str((output.parent / 'recordings').resolve()),
+         'daily_test_not_before': datetime.now(timezone(timedelta(hours=8))).replace(
+             hour=4, minute=5, second=0, microsecond=0).isoformat()}, indent=2), encoding='utf-8')
     print(output / 'MFAAvalonia.exe')
 
 

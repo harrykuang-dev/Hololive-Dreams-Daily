@@ -2,8 +2,10 @@ from types import SimpleNamespace
 from pathlib import Path
 
 import numpy as np
+import pytest
 
-from daily.navigation import Navigator
+from daily import navigation
+from daily.navigation import EntryUnavailable, Navigator, Observation
 
 
 class Capture:
@@ -57,3 +59,21 @@ def test_reward_overlay_requires_title_and_close_hint_on_any_background(tmp_path
     assert navigator.observe().scene == 'holowork_get'
     navigator = Navigator(Context(['GET!']), root / 'resource', tmp_path)
     assert navigator.observe().scene is None
+
+
+def test_no_completed_work_notification_skips_without_guessing_another_route(tmp_path, monkeypatch):
+    root = Path(__file__).resolve().parents[1]
+    navigator = Navigator(Context([]), root / 'resource', tmp_path)
+    frames = iter([Observation(None, 'home', 0), Observation(None, 'notifications', 0)])
+    navigator.observe = lambda: next(frames)
+    navigator.to_home = lambda: None
+    navigator.wait_for = lambda *args, **kwargs: None
+    navigator.text = lambda *args, **kwargs: []
+    navigator.save = lambda *args: 'notification.png'
+    clicks = []
+    navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args))
+    times = iter([0, 10])
+    monkeypatch.setattr(navigation.time, 'monotonic', lambda: next(times))
+    with pytest.raises(EntryUnavailable):
+        navigator.to_holowork()
+    assert clicks == [(260, 45)]

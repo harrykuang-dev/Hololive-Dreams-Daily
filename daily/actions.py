@@ -13,12 +13,13 @@ from maa.custom_action import CustomAction
 from .contracts import ConfigurationError, TaskConfig, TaskResult, TaskStatus
 from .inputs import Cancelled
 from .journal import Journal
-from .navigation import NavigationError, Navigator
+from .navigation import EntryUnavailable, NavigationError, Navigator
 from .settings import read_settings
 from .resources import EnergySettings, ResourceUnavailable
 from .live import SoloLiveRunner
 from .holowork import HoloWorkRunner
 from .recording import GameRecording, recording_directory
+from .calendar import DailyAttempts, DailyUnavailable
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -59,9 +60,10 @@ class RunDailyTask(CustomAction):
             recording.start()
             navigator = Navigator(context, ROOT / 'resource', data / 'evidence' / self.session,
                                   recording=recording)
+            navigator.daily_attempts = DailyAttempts.from_runtime(ROOT, data, recording)
             report(TaskResult(TaskStatus.RUNNING, '執行中'))
             report(self.execute(navigator, config, progress=report))
-        except ResourceUnavailable as error:
+        except (ResourceUnavailable, DailyUnavailable, EntryUnavailable) as error:
             result = stopped(TaskStatus.SKIPPED, str(error))
         except Cancelled:
             result = stopped(TaskStatus.CANCELLED, '已停止')
