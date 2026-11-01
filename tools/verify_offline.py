@@ -62,7 +62,8 @@ class InspectRecordings(CustomAction):
                         'lottery_entry_native': 'home',
                         'lottery_dialogue_native': 'home', 'gift_house_unreached_native': 'home',
                         'gift_house_wall_native': 'home', 'live_achievement_native': 'live_achievement',
-                        'live_reward_transition': 'holowork_get'}.get(path.stem, expected)
+                        'live_reward_transition': 'holowork_get', 'solo_setup_nine': 'solo_setup',
+                        'energy_zero_nominal': 'energy_settings', 'solo_setup_zero': 'solo_setup'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
             if path.stem in {'game_title', 'game_title_ready'}:
@@ -107,8 +108,8 @@ class InspectRecordings(CustomAction):
                 if len(markers) != expected_count:
                     raise ValueError(f'{path.stem}: expected {expected_count} gift markers, got {len(markers)}')
                 result['gift_markers'] = [list(marker.box) for marker in markers]
-            if path.stem in ('solo_setup', 'multi_ready'):
-                roi = [420, 588, 180, 40] if path.stem == 'solo_setup' else [145, 585, 150, 40]
+            if path.stem in ('solo_setup', 'solo_setup_nine', 'solo_setup_zero', 'multi_ready'):
+                roi = [420, 588, 180, 40] if scene == 'solo_setup' else [145, 585, 150, 40]
                 captured = time.monotonic()
                 detail = context.run_recognition('DailyOCR', frame,
                     {'DailyOCR': {'recognition': 'OCR', 'roi': roi, 'expected': ['.*'], 'threshold': .5}})
@@ -118,9 +119,20 @@ class InspectRecordings(CustomAction):
                               auto_remaining=observation.remaining)
                 result['live_state'] = asdict(LiveControls(navigator).read(
                     Observation(frame, scene, time.monotonic())))
+                if path.stem == 'solo_setup_nine' and result['live_state']['cost'] != 9:
+                    raise ValueError('Nine-energy field was confused with the reward multiplier')
+                if path.stem == 'solo_setup_zero' and not (
+                        result['live_state']['cost'] == 0 and result['live_state']['resource']['available'] == 0
+                        and result['live_state']['auto']['enabled']):
+                    raise ValueError('Zero-energy setup was not positively observed with Auto')
             if scene == 'energy_settings':
-                result['energy_selection'] = asdict(EnergySettings(navigator).read(
-                    Observation(frame, scene, time.monotonic())))
+                selection = EnergySettings(navigator).read(Observation(frame, scene, time.monotonic()))
+                result['energy_selection'] = asdict(selection)
+                result['effective_energy_cost'] = selection.effective_cost
+                if path.stem == 'energy_zero_nominal' and not (
+                        selection.resource.available == 0 and selection.cost == 1
+                        and selection.empty_energy_play and selection.effective_cost == 0):
+                    raise ValueError('Empty-energy policy was not positively observed')
             if scene == 'live_result':
                 result['auto_result'] = bool(navigator.text(Observation(frame, scene, time.monotonic()),
                                                            '^AUTO LIVE$', (650, 180, 530, 330)))

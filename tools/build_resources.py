@@ -98,9 +98,9 @@ def generate():
         if task in ('cooking', 'solo_live', 'multi_live', 'jump_rope'):
             add_input('multiplier', '消耗倍率', 'Consumption multiplier', default='1', verify=r'^[1-9][0-9]?$')
             add_input('resource_budget', '本次消耗上限（可空白）',
-                      'Resource budget (optional)', default='', verify=r'^$|^[1-9][0-9]{0,8}$')
+                      'Resource budget (optional)', default='', verify=r'^$|^(0|[1-9][0-9]{0,8})$')
             interface['option'][task + '_resource_budget']['description'] = (
-                '空白時以現有資源餘量為限，不會自動補充。')
+                '空白時以現有資源餘量為限；0 表示不消耗資源，不會自動補充。')
         if task in ('fishing', 'high_low'):
             add_input('target', '目標釣獲數' if task == 'fishing' else '本次收益目標（空白為遊戲上限）',
                       'Target catches' if task == 'fishing' else 'Profit target (blank: game cap)',

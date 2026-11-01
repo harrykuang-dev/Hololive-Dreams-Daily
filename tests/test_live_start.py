@@ -6,6 +6,7 @@ import pytest
 
 from daily.contracts import AutoObservation, ResourceObservation, TaskConfig
 from daily.live import LiveBlocked, LiveControls, LiveState, parse_consumption
+from daily.resources import EnergySelection, read_setup_cost
 
 
 def controls(state):
@@ -55,7 +56,57 @@ def test_fresh_game_auto_allows_only_one_observed_decide_click():
     assert calls == [(1150, 650)]
 
 
+@pytest.mark.parametrize('remaining', [0, 1])
+def test_zero_energy_start_still_requires_auto_uses_and_explicit_zero_cost(remaining):
+    control, calls = controls(replace(state(remaining=remaining), resource=ResourceObservation(0, 20), cost=0))
+    config = TaskConfig('solo_live', rounds=1, multiplier=1, resource_budget=0)
+    if remaining:
+        control.start(config)
+        assert calls == [(1150, 650)]
+    else:
+        with pytest.raises(LiveBlocked):
+            control.start(config)
+        assert not calls
+
+
+def test_zero_cost_preflight_audit_is_written_before_the_only_start_click():
+    control, calls = controls(replace(state(), resource=ResourceObservation(0, 20), cost=0))
+    audit = []
+    control.nav.recording = SimpleNamespace(mark=lambda name, **data: audit.append((name, data, list(calls))))
+    control.start(TaskConfig('solo_live', rounds=1, multiplier=1, resource_budget=0))
+    assert audit[0][0] == 'live_start_verified' and audit[0][2] == []
+    assert audit[0][1]['cost'] == audit[0][1]['budget_remaining'] == 0
+    assert audit[0][1]['resource']['available'] == 0
+    assert calls == [(1150, 650)]
+
+
+@pytest.mark.parametrize('available,policy,allowed', [(0, True, True), (0, False, False), (1, True, False)])
+def test_empty_energy_nominal_cost_needs_observed_policy_and_fresh_zero_balance(available, policy, allowed):
+    control, calls = controls(replace(state(), resource=ResourceObservation(available, 10), cost=1))
+    energy = EnergySelection(1, 1, ResourceObservation(0, 10), empty_energy_play=policy)
+    config = TaskConfig('solo_live', rounds=1, multiplier=1, resource_budget=0)
+    if allowed:
+        assert control.start(config, energy=energy).effective_cost == 0
+        assert calls == [(1150, 650)]
+    else:
+        with pytest.raises(LiveBlocked):
+            control.start(config, energy=energy)
+        assert not calls
+
+
 @pytest.mark.parametrize('text,cost', [('×5×24', 5), ('×10 | ×48', 10), ('x1', 1),
     ('×5/10', None), ('AUTO5', None), ('×5×2×4', None), ('', None)])
 def test_read_cost_without_confusing_the_reward_multiplier(text, cost):
     assert parse_consumption(text) == cost
+
+
+@pytest.mark.parametrize('texts,cost', [(['9'], 9), (['×9'], 9), (['0'], 0),
+                                      (['×20'], 20), (['9', '31'], None), ([], None)])
+def test_solo_cost_reads_only_the_confined_numeric_field(texts, cost):
+    calls = []
+    def text(observation, expected, roi):
+        calls.append(roi)
+        return [SimpleNamespace(text=value) for value in texts]
+    nav = SimpleNamespace(text=text)
+    assert read_setup_cost(nav, SimpleNamespace(scene='solo_setup')) == cost
+    assert calls == [(840, 586, 72, 37)]

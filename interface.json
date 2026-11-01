@@ -324,7 +324,7 @@
           "name": "resource_budget",
           "label": "$cooking_resource_budget",
           "pipeline_type": "string",
-          "verify": "^$|^[1-9][0-9]{0,8}$",
+          "verify": "^$|^(0|[1-9][0-9]{0,8})$",
           "pattern_msg": "$invalid_resource_budget",
           "default": ""
         }
@@ -336,7 +336,7 @@
           }
         }
       },
-      "description": "空白時以現有資源餘量為限，不會自動補充。"
+      "description": "空白時以現有資源餘量為限；0 表示不消耗資源，不會自動補充。"
     },
     "cooking_entry_only": {
       "type": "switch",
@@ -416,7 +416,7 @@
           "name": "resource_budget",
           "label": "$solo_live_resource_budget",
           "pipeline_type": "string",
-          "verify": "^$|^[1-9][0-9]{0,8}$",
+          "verify": "^$|^(0|[1-9][0-9]{0,8})$",
           "pattern_msg": "$invalid_resource_budget",
           "default": ""
         }
@@ -428,7 +428,7 @@
           }
         }
       },
-      "description": "空白時以現有資源餘量為限，不會自動補充。"
+      "description": "空白時以現有資源餘量為限；0 表示不消耗資源，不會自動補充。"
     },
     "solo_live_team": {
       "type": "input",
@@ -601,7 +601,7 @@
           "name": "resource_budget",
           "label": "$jump_rope_resource_budget",
           "pipeline_type": "string",
-          "verify": "^$|^[1-9][0-9]{0,8}$",
+          "verify": "^$|^(0|[1-9][0-9]{0,8})$",
           "pattern_msg": "$invalid_resource_budget",
           "default": ""
         }
@@ -613,7 +613,7 @@
           }
         }
       },
-      "description": "空白時以現有資源餘量為限，不會自動補充。"
+      "description": "空白時以現有資源餘量為限；0 表示不消耗資源，不會自動補充。"
     },
     "jump_rope_entry_only": {
       "type": "switch",
@@ -693,7 +693,7 @@
           "name": "resource_budget",
           "label": "$multi_live_resource_budget",
           "pipeline_type": "string",
-          "verify": "^$|^[1-9][0-9]{0,8}$",
+          "verify": "^$|^(0|[1-9][0-9]{0,8})$",
           "pattern_msg": "$invalid_resource_budget",
           "default": ""
         }
@@ -705,7 +705,7 @@
           }
         }
       },
-      "description": "空白時以現有資源餘量為限，不會自動補充。"
+      "description": "空白時以現有資源餘量為限；0 表示不消耗資源，不會自動補充。"
     },
     "multi_live_team": {
       "type": "input",

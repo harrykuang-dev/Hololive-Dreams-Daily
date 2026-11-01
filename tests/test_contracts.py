@@ -22,6 +22,17 @@ def test_independent_round_counts_and_paid_capacity():
     assert not ResourceObservation(None, 200).permits(1)
 
 
+def test_zero_resource_setting_does_not_allow_zero_rounds_or_targets():
+    config = TaskConfig.parse({'task': 'solo_live', 'rounds': '1', 'multiplier': '1', 'resource_budget': '0'})
+    assert config.multiplier == 1 and config.resource_budget == 0
+    assert ResourceObservation(0, 20).permits(0, 0)
+    assert not ResourceObservation(0, 20).permits(1, 0)
+    assert not ResourceObservation(None, 20).permits(0, 0)
+    for field in ('rounds', 'target', 'score_limit', 'multiplier'):
+        with pytest.raises(ConfigurationError):
+            TaskConfig.parse({'task': 'solo_live', 'rounds': '1', field: 0})
+
+
 @pytest.mark.parametrize('enabled,remaining,scene,captured', [
     (False, 3, 'solo_setup', 10), (None, 3, 'solo_setup', 10),
     (True, 0, 'solo_setup', 10), (True, None, 'multi_ready', 10),

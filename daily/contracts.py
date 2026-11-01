@@ -27,12 +27,12 @@ TASKS = ('connect', 'holowork', 'park_gifts', 'lottery', 'cooking',
 USER_ENTERED_ROUNDS = frozenset(('cooking', 'solo_live', 'multi_live'))
 
 
-def positive_integer(value, label: str, *, maximum: int = 999) -> int:
+def integer_in_range(value, label: str, *, minimum: int = 1, maximum: int = 999) -> int:
     if isinstance(value, bool) or not re.fullmatch(r'[0-9]+', str(value).strip()):
-        raise ConfigurationError(f'{label}：請填入正整數')
+        raise ConfigurationError(f'{label}：請填入整數')
     number = int(str(value).strip())
-    if not 1 <= number <= maximum:
-        raise ConfigurationError(f'{label}：必須介於 1 至 {maximum}')
+    if not minimum <= number <= maximum:
+        raise ConfigurationError(f'{label}：必須介於 {minimum} 至 {maximum}')
     return number
 
 
@@ -55,17 +55,17 @@ class TaskConfig:
         if task not in TASKS:
             raise ConfigurationError('未知任務')
         rounds = data.get('rounds', '' if task in USER_ENTERED_ROUNDS else 1)
-        rounds = positive_integer(rounds, '局數')
-        multiplier = positive_integer(data.get('multiplier', 1), '倍率', maximum=99)
-        def optional_number(key):
+        rounds = integer_in_range(rounds, '局數')
+        multiplier = integer_in_range(data.get('multiplier', 1), '倍率', maximum=99)
+        def optional_number(key, *, minimum=1):
             value = data.get(key)
-            return None if value in (None, '') else positive_integer(value, key, maximum=10**9)
+            return None if value in (None, '') else integer_in_range(value, key, minimum=minimum, maximum=10**9)
         entry = data.get('entry_only', False)
         if entry not in (True, False, 'true', 'false'):
             raise ConfigurationError('入口驗證選項無效')
         return cls(task=task, rounds=rounds, multiplier=multiplier,
                    entry_only=entry is True or entry == 'true',
-                   resource_budget=optional_number('resource_budget'),
+                   resource_budget=optional_number('resource_budget', minimum=0),
                    target=optional_number('target'), score_limit=optional_number('score_limit'),
                    song=str(data.get('song', '')), difficulty=str(data.get('difficulty', 'current')),
                    team=str(data.get('team', 'current')))

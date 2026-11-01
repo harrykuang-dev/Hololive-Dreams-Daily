@@ -38,6 +38,13 @@ def parse_consumption(text):
 
 
 def read_setup_cost(nav, observation, *, multiplayer=False):
+    if not multiplayer and getattr(observation, 'scene', None) == 'solo_setup':
+        # This box ends before the separate gift/reward multiplier. The text
+        # detector can omit the leading multiplication sign at higher costs.
+        items = nav.text(observation, r'^[×xX]?\s*[0-9]{1,2}$', (840, 586, 72, 37))
+        values = [match[1] for item in items if
+                  (match := re.fullmatch(r'[×xX]?\s*([0-9]{1,2})', item.text.strip()))]
+        return int(values[0]) if len(values) == 1 else None
     roi = (480, 580, 180, 45) if multiplayer else (830, 580, 180, 45)
     parts = nav.text(observation, '.*', roi)
     return parse_consumption(''.join(item.text for item in sorted(parts, key=lambda item: item.box[0])))
@@ -53,6 +60,11 @@ class EnergySelection:
     multiplier: int
     cost: int
     resource: ResourceObservation
+    empty_energy_play: bool = False
+
+    @property
+    def effective_cost(self):
+        return 0 if self.empty_energy_play and self.resource.available == 0 else self.cost
 
 
 class EnergySettings:
@@ -74,7 +86,12 @@ class EnergySettings:
         resource = parse_fraction(fraction)
         if multiplier is None or cost is None:
             raise NavigationError('無法確認能量倍率與實際消耗量')
-        return EnergySelection(multiplier, cost, resource)
+        empty_energy_play = False
+        if resource.available == 0:
+            notes = self.nav.text(observation, '.+', (820, 485, 300, 50))
+            normalized = [re.sub(r'[\s，,]', '', item.text).replace('时', '時').replace('将', '將') for item in notes]
+            empty_energy_play = normalized.count('能量不足時將消耗目前的能量') == 1
+        return EnergySelection(multiplier, cost, resource, empty_energy_play)
 
     def configure(self, task, multiplier, budget_remaining=None):
         observation = self.nav.open_energy_settings(task)
@@ -98,13 +115,18 @@ class EnergySettings:
             selection = updated
         else:
             raise NavigationError('能量倍率調整次數已達上限')
-        if selection.cost <= 0 or not selection.resource.permits(selection.cost, budget_remaining):
+        if selection.cost < 0 or not selection.resource.permits(selection.effective_cost, budget_remaining):
             self.nav.cancel_energy_settings()
             raise ResourceUnavailable('現有能量或本次消耗上限不足，未開始遊玩')
+        if selection.empty_energy_play and getattr(self.nav, 'recording', None) is not None:
+            evidence = self.nav.save(observation, 'energy-empty-policy')
+            self.nav.recording.mark('energy_empty_policy_verified', nominal_cost=selection.cost,
+                                    resource=selection.resource.__dict__, evidence=evidence)
         target_scene = {'solo_live': 'solo_setup', 'cooking': 'cooking_setup', 'jump_rope': 'jump_setup'}[task]
         setup = self.nav.click_text('energy_settings', '決定$', target_scene, roi=(970, 625, 240, 75))
-        if read_setup_cost(self.nav, setup) != selection.cost:
-            raise NavigationError('設定後的實際消耗量不符，未開始遊玩')
+        if read_setup_cost(self.nav, setup) != selection.effective_cost:
+            evidence = self.nav.save(setup, 'energy-confirmed-cost-mismatch')
+            raise NavigationError(f'設定後的實際消耗量不符，未開始遊玩；{evidence}')
         return selection
 
     def wait_read(self, observation, *, changed_from=None, timeout=5):
