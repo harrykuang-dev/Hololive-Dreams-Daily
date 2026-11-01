@@ -310,6 +310,9 @@ class Navigator:
             # counting another song. This path only advances reward pages.
             from .live import SoloLiveRunner
             observation = SoloLiveRunner(self).finish_result(observation)
+        if observation.scene == 'jump_result':
+            from .jump import JumpRunner
+            observation = JumpRunner(self).finish_result()
         if observation.scene == 'energy_settings':
             observation = self.cancel_energy_settings()
         for _ in range(4):

@@ -63,9 +63,16 @@ class InspectRecordings(CustomAction):
                         'lottery_dialogue_native': 'home', 'gift_house_unreached_native': 'home',
                         'gift_house_wall_native': 'home', 'live_achievement_native': 'live_achievement',
                         'live_reward_transition': 'holowork_get', 'solo_setup_nine': 'solo_setup',
-                        'energy_zero_nominal': 'energy_settings', 'solo_setup_zero': 'solo_setup'}.get(path.stem, expected)
+                        'energy_zero_nominal': 'energy_settings', 'solo_setup_zero': 'solo_setup',
+                        'jump_rewards': 'jump_result', 'jump_rewards_native': 'jump_result',
+                        'jump_event_native': 'jump_result',
+                        'gift_house_high_marker_native': 'home'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
+            if path.stem == 'jump_event_native':
+                from daily.jump import JumpRunner
+                if JumpRunner(navigator).event_button(Observation(frame, scene, time.monotonic())) is None:
+                    raise ValueError('Native Jump event result Next was not uniquely confirmed')
             if path.stem in {'game_title', 'game_title_ready'}:
                 button = navigator.game_title_button(Observation(frame, scene, time.monotonic()),
                                                      ready=path.stem == 'game_title_ready')
@@ -102,8 +109,26 @@ class InspectRecordings(CustomAction):
                 if scene != 'live_achievement' or button is None:
                     raise ValueError('Live achievement details were not uniquely recognized')
                 result['achievement_close'] = list(button)
-            if path.stem in {'gift_house_entry', 'gift_house_unreached_native', 'gift_house_wall_native'}:
-                markers = vision.find_all(frame, 'park_character_gift_marker', roi=(300, 150, 800, 300))
+            if path.stem in {'jump_result', 'jump_rewards', 'jump_rewards_native'}:
+                observation = Observation(frame, scene, time.monotonic())
+                if path.stem == 'jump_result':
+                    title = navigator.text(observation, r'^SCORE\s*ATTACK$', (600, 130, 600, 200))
+                    buttons = navigator.text(observation, '下一步$', (980, 610, 260, 90))
+                    if len(title) != 1 or len(buttons) != 1:
+                        raise ValueError('Jump score result and unique Next were not confirmed')
+                    result['jump_next'] = list(buttons[0].box)
+                else:
+                    labels = navigator.text(observation, '(本次跳躍次數|獲得獎勵)$', (610, 220, 340, 210))
+                    if any(sum(item.text.strip().endswith(label) for item in labels) != 1
+                           for label in ('本次跳躍次數', '獲得獎勵')):
+                        raise ValueError('Jump reward details were not confirmed')
+                    if path.stem == 'jump_rewards_native':
+                        from daily.jump import JumpRunner
+                        if JumpRunner(navigator).reward_button(observation) is None:
+                            raise ValueError('Native Jump reward OK was not uniquely confirmed')
+            if path.stem in {'gift_house_entry', 'gift_house_unreached_native', 'gift_house_wall_native',
+                             'gift_house_high_marker_native'}:
+                markers = vision.find_all(frame, 'park_character_gift_marker', roi=(300, 100, 800, 350))
                 expected_count = 0 if path.stem == 'gift_house_wall_native' else 1
                 if len(markers) != expected_count:
                     raise ValueError(f'{path.stem}: expected {expected_count} gift markers, got {len(markers)}')

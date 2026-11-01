@@ -303,6 +303,14 @@
       "resource_budget": ""
     }
   },
+  "DailyConfig_jump_rope_score_limit": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "score_limit": ""
+    }
+  },
   "Daily_multi_live": {
     "recognition": "DirectHit",
     "action": "Custom",

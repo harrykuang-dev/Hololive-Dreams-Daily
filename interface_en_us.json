@@ -29,6 +29,8 @@
   "jump_rope_rounds": "Rounds (required)",
   "jump_rope_multiplier": "Consumption multiplier",
   "jump_rope_resource_budget": "Resource budget (optional)",
+  "jump_rope_score_limit": "Jump Rope stop score (optional)",
+  "invalid_score_limit": "Enter a valid value",
   "task_multi_live": "Multiplayer Live (Auto only)",
   "multi_live_rounds": "Rounds (required)",
   "multi_live_multiplier": "Consumption multiplier",

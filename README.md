@@ -14,7 +14,7 @@ The game must already be open. Its Login and TAP TO START title steps have passe
 
 Live testing has verified map selection, teleport, bounded approach and the fishing setup entry at the second site, 菈米的冰天雪堡. A recorded foreground test from that setup caught three fish with infinite practice bait. A subsequent uninterrupted test navigated from the park, caught one fish at that site, stopped at the configured target and returned to the park. Other bait remains disabled. Navigation verifies the place name before teleporting and handles the player marker covering the fishing icon.
 
-Cooking, Jump Rope and solo Live have reached their final setup screens in entry checks. Cooking and Jump Rope gameplay modules remain disabled. User settings are stored in independent Maa nodes; native integration checks verify that round counts and budgets survive multiple UI option overrides.
+Cooking, Jump Rope and solo Live have reached their final setup screens in entry checks. Cooking gameplay remains disabled. Jump Rope has completed one recorded native round with a ten-point stop score, fresh resource authorization and a confirmed score result. Reward OK and the additional event page were handled in separate recovery runs; uninterrupted end-to-end and multi-round acceptance remain pending. User settings are stored in independent Maa nodes; native integration checks verify that round counts and budgets survive multiple UI option overrides.
 
 High & Low has passed recorded map navigation and interaction-entry verification. The route selects the arena's play-area map tab, confirms Shiori's table before teleporting and stops at the interaction prompt. It does not open or play the daily game; configurable-cap worker integration remains pending.
 
@@ -44,5 +44,5 @@ Clone with submodules. `dependencies.lock.json` records the selected upstream co
 
 For the separate Jump Rope interpreter, install `requirements-modules-jump.txt` and run `python tools/check_jump_runtime.py`. This performs DirectML model warmup without game input; optional `--sample` arguments verify rope and player-marker detection on local game-only frames. Fifteen warmup frames and three reference frames passed on the development machine. This does not validate gameplay timing or enable the task's worker.
 
-The Jump Rope worker requests a separate parent authorization for one round after its first captured frame. Adapter tests use input-free fixtures to verify readiness, cancellation and rejection of stale authorization. Task integration and native gameplay acceptance remain pending.
+The Jump Rope worker requests a separate parent authorization for each round after its first captured frame. The parent rechecks the actual cost, resource balance and budget before starting. Adapter tests cover readiness, cancellation and stale authorization; the native test verified the handshake and the configured stop score. The optional stop score accepts1–999. Zero-energy Jump Rope still requires native acceptance.
 

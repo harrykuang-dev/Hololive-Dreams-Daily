@@ -458,6 +458,33 @@
     },
     "sha256": "ed5bc5bdd31e780999b34d3183959649d79873c8100baf4ee87cbb8b2161af5a"
   },
+  "jump_result": {
+    "file": "anchors/jump_result.png",
+    "roi": [
+      18,
+      15,
+      265,
+      75
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "jump_result",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 1580,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "26bb9f46f473c694209e030d5eba67c2b7dfac0b4efd2c98b6efc188b8eb9b4f"
+    },
+    "sha256": "50670b665af085a528cc927a74eddaf66e7012b2edd230a351b58ec0b1c8d0b6"
+  },
   "notifications": {
     "file": "anchors/notifications.png",
     "roi": [

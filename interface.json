@@ -122,6 +122,7 @@
         "jump_rope_rounds",
         "jump_rope_multiplier",
         "jump_rope_resource_budget",
+        "jump_rope_score_limit",
         "jump_rope_entry_only"
       ]
     },
@@ -614,6 +615,27 @@
         }
       },
       "description": "空白時以現有資源餘量為限；0 表示不消耗資源，不會自動補充。"
+    },
+    "jump_rope_score_limit": {
+      "type": "input",
+      "label": "$jump_rope_score_limit",
+      "inputs": [
+        {
+          "name": "score_limit",
+          "label": "$jump_rope_score_limit",
+          "pipeline_type": "string",
+          "verify": "^$|^[1-9][0-9]{0,2}$",
+          "pattern_msg": "$invalid_score_limit",
+          "default": ""
+        }
+      ],
+      "pipeline_override": {
+        "DailyConfig_jump_rope_score_limit": {
+          "custom_action_param": {
+            "score_limit": "{score_limit}"
+          }
+        }
+      }
     },
     "jump_rope_entry_only": {
       "type": "switch",

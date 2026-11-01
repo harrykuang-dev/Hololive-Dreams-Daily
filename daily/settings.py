@@ -16,6 +16,8 @@ def defaults(task):
         values['team'] = 'current'
     if task == 'solo_live':
         values['song'] = ''
+    if task == 'jump_rope':
+        values['score_limit'] = ''
     return values
 
 

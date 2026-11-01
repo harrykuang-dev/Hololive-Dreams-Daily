@@ -105,6 +105,9 @@ def generate():
             add_input('target', '目標釣獲數' if task == 'fishing' else '本次收益目標（空白為遊戲上限）',
                       'Target catches' if task == 'fishing' else 'Profit target (blank: game cap)',
                       default='3' if task == 'fishing' else '', verify=r'^$|^[1-9][0-9]{0,8}$')
+        if task == 'jump_rope':
+            add_input('score_limit', '跳繩停止分數（可空白）', 'Jump Rope stop score (optional)',
+                      default='', verify=r'^$|^[1-9][0-9]{0,2}$')
         if task in ('solo_live', 'multi_live'):
             add_input('team', '隊伍編號（current 為沿用）', 'Team slot (current: keep)',
                       default='current', verify=r'^current$|^[1-9][0-9]?$')

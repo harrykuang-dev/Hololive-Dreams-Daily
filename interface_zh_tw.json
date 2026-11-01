@@ -29,6 +29,8 @@
   "jump_rope_rounds": "局數（必填）",
   "jump_rope_multiplier": "消耗倍率",
   "jump_rope_resource_budget": "本次消耗上限（可空白）",
+  "jump_rope_score_limit": "跳繩停止分數（可空白）",
+  "invalid_score_limit": "請填入有效數值",
   "task_multi_live": "多人 Live（僅 Auto）",
   "multi_live_rounds": "局數（必填）",
   "multi_live_multiplier": "消耗倍率",

@@ -25,6 +25,7 @@ ANCHORS = {
     'minigame_portal': [12, 8, 230, 75],
     'cooking_setup': [15, 15, 300, 175],
     'jump_setup': [15, 15, 300, 175],
+    'jump_result': [18, 15, 265, 75],
     'notifications': [26, 32, 110, 50],
     'energy_settings': [875, 105, 175, 38],
     'daily_missions': [12, 8, 240, 75],

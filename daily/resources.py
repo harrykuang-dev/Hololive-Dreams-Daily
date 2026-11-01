@@ -115,6 +115,10 @@ class EnergySettings:
             selection = updated
         else:
             raise NavigationError('能量倍率調整次數已達上限')
+        if recording := getattr(self.nav, 'recording', None):
+            recording.mark('energy_selection_verified', task=task, multiplier=selection.multiplier,
+                           nominal_cost=selection.cost, effective_cost=selection.effective_cost,
+                           resource=selection.resource.__dict__, budget_remaining=budget_remaining)
         if selection.cost < 0 or not selection.resource.permits(selection.effective_cost, budget_remaining):
             self.nav.cancel_energy_settings()
             raise ResourceUnavailable('現有能量或本次消耗上限不足，未開始遊玩')
