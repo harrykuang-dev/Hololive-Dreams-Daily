@@ -12,6 +12,7 @@ import uuid
 
 from .contracts import TaskConfig
 from .inputs import Cancelled
+from .worker_start import authorize_start
 
 
 class WorkerError(RuntimeError):
@@ -46,7 +47,7 @@ class WorkerSupervisor:
             return None
 
     def run(self, config: TaskConfig, *, timeout: float = 900,
-            stop_grace: float = 10) -> WorkerOutcome:
+            stop_grace: float = 10, on_ready=None) -> WorkerOutcome:
         if self.process is not None:
             raise WorkerError('Another module still owns the game')
         if config.task not in ('fishing', 'jump_rope', 'cooking', 'high_low'):
@@ -68,6 +69,7 @@ class WorkerSupervisor:
         timed_out = cancelled = False
         forced = False
         guard_error = last_status = None
+        authorized = False
         started = time.monotonic()
         try:
             with (directory / 'worker.log').open('w', encoding='utf-8') as log:
@@ -85,6 +87,18 @@ class WorkerSupervisor:
                     if status is not None and status != last_status:
                         self.progress(status)
                         last_status = status
+                    if (status is not None and status.get('state') == 'ready' and not authorized
+                            and guard_error is None and not self.stopping()
+                            and time.monotonic()-started < timeout):
+                        if on_ready is None:
+                            raise WorkerError('Worker readiness has no start preflight')
+                        self.guard()
+                        metadata = on_ready(status)
+                        self.guard()
+                        if self.stopping():
+                            raise Cancelled('已停止，未授權小遊戲輸入')
+                        authorize_start(directory / 'start.json', job_id, metadata)
+                        authorized = True
                     if self.stopping(): cancelled = True
                     if time.monotonic() - started >= timeout: timed_out = True
                     if cancelled or timed_out or guard_error is not None:

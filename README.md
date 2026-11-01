@@ -44,3 +44,5 @@ Clone with submodules. `dependencies.lock.json` records the selected upstream co
 
 For the separate Jump Rope interpreter, install `requirements-modules-jump.txt` and run `python tools/check_jump_runtime.py`. This performs DirectML model warmup without game input; optional `--sample` arguments verify rope and player-marker detection on local game-only frames. Fifteen warmup frames and three reference frames passed on the development machine. This does not validate gameplay timing or enable the task's worker.
 
+The Jump Rope worker requests a separate parent authorization for one round after its first captured frame. Adapter tests use input-free fixtures to verify readiness, cancellation and rejection of stale authorization. Task integration and native gameplay acceptance remain pending.
+

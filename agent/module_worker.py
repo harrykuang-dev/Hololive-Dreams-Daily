@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timezone
 import json
 import os
@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from daily.contracts import TaskConfig
 from daily.processes import parent_alive, publish_status
+from daily.worker_start import wait_for_start
 
 
 def main():
@@ -79,13 +80,47 @@ def main():
             if count['catches'] < target: raise RuntimeError('Catch target was not reached')
             publish('complete', completed=count['catches'])
         elif config.task == 'jump_rope':
+            if config.rounds != 1:
+                raise ValueError('Jump worker requires one separately authorized round')
             from batch_session import BatchSession, SessionConfig
+            from jump_rope_bot import JumpRopeBot
+            from detector import FullFrameDetector
+            from focus_recovery import FocusRecovery
+            def cancelled():
+                return stopped.is_set() or args.stop.exists() or not parent_alive(args.parent_pid)
+            detector = FullFrameDetector(backend='directml', stopped=cancelled)
+            authorization = {'ready': False, 'error': None}
+            def capture_event(event):
+                if event.get('event') != 'first_frame' or authorization['ready']:
+                    return
+                authorization['ready'] = True
+                publish('ready', phase='capture_ready', backend=detector.backend)
+                try:
+                    wait_for_start(args.status.parent / 'start.json', args.job_id, cancelled)
+                    publish('running', phase='authorized')
+                except Exception as error:
+                    # FocusRecovery records and swallows sink exceptions. Set
+                    # the actual stop state before returning from that callback.
+                    authorization['error'] = error
+                    stopped.set()
+                    session.stop()
+            focus = FocusRecovery(diagnostics=True, sink=capture_event)
+            def make_bot(options, **kwargs):
+                upstream_stop = kwargs.pop('stop_requested')
+                return JumpRopeBot(replace(options, auto_start=False), detector=detector,
+                    focus_recovery=focus, diagnostic_session=session.diagnostics,
+                    diagnostic_round=1, stop_requested=lambda: cancelled() or upstream_stop(), **kwargs)
             session = BatchSession(SessionConfig(rounds=config.rounds, stop_hotkey='INSERT',
                 diagnostics=True, score_limit=config.score_limit),
+                bot_factory=make_bot, base=args.status.parent / 'diagnostics',
                 notify=lambda kind, value: print(json.dumps({'event': kind, 'value': value}, default=str), flush=True))
             stop_hooks.append(session.stop)
             if stopped.is_set(): session.stop()
             session.run()
+            if authorization['error'] is not None:
+                raise RuntimeError(str(authorization['error'])) from authorization['error']
+            if not authorization['ready']:
+                raise RuntimeError('Jump capture never reached readiness')
             if session.stop_reason == 'stopped':
                 publish('cancelled', completed=session.completed_rounds)
                 return 2

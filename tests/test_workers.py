@@ -68,3 +68,33 @@ def test_failed_initial_recording_guard_does_not_create_or_launch_worker(tmp_pat
     with pytest.raises(RuntimeError, match='no recording'):
         runner.run(TaskConfig('fishing', target=3))
     assert not (tmp_path / 'sessions').exists()
+
+
+READY_WORKER = """import sys,pathlib,time,json
+status,stop,job=pathlib.Path(sys.argv[1]),pathlib.Path(sys.argv[2]),sys.argv[3]
+status.write_text(json.dumps({'job_id':job,'state':'ready'}))
+token=status.parent/'start.json'
+while not token.exists():
+    if stop.exists():sys.exit(2)
+    time.sleep(.01)
+assert json.loads(token.read_text())['job_id']==job
+status.write_text(json.dumps({'job_id':job,'state':'complete','completed':1}))
+"""
+
+
+def test_ready_worker_cannot_proceed_without_parent_preflight(tmp_path):
+    runner = supervisor(tmp_path, READY_WORKER)
+    with pytest.raises(WorkerError, match='preflight'):
+        runner.run(TaskConfig('jump_rope', rounds=1), stop_grace=1)
+    assert not list((tmp_path/'sessions').rglob('start.json'))
+
+
+def test_parent_preflight_runs_once_before_authorizing_ready_worker(tmp_path):
+    runner = supervisor(tmp_path, READY_WORKER)
+    calls = []
+    def ready(record):
+        assert not list((tmp_path/'sessions').rglob('start.json'))
+        calls.append(record['job_id'])
+        return {'cost': 1}
+    assert runner.run(TaskConfig('jump_rope', rounds=1), on_ready=ready).completed == 1
+    assert len(calls) == 1

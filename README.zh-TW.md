@@ -43,3 +43,5 @@ python -m pytest -q
 複製專案時須包含子模組，`dependencies.lock.json` 記錄鎖定的上游提交。上游模組另需相應執行環境與模型，並與 Maa Agent 的環境分開。組件聲明見 `THIRD_PARTY_NOTICES.md` 及 `upstream/holodori/LICENSES.md`。
 
 跳繩的獨立 Python 環境可安裝 `requirements-modules-jump.txt`，再執行 `python tools/check_jump_runtime.py`。此檢查只預熱 DirectML 模型，不操作遊戲；可用 `--sample` 指定本機遊戲畫面，驗證繩索與玩家標記辨識。開發機已通過十五張預熱畫面及三張參考畫面檢查，尚不代表遊玩時機已驗收，也不會啟用任務模組。
+
+跳繩子程序取得第一張畫面後，須另經主程序核准才能執行一局。模組銜接測試使用不產生遊戲輸入的替身，驗證就緒、取消及過期授權拒絕；任務整合與原生遊玩驗收仍待完成。
