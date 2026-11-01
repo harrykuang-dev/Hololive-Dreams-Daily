@@ -80,7 +80,8 @@ def build(gui_archive, agent_runtime, module_runtime, output):
         if (path.parts and path.parts[0] in {'agent','daily','resource'}
                 or len(path.parts) == 1 and (name.startswith(('interface','README','THIRD_PARTY'))
                     or name in {'config.template.json','dependencies.lock.json','runtime-packages.lock.json'})):
-            copy_file(ROOT/name, output/name, ROOT)
+            destination = output/'config/config.template.json' if name == 'config.template.json' else output/name
+            copy_file(ROOT/name, destination, ROOT)
     for source, name in ((agent_runtime,'python'),(module_runtime,'modules')):
         for item in source.rglob('*'):
             if item.is_file():

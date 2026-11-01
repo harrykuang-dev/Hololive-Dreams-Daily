@@ -1,4 +1,5 @@
 import json
+import zipfile
 
 import pytest
 
@@ -27,6 +28,34 @@ def test_upstream_export_omits_settings_diagnostics_tests_and_recordings(tmp_pat
 def test_existing_bundle_is_not_overwritten(tmp_path):
     with pytest.raises(FileExistsError):
         bundle.build(None,None,None,tmp_path)
+
+
+def test_built_bundle_places_the_first_run_template_where_the_gui_reads_it(tmp_path,monkeypatch):
+    source=tmp_path/'source';source.mkdir()
+    monkeypatch.setattr(bundle,'ROOT',source)
+    archive=tmp_path/'gui.zip'
+    with zipfile.ZipFile(archive,'w') as stream:stream.writestr('MFAAvalonia.exe',b'fixture')
+    (source/'dependencies.lock.json').write_text(json.dumps({
+        'mfa_archive_sha256':bundle.digest(archive),'holodori':{'commit':'pinned','modules':{}}}))
+    (source/'interface.json').write_text(json.dumps({'agent':{'child_exec':'./runtime/python/python.exe'}}))
+    template={'CurrentLanguage':'zh-Hant','UI.HasCompletedFirstUseTutorial':True}
+    (source/'config.template.json').write_text(json.dumps(template))
+    upstream=source/'upstream/holodori';upstream.mkdir(parents=True)
+    for name in ('LICENSES.md','THIRD_PARTY_NOTICES.md'):(upstream/name).write_text('fixture notice')
+    runtime=tmp_path/'runtime';runtime.mkdir()
+    def git(directory,*args):
+        if args[0]=='status':return ''
+        if args[0]=='rev-parse':return 'pinned'
+        if args[0]=='ls-files':return 'interface.json\0config.template.json'
+        pytest.fail(str(args))
+    monkeypatch.setattr(bundle,'git',git)
+    monkeypatch.setattr(bundle,'verify_runtime',lambda *a:None)
+    from daily import module_assets
+    monkeypatch.setattr(module_assets,'model_files',lambda source:[])
+    output=tmp_path/'bundle'
+    bundle.build(archive,runtime,runtime,output)
+    assert json.loads((output/'config/config.template.json').read_text())==template
+    assert not (output/'config.template.json').exists()
 
 
 def test_wrong_gui_archive_stops_before_output_or_runtime_loading(tmp_path,monkeypatch):
