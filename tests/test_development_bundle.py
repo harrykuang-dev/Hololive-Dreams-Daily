@@ -1,5 +1,6 @@
 import json
 import zipfile
+from types import SimpleNamespace
 
 import pytest
 
@@ -84,3 +85,11 @@ def test_bundle_detects_modified_files_before_reading_configuration(tmp_path):
     (tmp_path/'package-manifest.json').write_text(json.dumps({'files':{'interface.json':'0'*64}}))
     with pytest.raises(ValueError,match='hash mismatch'):
         bundle.verify(tmp_path)
+
+
+@pytest.mark.parametrize('inputs,maa',[(1,False),(0,True),(None,False)])
+def test_module_preflight_refuses_input_or_shared_maa_reports(tmp_path,monkeypatch,inputs,maa):
+    monkeypatch.setattr(bundle.subprocess,'run',lambda *a,**k:SimpleNamespace(
+        stdout=json.dumps({'game_inputs':inputs,'maa_loaded':maa})))
+    with pytest.raises(ValueError,match='input-free and isolated'):
+        bundle.check_modules(tmp_path)

@@ -140,6 +140,20 @@ def verify(output):
             'development':True,'source_commit':record['source_commit']}
 
 
+def check_modules(output):
+    """Exercise the copied module dependencies and models without game input."""
+    reports = {}
+    for module, tool in (('cooking','check_cooking_runtime.py'),('jump_rope','check_jump_runtime.py')):
+        result = subprocess.run([str(output/'runtime/modules/python.exe'), '-I', '-B', '-X', 'utf8',
+            str(ROOT/'tools'/tool), '--module', str(output/'upstream/holodori/upstream'/module)],
+            capture_output=True, text=True, encoding='utf-8', timeout=120, check=True)
+        report = json.loads(result.stdout)
+        if report.get('game_inputs') != 0 or report.get('maa_loaded') is not False:
+            raise ValueError(f'Bundled module preflight did not remain input-free and isolated: {module}')
+        reports[module] = report
+    return reports
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--gui-archive',type=Path)
@@ -147,6 +161,8 @@ if __name__ == '__main__':
     parser.add_argument('--module-runtime',type=Path)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--verify',action='store_true')
+    parser.add_argument('--check-modules',action='store_true',
+                        help='Warm up copied Cooking/Jump models on a Windows DirectML machine; no game input')
     args = parser.parse_args()
     if args.verify:
         result = verify(args.output.resolve())
@@ -154,4 +170,6 @@ if __name__ == '__main__':
         if not all((args.gui_archive,args.agent_runtime,args.module_runtime)):
             parser.error('Archive and both runtimes are required')
         result = build(args.gui_archive,args.agent_runtime,args.module_runtime,args.output.resolve())
+    if args.check_modules:
+        result['module_checks'] = check_modules(args.output.resolve())
     print(json.dumps(result,indent=2))

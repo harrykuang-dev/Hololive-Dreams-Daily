@@ -40,6 +40,8 @@ Reward collection checks daily, weekly and season missions, the pass, achievemen
 
 `tools/build_development_bundle.py` accepts the pinned GUI archive and both prepared runtimes. It requires clean committed source, preserves pinned upstream code and model identities, and creates a file-hash inventory. Output must be a new directory. Use `--verify --output <bundle>` before first launch; runtime settings and logs generated later change that pristine inventory. The resulting local development bundle still requires .NET10 and the Microsoft Visual C++ runtime. It is not a binary release or acceptance of the full daily flow.
 
+Add `--check-modules` to build or pristine verification on a Windows DirectML machine to load the copied Cooking and Jump Rope dependencies and warm up their models without game input. Both copied-module checks have passed. A development bundle has also passed recorded default Connect and reward collection. Native minigame gameplay from the rebuilt bundle remains pending.
+
 Use Python 3.13 x64 and .NET 10. Install `requirements-dev.txt`, then run:
 
 ```powershell
