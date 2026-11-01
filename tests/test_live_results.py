@@ -72,3 +72,24 @@ def test_get_then_achievement_details_return_to_result_without_starting_another_
     runner.nav.live_achievement_button = lambda obs: (1015, 70, 60, 60) if obs.scene == 'live_achievement' else None
     assert runner.finish_result(result).scene == 'song_select'
     assert clicks == [(640, 635), (1045, 100), (1150, 650)]
+
+
+@pytest.mark.parametrize('moving_control', [False, True])
+def test_next_stability_observes_the_button_instead_of_animated_result_art(monkeypatch, moving_control):
+    runner, result, clicks = result_navigation(monkeypatch)
+    frames = [0]
+    def observe():
+        frames[0] += 1
+        image = result.image.copy()
+        image[180:580, 600:1050] = 240 if frames[0] % 2 else 20
+        if moving_control:
+            image[630:675, 1060:1200] = 240 if frames[0] % 2 else 20
+        return SimpleNamespace(scene='live_result', image=image)
+    runner.nav.observe = observe
+    if moving_control:
+        with pytest.raises(NavigationError, match='下一步'):
+            runner.wait_next_button(observe())
+    else:
+        _, buttons = runner.wait_next_button(observe())
+        assert len(buttons) == 1 and frames[0] < 12
+    assert not clicks

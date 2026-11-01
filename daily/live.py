@@ -208,7 +208,9 @@ class SoloLiveRunner:
                 stable_since = previous = None
             elif observation.scene == 'live_result' and reward is None and achievement is None:
                 buttons = self.nav.text(observation, '下一步$', (1020, 610, 230, 100))
-                panel = observation.image[180:580, 600:1200]
+                # Characters, rank effects and rewards keep animating after
+                # Next is ready. Require the observed control itself to settle.
+                panel = observation.image[630:675, 1060:1200]
                 if previous is not None and float(np.mean(cv2.absdiff(previous, panel))) < 1:
                     if stable_since is None: stable_since = time.monotonic()
                 else:
