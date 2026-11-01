@@ -67,3 +67,28 @@ def test_cancellation_while_showing_cursor_releases_alt():
         inputs.click(10, 20)
     assert controller.events[-1] == ('up', 0xA5)
     assert not any(e[0] == 'click' for e in controller.events)
+
+
+def test_camera_move_never_shows_cursor_and_refuses_held_keys():
+    controller = Controller()
+    inputs = Inputs(controller)
+    inputs.look(20)
+    assert controller.events == [('move', 20, 0)]
+    inputs.down(0xA5)
+    with pytest.raises(InputFailure):
+        inputs.look(20)
+    inputs.release_all()
+    assert controller.events == [('move', 20, 0), ('down', 0xA5), ('up', 0xA5)]
+
+
+def test_camera_movement_is_bounded_and_requires_recording_guard():
+    controller = Controller()
+    inputs = Inputs(controller)
+    with pytest.raises(ValueError):
+        inputs.look(121)
+    def failed():
+        raise RuntimeError('recording lost')
+    inputs.guard = failed
+    with pytest.raises(RuntimeError):
+        inputs.look(20)
+    assert not controller.events

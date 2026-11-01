@@ -90,6 +90,14 @@ def test_return_without_get_does_not_claim_completion(tmp_path, monkeypatch):
     assert len(events) == 1
 
 
+def test_received_gift_can_return_to_character_name_prompt_without_another_e(tmp_path, monkeypatch):
+    runner, events = runner_for(tmp_path, monkeypatch,
+        ['entry', 'reward', 'prompt_loading', 'prompt_loading', 'prompt_loading',
+         'prompt_loading', 'prompt_loading'])
+    assert runner.consume(GIFT_PLACES[0]) == 'reward.png'
+    assert events == [('key', (0x45, .12)), ('click', (635, 635))]
+
+
 def test_entry_only_never_reserves_or_interacts(tmp_path, monkeypatch):
     runner, events = runner_for(tmp_path, monkeypatch, [])
     runner.entry = lambda *args, **kwargs: (LOTTERY_PLACE, ParkView('entry', None))
@@ -137,3 +145,51 @@ def test_failed_gift_location_is_excluded_while_other_locations_remain_independe
     result = runner.run(TaskConfig.parse({'task': 'park_gifts', 'entry_only': False}))
     assert result.completed_rounds == 1 and result.status == TaskStatus.COMPLETE
     assert consumed == [GIFT_PLACES[1].key] and events == []
+
+
+@pytest.mark.parametrize('count', [0, 2])
+def test_ambiguous_floating_gift_markers_stop_before_camera_or_walking_input(tmp_path, monkeypatch, count):
+    runner, events = runner_for(tmp_path, monkeypatch, [])
+    runner.nav.vision = SimpleNamespace(find_all=lambda *a, **k: [SimpleNamespace(box=(900, 250, 37, 35))]*count)
+    with pytest.raises(NavigationError, match='唯一'):
+        runner.house_gift_offset(ParkView('park', SimpleNamespace(image=None)))
+    assert not events
+
+
+def prepare_house_entry(runner):
+    runner.nav.open_notifications = lambda: object()
+    runner.nav.text = lambda *a, **k: [SimpleNamespace(box=(100, 190, 180, 30))] if a[1] == GIFT_PLACES[0].notice else []
+    runner.nav.wait_for = lambda *a, **k: object()
+
+
+def test_gift_camera_stops_if_fresh_marker_moves_further_from_center(tmp_path, monkeypatch):
+    runner, events = runner_for(tmp_path, monkeypatch, ['park'])
+    prepare_house_entry(runner)
+    offsets = iter((200, 250))
+    runner.house_gift_offset = lambda view: next(offsets)
+    runner.nav.inputs.look = lambda dx: events.append(('camera', dx))
+    with pytest.raises(NavigationError, match='接近中央'):
+        runner.entry('park_gifts')
+    assert events == [('click', (190, 205)), ('camera', 30)]
+
+
+def test_prompt_appearing_while_waiting_for_marker_prevents_further_movement(tmp_path, monkeypatch):
+    runner, events = runner_for(tmp_path, monkeypatch, ['park', 'entry'])
+    prepare_house_entry(runner)
+    def missing(view):
+        raise park.GiftMarkerMissing('temporary animation')
+    runner.house_gift_offset = missing
+    place, view = runner.entry('park_gifts')
+    assert place == GIFT_PLACES[0] and view.kind == 'entry'
+    assert events == [('click', (190, 205))]
+
+
+def test_missing_gift_marker_wait_is_bounded_without_camera_or_walking(tmp_path, monkeypatch):
+    runner, events = runner_for(tmp_path, monkeypatch, ['park'])
+    prepare_house_entry(runner)
+    def missing(view):
+        raise park.GiftMarkerMissing('missing')
+    runner.house_gift_offset = missing
+    with pytest.raises(park.GiftMarkerMissing):
+        runner.entry('park_gifts')
+    assert events == [('click', (190, 205))]

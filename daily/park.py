@@ -18,10 +18,14 @@ class ParkPlace:
 
 GIFT_PLACES = (
     ParkPlace('park_gift_holo_house', r'^可在holo之家領取禮物$', r'禮物$'),
-    ParkPlace('park_gift_the_cell', r'^可在The\s*Cell\s*重臨領取禮物$', r'禮物$', r'^[Bb]ijou$'),
-    ParkPlace('park_gift_rock_mountain', r'^可在.{1,3}岩山領取禮物$', r'禮物$', r'^[Aa][Zz][Kk][Ii]$'),
+    ParkPlace('park_gift_the_cell', r'^可在The\s*Cell\s*重臨領取禮物$', r'禮物$'),
+    ParkPlace('park_gift_rock_mountain', r'^可在.{1,3}岩山領取禮物$', r'禮物$'),
 )
 LOTTERY_PLACE = ParkPlace('lottery', r'^可遊玩洽馬洽馬極運輪盤$', r'^刮刮樂$')
+
+
+class GiftMarkerMissing(NavigationError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -90,20 +94,72 @@ class ParkRunner:
         x, y, w, h = item.box
         self.nav.inputs.click(int(x+w/2), int(y+h/2))
         self.nav.wait_for({'home'}, timeout=45)
-        for segment in range(11):
+        forward_steps = camera_steps = 0
+        previous_offset = None
+        for segment in range(27):
             view = self.read(self.nav.observe(), place)
+            deadline = time.monotonic()+5
+            while view.kind == 'unknown' and time.monotonic() < deadline:
+                # A teleport can briefly expose the old park before its fade.
+                # Wait without input until the new park is actually readable.
+                self.nav.inputs.pause(.2)
+                view = self.read(self.nav.observe(), place)
             if view.kind == 'entry':
                 return place, view
+            if place.key == 'park_gift_holo_house' and view.kind in ('park', 'prompt_loading'):
+                deadline = time.monotonic()+3
+                while True:
+                    try:
+                        offset = self.house_gift_offset(view)
+                        break
+                    except GiftMarkerMissing:
+                        if time.monotonic() >= deadline:
+                            raise
+                        self.nav.inputs.pause(.2)
+                        view = self.read(self.nav.observe(), place)
+                        if view.kind == 'entry':
+                            return place, view
+                        if view.kind not in ('park', 'prompt_loading'):
+                            raise NavigationError('等待禮物標記時畫面已改變，停止移動')
+                if previous_offset is not None and abs(offset) > abs(previous_offset)*1.1+5:
+                    self.nav.save(view.observation, 'gift-camera-wrong-direction')
+                    raise NavigationError('鏡頭移動未讓禮物標記接近中央，停止接近')
+                previous_offset = None
+                if abs(offset) > 35:
+                    if camera_steps >= 6:
+                        raise NavigationError('禮物鏡頭對準次數已達上限')
+                    dx = max(-40, min(40, round(offset*.15)))
+                    self.nav.inputs.look(dx)
+                    self.nav.inputs.pause(.15)
+                    previous_offset = offset
+                    camera_steps += 1
+                    continue
             if view.kind == 'prompt_loading':
                 self.nav.inputs.pause(.2)
                 continue
             if view.kind != 'park':
+                self.nav.save(view.observation, place.key + '-approach-unknown')
                 raise NavigationError('接近禮物／抽獎時畫面已改變，停止移動')
-            if segment < 10:
+            if forward_steps < 10:
                 self.nav.inputs.key(0x57, .30)
                 self.nav.inputs.pause(.1)
+                forward_steps += 1
+            else:
+                break
         self.nav.save(view.observation, place.key + '-not-reached')
         raise NavigationError('未在有限移動距離內找到禮物／刮刮樂互動提示')
+
+    def house_gift_offset(self, view):
+        markers = self.nav.vision.find_all(view.observation.image, 'park_character_gift_marker',
+                                            roi=(300, 100, 800, 350))
+        if len(markers) != 1:
+            self.nav.save(view.observation, 'gift-marker-not-unique')
+            error = GiftMarkerMissing if not markers else NavigationError
+            raise error('無法唯一確認角色頭頂的禮物標記，停止移動')
+        x, y, w, h = markers[0].box
+        if recording := getattr(self.nav, 'recording', None):
+            recording.mark('gift_marker_verified', box=list(markers[0].box), score=markers[0].score)
+        return x+w/2-640
 
     def consume(self, place, before_input=lambda: None):
         view = self.read(self.nav.observe(), place)
@@ -136,7 +192,7 @@ class ParkRunner:
         park_since = None
         while time.monotonic() < deadline:
             view = self.read(self.nav.observe(), place)
-            if view.kind not in ('park', 'entry'):
+            if view.kind not in ('park', 'entry', 'prompt_loading'):
                 park_since = None
             if view.kind == 'reward' and not reward_closed:
                 reward = self.nav.save(view.observation, place.key + '-reward')
@@ -158,9 +214,10 @@ class ParkRunner:
                     # No repeated E on the same line. Wait for a changed line,
                     # reward or park; a missing transition stops at the deadline.
                     stable_since = None
-            elif view.kind in ('park', 'entry') and reward_closed:
+            elif view.kind in ('park', 'entry', 'prompt_loading') and reward_closed:
                 # Lottery keeps its interaction prompt after today's draw.
-                # Never press E again; only verify the completed return.
+                # Gifts can replace their gift label with the character name.
+                # After confirmed GET, only verify return; never press E again.
                 park_since = time.monotonic() if park_since is None else park_since
                 if time.monotonic()-park_since >= .6:
                     return reward

@@ -79,6 +79,15 @@ class Inputs:
         finally:
             self.release_all()
 
+    def look(self, dx: int, dy: int = 0):
+        self.check()
+        if self.held:
+            raise InputFailure('Camera movement requires released keys')
+        if any(type(value) is not int or abs(value) > 120 for value in (dx, dy)):
+            raise ValueError('Camera segments must be integers within120pixels')
+        self.trace('mouse_move', dx=dx, dy=dy, mode='camera')
+        self.wait(self.controller.post_relative_move(dx, dy))
+
     def pause(self, duration: float):
         deadline = time.monotonic() + duration
         while time.monotonic() < deadline:
