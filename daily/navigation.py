@@ -323,8 +323,13 @@ class Navigator:
                            'solo_setup': 'song_select', 'song_select': 'live_portal'}.get(observation.scene)
             if destination is None:
                 break
+            destinations = {destination}
+            if observation.scene in {'cooking_setup', 'jump_setup'}:
+                # Minigames can return directly to the park after a round.
+                # The portal is not their only observed parent destination.
+                destinations.add('home')
             self.inputs.click(1223, 55)
-            observation = self.wait_for({destination})
+            observation = self.wait_for(destinations)
         if observation.scene == 'home':
             return observation
         if observation.scene in {'park_map', 'fishing_map_second'}:

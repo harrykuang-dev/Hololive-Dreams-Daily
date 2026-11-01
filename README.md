@@ -14,7 +14,7 @@ The game must already be open. Its Login and TAP TO START title steps have passe
 
 Live testing has verified map selection, teleport, bounded approach and the fishing setup entry at the second site, 菈米的冰天雪堡. A recorded foreground test from that setup caught three fish with infinite practice bait. A subsequent uninterrupted test navigated from the park, caught one fish at that site, stopped at the configured target and returned to the park. Other bait remains disabled. Navigation verifies the place name before teleporting and handles the player marker covering the fishing icon.
 
-Cooking, Jump Rope and solo Live have reached their final setup screens in entry checks. Cooking gameplay remains disabled. Jump Rope has completed one recorded native round with a ten-point stop score, fresh resource authorization and a confirmed score result. Reward OK and the additional event page were handled in separate recovery runs; uninterrupted end-to-end and multi-round acceptance remain pending. User settings are stored in independent Maa nodes; native integration checks verify that round counts and budgets survive multiple UI option overrides.
+Cooking, Jump Rope and solo Live have reached their final setup screens in entry checks. Cooking gameplay remains disabled. Jump Rope has passed an uninterrupted recorded round with a ten-point stop score, fresh resource authorization, score and reward confirmation, the additional event page and return to setup. A following reward task verified returning directly from the minigame to the park. Multi-round acceptance remains pending. User settings are stored in independent Maa nodes; native integration checks verify that round counts and budgets survive multiple UI option overrides.
 
 High & Low has passed recorded map navigation and interaction-entry verification. The route selects the arena's play-area map tab, confirms Shiori's table before teleporting and stops at the interaction prompt. It does not open or play the daily game; configurable-cap worker integration remains pending.
 
@@ -28,7 +28,7 @@ Park gifts have recorded GET evidence at all three locations in separate runs. T
 
 Once-daily attempts are recorded before the first interaction. A recorded failed lottery attempt can resume its exact still-open introduction once, after verifying the finalized original recording and a new active recording. It does not repeat the initial interaction. Other uncertain attempts remain blocked for that game day, and are excluded when looking for remaining gift locations.
 
-Reward collection checks daily, weekly and season missions, the pass, achievements, the gift box and the current event's daily and free missions. Recorded tests verified an achievement claim and an uninterrupted empty-page check including the event, returning to the park. A claim is clicked once and requires a confirmed received or disabled state before proceeding. Actual event reward receipt remains verified only against the reference recording; future event layouts require validation.
+Reward collection checks daily, weekly and season missions, the pass, achievements, the gift box and the current event's daily and free missions. An uninterrupted recorded run confirmed seven available reward groups, including actual event rewards, and returned to the park. A claim is clicked once and requires a confirmed received or disabled state before proceeding. Empty-page checks are also verified; future event layouts require validation.
 
 ## Development
 

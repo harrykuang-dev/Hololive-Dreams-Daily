@@ -162,6 +162,25 @@ def test_nested_reward_pages_return_through_observed_parents(scene, expected):
     assert clicks == [(1223, 55)]*len(expected)
 
 
+@pytest.mark.parametrize('scene', ['jump_setup', 'cooking_setup'])
+@pytest.mark.parametrize('parent', ['home', 'minigame_portal'])
+def test_minigame_back_accepts_direct_park_or_portal_without_retry(scene, parent):
+    navigator = Navigator.__new__(Navigator)
+    navigator.observe = lambda: Observation(None, scene, 0)
+    navigator.vision = SimpleNamespace(match=lambda *args: None)
+    clicks, destinations = [], []
+    navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args))
+    def wait(scenes):
+        destinations.append(scenes)
+        actual = parent if len(destinations) == 1 else 'home'
+        assert actual in scenes
+        return Observation(None, actual, 0)
+    navigator.wait_for = wait
+    assert navigator.to_home().scene == 'home'
+    assert destinations[0] == {'minigame_portal', 'home'}
+    assert len(clicks) == (1 if parent == 'home' else 2)
+
+
 def test_reward_overlay_requires_title_and_close_hint_on_any_background(tmp_path):
     root = Path(__file__).resolve().parents[1]
     navigator = Navigator(Context(['GET!', '點擊關閉']), root / 'resource', tmp_path)
