@@ -215,7 +215,8 @@ class GameRecording:
         self._log = (self.directory / 'capture.log').open('w', encoding='utf-8')
         self.mark('recording_start')
         self._process = subprocess.Popen(
-            [sys.executable, str(root / 'agent/recording_worker.py'), '--config', str(config)],
+            [sys.executable, '-I', '-B', '-X', 'utf8', str(root / 'agent/recording_worker.py'),
+             '--config', str(config)],
             cwd=root, stdout=self._log, stderr=self._log,
             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
             env={**os.environ, 'PYTHONUTF8': '1'})

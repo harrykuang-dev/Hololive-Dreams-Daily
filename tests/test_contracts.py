@@ -33,6 +33,20 @@ def test_zero_resource_setting_does_not_allow_zero_rounds_or_targets():
             TaskConfig.parse({'task': 'solo_live', 'rounds': '1', field: 0})
 
 
+@pytest.mark.parametrize('task', ['cooking', 'jump_rope'])
+def test_explicit_free_minigame_setting_keeps_rounds_positive(task):
+    assert TaskConfig.parse({'task': task, 'rounds': '2', 'multiplier': '0'}).multiplier == 0
+    for value in (-1, 100, True):
+        with pytest.raises(ConfigurationError):
+            TaskConfig.parse({'task': task, 'rounds': '2', 'multiplier': value})
+
+
+@pytest.mark.parametrize('task', ['solo_live', 'multi_live'])
+def test_live_does_not_inherit_the_minigame_zero_multiplier(task):
+    with pytest.raises(ConfigurationError):
+        TaskConfig.parse({'task': task, 'rounds': '1', 'multiplier': '0'})
+
+
 @pytest.mark.parametrize('enabled,remaining,scene,captured', [
     (False, 3, 'solo_setup', 10), (None, 3, 'solo_setup', 10),
     (True, 0, 'solo_setup', 10), (True, None, 'multi_ready', 10),

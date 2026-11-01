@@ -4,6 +4,8 @@ import pytest
 
 from daily.contracts import ResourceObservation
 from daily.resources import EnergySelection, EnergySettings, ResourceUnavailable, parse_fraction
+from daily.navigation import NavigationError, Observation
+import numpy as np
 
 
 @pytest.mark.parametrize('text,available,capacity', [
@@ -60,3 +62,22 @@ def test_explicit_empty_energy_policy_uses_zero_effective_cost_without_changing_
     selection = settings.configure('solo_live', 1, budget_remaining=0)
     assert selection.cost == 1 and selection.effective_cost == 0
     assert calls == ['confirm']
+
+
+@pytest.mark.parametrize('multiplier,zeros,allowed', [('0',['0'],True), ('1',['0'],False),
+                                                   ('0',[],False), ('0',['O'],False),
+                                                   ('0',['0','0'],False)])
+def test_missing_large_cost_requires_positive_unique_zero_in_its_own_crop(multiplier, zeros, allowed):
+    def text(observation, expected, roi, **kwargs):
+        if roi == (1145,339,62,65): words = [multiplier]
+        elif roi == (998,555,50,50): words = zeros
+        elif roi == (1025,25,145,60): words = ['53/100']
+        else: words = []
+        return [SimpleNamespace(text=word) for word in words]
+    settings = EnergySettings(SimpleNamespace(text=text))
+    ob = Observation(np.zeros((720,1280,3), dtype=np.uint8), 'energy_settings', 0)
+    if allowed:
+        value = settings.read(ob)
+        assert value.multiplier == value.cost == 0 and value.resource.available == 53
+    else:
+        with pytest.raises(NavigationError): settings.read(ob)

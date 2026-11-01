@@ -56,7 +56,8 @@ class TaskConfig:
             raise ConfigurationError('未知任務')
         rounds = data.get('rounds', '' if task in USER_ENTERED_ROUNDS else 1)
         rounds = integer_in_range(rounds, '局數')
-        multiplier = integer_in_range(data.get('multiplier', 1), '倍率', maximum=99)
+        multiplier = integer_in_range(data.get('multiplier', 1), '倍率', maximum=99,
+                                      minimum=0 if task in ('cooking', 'jump_rope') else 1)
         def optional_number(key, *, minimum=1):
             value = data.get(key)
             return None if value in (None, '') else integer_in_range(value, key, minimum=minimum, maximum=10**9)

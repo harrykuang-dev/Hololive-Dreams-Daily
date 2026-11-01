@@ -67,9 +67,21 @@ class InspectRecordings(CustomAction):
                         'jump_rewards': 'jump_result', 'jump_rewards_native': 'jump_result',
                         'jump_event_native': 'jump_result',
                         'cooking_rewards': 'cooking_result',
-                        'gift_house_high_marker_native': 'home', 'home_games_native': 'home'}.get(path.stem, expected)
+                        'gift_house_high_marker_native': 'home', 'home_games_native': 'home',
+                        'energy_minigame_zero': 'energy_settings',
+                        'cooking_setup_free': 'cooking_setup',
+                        'cooking_rewards_free_native': 'cooking_result'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
+            if path.stem == 'energy_minigame_zero':
+                energy = EnergySettings(navigator).read(Observation(frame, scene, time.monotonic()))
+                if energy.multiplier != 0 or energy.cost != 0 or not energy.resource.permits(0, 0):
+                    raise ValueError('Explicit free minigame setting was not confirmed')
+                result['energy'] = asdict(energy)
+            if path.stem == 'cooking_setup_free':
+                from daily.resources import read_setup_cost
+                if read_setup_cost(navigator, Observation(frame, scene, time.monotonic())) != 0:
+                    raise ValueError('Free cooking setup did not display zero cost')
             if path.stem in {'home', 'home_games_native'}:
                 button = vision.match(frame, 'home_games_button')
                 if scene != 'home' or button is None:
@@ -79,10 +91,10 @@ class InspectRecordings(CustomAction):
                 from daily.jump import JumpRunner
                 if JumpRunner(navigator).event_button(Observation(frame, scene, time.monotonic())) is None:
                     raise ValueError('Native Jump event result Next was not uniquely confirmed')
-            if path.stem in {'cooking_result', 'cooking_rewards'}:
+            if path.stem in {'cooking_result', 'cooking_rewards', 'cooking_rewards_free_native'}:
                 from daily.minigames import MinigameResults
                 observation = Observation(frame, scene, time.monotonic())
-                if path.stem == 'cooking_rewards':
+                if path.stem in {'cooking_rewards', 'cooking_rewards_free_native'}:
                     if MinigameResults(navigator, 'cooking').reward_button(observation) is None:
                         raise ValueError('Cooking reward details and OK were not uniquely confirmed')
                 elif not (len(navigator.text(observation, r'^SCORE\s*ATTACK$', (600, 130, 600, 200))) == 1

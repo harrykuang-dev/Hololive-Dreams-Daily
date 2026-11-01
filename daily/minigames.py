@@ -20,8 +20,9 @@ def start_minigame(nav, task, status, energy, budget, before_input=lambda: None)
     cost = read_setup_cost(nav, observation)
     if len(buttons) != 1:
         raise NavigationError('無法唯一確認小遊戲遊玩按鈕')
+    explicit_free = energy.multiplier == 0 and energy.cost == 0
     if (cost != energy.effective_cost or not resource.permits(cost, budget)
-            or (cost == 0 and resource.available != 0)):
+            or (cost == 0 and resource.available != 0 and not explicit_free)):
         raise ResourceUnavailable('小遊戲實際消耗或本次資源上限不符，未開始遊玩')
     if not 0 <= time.monotonic()-observation.captured_at <= 2:
         raise NavigationError('小遊戲開始前的資源畫面已過期')
@@ -81,6 +82,9 @@ class MinigameResults:
         if observation.scene != self.scene:
             return None
         labels = self.nav.text(observation, '('+self.summary_label+'|獲得獎勵)$', (610, 220, 340, 210))
+        if (self.prefix == 'cooking'
+                and not any(item.text.strip().endswith(self.summary_label) for item in labels)):
+            labels += self.nav.text(observation, '^本次分數$', (680, 230, 160, 50))
         if any(sum(item.text.strip().endswith(label) for item in labels) != 1
                for label in (self.summary_label, '獲得獎勵')):
             return None

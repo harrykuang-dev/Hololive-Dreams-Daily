@@ -60,7 +60,7 @@ class WorkerSupervisor:
         config_path, status_path, stop_path = (directory / name for name in
                                              ('config.json', 'status.json', 'stop'))
         config_path.write_text(json.dumps(config.to_dict()), encoding='utf-8')
-        command = ([str(self.python), str(self.root / 'agent/module_worker.py'),
+        command = ([str(self.python), '-I', '-B', '-X', 'utf8', str(self.root / 'agent/module_worker.py'),
                     '--config', str(config_path), '--status', str(status_path),
                     '--stop', str(stop_path), '--job-id', job_id,
                     '--parent-pid', str(os.getpid()), '--module-root', str(self.module_root)]

@@ -11,15 +11,15 @@ from daily.contracts import ResourceObservation
 from daily.minigames import start_minigame
 
 
-def preflight(tmp_path, *, balance=30, cost=3, age=0, scene='jump_setup'):
+def preflight(tmp_path, *, balance=30, capacity=100, cost=3, age=0, scene='jump_setup'):
     events = []
     observation = SimpleNamespace(scene=scene, captured_at=time.monotonic()-age)
     def text(observation, expected, roi):
         if expected == '^遊玩$':
             return [SimpleNamespace(box=(1000, 620, 200, 65))]
         if expected == '.*':
-            return [SimpleNamespace(text=f'×{cost}×3', box=(850, 590, 140, 30))]
-        return [SimpleNamespace(text=f'{balance}/100')]
+            return [SimpleNamespace(text=f'×{cost}', box=(850, 590, 60, 30))]
+        return [SimpleNamespace(text=f'{balance}/{capacity}')]
     nav = SimpleNamespace(observe=lambda: observation, text=text,
         inputs=SimpleNamespace(click=lambda *a: events.append('click')),
         recording=SimpleNamespace(mark=lambda *a, **k: events.append('audit')))
@@ -70,6 +70,15 @@ def test_zero_cost_jump_authorization_requires_fresh_zero_balance(tmp_path, bala
         with pytest.raises(ResourceUnavailable):
             runner.start_round({'phase':'capture_ready'}, energy, 0)
         assert not events
+
+
+@pytest.mark.parametrize('balance', [0, 53, 180])
+def test_explicit_zero_multiplier_permits_free_play_with_known_energy(tmp_path, balance):
+    runner, energy, events = preflight(tmp_path, balance=balance, capacity=200, cost=0)
+    energy = EnergySelection(0, 0, ResourceObservation(balance, 200))
+    metadata = runner.start_round({'phase':'capture_ready'}, energy, 0)
+    assert metadata['cost'] == 0 and metadata['resource']['available'] == balance
+    assert events == ['audit', 'click']
 
 
 @pytest.mark.parametrize('labels,allowed', [(['ō本次跳躍次數','獲得獎勵'],True),

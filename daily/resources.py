@@ -38,6 +38,17 @@ def parse_consumption(text):
 
 
 def read_setup_cost(nav, observation, *, multiplayer=False):
+    if getattr(observation, 'scene', None) in {'cooking_setup', 'jump_setup'}:
+        # Stop before the separate reward multiplier. Its digits can be the
+        # only text detected by a wide ROI, especially at zero energy cost.
+        parts = nav.text(observation, '.*', (830, 580, 95, 45))
+        if not parts:
+            zero = nav.text(observation, '^0$', (840, 586, 72, 37))
+            if len(zero) == 1 and zero[0].text.strip() == '0':
+                return 0
+        text = ''.join(item.text for item in sorted(parts, key=lambda item: item.box[0]))
+        match = re.fullmatch(r'[×xX]?\s*([0-9]{1,4})', text.strip())
+        return int(match[1]) if match else None
     if not multiplayer and getattr(observation, 'scene', None) == 'solo_setup':
         # This box ends before the separate gift/reward multiplier. The text
         # detector can omit the leading multiplication sign at higher costs.
@@ -82,6 +93,12 @@ class EnergySettings:
         multiplier = parse_remaining(numbers[0].text) if len(numbers) == 1 else None
         costs = self.nav.text(observation, '^[0-9]+$', (975, 545, 100, 70), only_rec=True)
         cost = parse_remaining(costs[0].text) if len(costs) == 1 else None
+        if cost is None and multiplier == 0 and not costs:
+            # The isolated large zero needs a tighter crop than multi-digit
+            # costs. Accept only an actually recognized zero, never a guess.
+            zero = self.nav.text(observation, '^0$', (998, 555, 50, 50), only_rec=True)
+            if len(zero) == 1 and zero[0].text.strip() == '0':
+                cost = 0
         fraction = read_one(self.nav, observation, '[0-9].*[/／].*[0-9]', (1025, 25, 145, 60))
         resource = parse_fraction(fraction)
         if multiplier is None or cost is None:

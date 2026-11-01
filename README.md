@@ -18,6 +18,8 @@ Cooking has passed an uninterrupted recorded round with isolated DirectML infere
 
 Minigame navigation can verify the park's gamepad icon when its small text label is unreadable against changing scenery. The park scene must be confirmed first; ambiguous text does not permit a fallback click.
 
+Cooking and Jump Rope accept an explicit zero-energy setting. The actual widget and setup cost must both read zero, and the remaining resource balance must still be valid. A recorded cooking round at this setting confirmed8,520 points and ten dishes; reward-return and multi-round acceptance are still being checked. This option is separate from Live's positive consumption multiplier.
+
 High & Low has passed recorded map navigation and interaction-entry verification. The route selects the arena's play-area map tab, confirms Shiori's table before teleporting and stops at the interaction prompt. It does not open or play the daily game; configurable-cap worker integration remains pending.
 
 Solo Live has passed recorded single-round foreground tests with one-energy, nine-energy and zero-energy consumption, plus an uninterrupted two-round test with separate Auto, resource and remaining-budget checks before each song. A zero resource budget permits play only when the observed effective cost is zero; it does not replenish energy or waive Auto-use checks. The game's consumption multiplier remains positive. The current song, difficulty and team must be retained. Multiplayer has passed recorded navigation from the park to its mode-selection page. Matchmaking, the ready/start entry and multiplayer play remain unverified and disabled.
@@ -33,6 +35,10 @@ Once-daily attempts are recorded before the first interaction. A recorded failed
 Reward collection checks daily, weekly and season missions, the pass, achievements, the gift box and the current event's daily and free missions. An uninterrupted recorded run confirmed seven available reward groups, including actual event rewards, and returned to the park. A claim is clicked once and requires a confirmed received or disabled state before proceeding. Empty-page checks are also verified; future event layouts require validation.
 
 ## Development
+
+`runtime-packages.lock.json` pins the CPython embeddable archive and the exact package metadata versions used by the separate agent and minigame interpreters. `tools/prepare_portable_runtime.py` validates installed distribution file hashes before copying, excludes local metadata and bytecode, and checks imports without game input. Its explicit module paths keep user packages outside the runtime.
+
+`tools/build_development_bundle.py` accepts the pinned GUI archive and both prepared runtimes. It requires clean committed source, preserves pinned upstream code and model identities, and creates a file-hash inventory. Output must be a new directory. Use `--verify --output <bundle>` before first launch; runtime settings and logs generated later change that pristine inventory. The resulting local development bundle still requires .NET10 and the Microsoft Visual C++ runtime. It is not a binary release or acceptance of the full daily flow.
 
 Use Python 3.13 x64 and .NET 10. Install `requirements-dev.txt`, then run:
 

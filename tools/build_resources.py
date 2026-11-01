@@ -43,7 +43,8 @@ def generate():
                                   'window_regex': '^hololive-Dreams$', 'screencap': 'FramePool',
                                   'mouse': 'Seize', 'keyboard': 'Seize'}}],
         'resource': [{'name': 'TraditionalChinese', 'label': '$resource', 'path': ['./resource']}],
-        'agent': {'child_exec': './runtime/python/python.exe', 'child_args': ['./agent/main.py']},
+        'agent': {'child_exec': './runtime/python/python.exe',
+                  'child_args': ['-I', '-B', '-X', 'utf8', './agent/main.py']},
         'task': [], 'option': {},
     }
     translations = {
@@ -96,7 +97,10 @@ def generate():
             add_input('rounds', '局數（必填）', 'Rounds (required)',
                       default=None if task in USER_ENTERED_ROUNDS else '1')
         if task in ('cooking', 'solo_live', 'multi_live', 'jump_rope'):
-            add_input('multiplier', '消耗倍率', 'Consumption multiplier', default='1', verify=r'^[1-9][0-9]?$')
+            free = task in ('cooking', 'jump_rope')
+            add_input('multiplier', '消耗倍率（0 為不消耗能量）' if free else '消耗倍率',
+                      'Consumption multiplier (0: no energy)' if free else 'Consumption multiplier',
+                      default='1', verify=r'^(0|[1-9][0-9]?)$' if free else r'^[1-9][0-9]?$')
             add_input('resource_budget', '本次消耗上限（可空白）',
                       'Resource budget (optional)', default='', verify=r'^$|^(0|[1-9][0-9]{0,8})$')
             interface['option'][task + '_resource_budget']['description'] = (

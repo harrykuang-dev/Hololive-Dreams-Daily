@@ -34,7 +34,7 @@ def runner(tmp_path, monkeypatch, *, verified=True):
             return WorkerOutcome(1,{'result':{'verified':verified,'score':123,'completed_dishes':2}})
     def text(observation,expected,roi):
         if expected=='^遊玩$':return [SimpleNamespace(box=(1000,620,200,60))]
-        if expected=='.*':return [SimpleNamespace(text='×30×3',box=(850,590,140,30))]
+        if expected=='.*':return [SimpleNamespace(text='×30',box=(850,590,65,30))]
         return [SimpleNamespace(text='100/100')]
     nav=SimpleNamespace(observe=lambda:SimpleNamespace(scene='cooking_setup',captured_at=time.monotonic()),
         text=text,to_minigame_setup=lambda task:None,recording=None,
