@@ -44,7 +44,7 @@ def module_files(source):
         if len(path.parts) == 1:
             if not (path.suffix == '.py' or path.name.startswith(('LICENSE','NOTICE','README','THIRD_PARTY','requirements','models-manifest'))):
                 continue
-        elif path.parts[0] not in {'assets','templates','models','outputs'}:
+        elif path.parts[0] not in {'assets','templates','models','outputs','controller'}:
             continue
         if path.parts[0] == 'outputs' and path.parts[1] not in {'kitchen-bot','kitchen-assets'}:
             continue

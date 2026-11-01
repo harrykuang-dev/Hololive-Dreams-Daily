@@ -19,11 +19,12 @@ def test_upstream_export_omits_settings_diagnostics_tests_and_recordings(tmp_pat
     names=['auto_bot.py','LICENSE','README.md','settings.json','daily_coins.json',
            'templates/card.png','models/rope.onnx','outputs/kitchen-bot/standalone.py',
            'outputs/kitchen-assets/textures/milk.png',
+           'controller/policy.py',
            'outputs/private.json','diagnostics/frame.png','assets/recording.mp4','tests/account.json']
     monkeypatch.setattr(bundle,'git',lambda *a:'\0'.join(names))
     assert {p.as_posix() for p in bundle.module_files(tmp_path)}=={
         'auto_bot.py','LICENSE','README.md','templates/card.png','models/rope.onnx',
-        'outputs/kitchen-bot/standalone.py','outputs/kitchen-assets/textures/milk.png'}
+        'outputs/kitchen-bot/standalone.py','outputs/kitchen-assets/textures/milk.png','controller/policy.py'}
 
 
 def test_existing_bundle_is_not_overwritten(tmp_path):
