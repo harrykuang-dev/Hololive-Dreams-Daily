@@ -46,3 +46,5 @@ For the separate Jump Rope interpreter, install `requirements-modules-jump.txt` 
 
 The Jump Rope worker requests a separate parent authorization for each round after its first captured frame. The parent rechecks the actual cost, resource balance and budget before starting. Adapter tests cover readiness, cancellation and stale authorization; the native test verified the handshake and the configured stop score. The optional stop score accepts1–999. Zero-energy Jump Rope still requires native acceptance.
 
+Cooking model preparation uses the pinned `models-manifest.json`. Run `tools/prepare_cooking_models.py --source <directory-containing-models>` to verify every file before copying it into the ignored module asset directory. The isolated interpreter can install `requirements-modules-cooking.txt` and run `tools/check_cooking_runtime.py`. Ten cached model files matched the manifest; DirectML warmup of the four selected models and inference on three recording frames passed without game input. These checks do not enable cooking gameplay or validate its timing.
+

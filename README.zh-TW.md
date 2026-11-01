@@ -45,3 +45,5 @@ python -m pytest -q
 跳繩的獨立 Python 環境可安裝 `requirements-modules-jump.txt`，再執行 `python tools/check_jump_runtime.py`。此檢查只預熱 DirectML 模型，不操作遊戲；可用 `--sample` 指定本機遊戲畫面，驗證繩索與玩家標記辨識。開發機已通過十五張預熱畫面及三張參考畫面檢查，尚不代表遊玩時機已驗收，也不會啟用任務模組。
 
 跳繩子程序每局取得第一張畫面後，須另經主程序核准；主程序重新確認實際消耗、資源餘量與預算後才開始。模組銜接測試涵蓋就緒、取消與過期授權拒絕，原生實測已驗證握手及設定的停止分數。選填停止分數接受1至999，零能量跳繩仍待實測驗收。
+
+料理模型依鎖定版本的 `models-manifest.json` 準備。執行 `tools/prepare_cooking_models.py --source <包含 models 的目錄>`，會先核對全部檔案，再複製到模組忽略追蹤的資源目錄。獨立環境可安裝 `requirements-modules-cooking.txt` 並執行 `tools/check_cooking_runtime.py`。本機快取的十個模型檔均符合清單；四個選用模型的 DirectML 預熱及三張錄影畫面推論已通過，全程不輸入遊戲操作，尚不代表料理遊玩與操作時機已驗收。

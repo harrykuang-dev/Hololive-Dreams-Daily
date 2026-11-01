@@ -1,0 +1,4 @@
+-r requirements-modules-jump.txt
+scipy==1.18.1
+moderngl==5.12.0
+glcontext==3.1.0
