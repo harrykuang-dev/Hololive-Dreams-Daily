@@ -46,7 +46,7 @@ def module_files(source):
                 continue
         elif path.parts[0] not in {'assets','templates','models','outputs'}:
             continue
-        if path.parts[0] == 'outputs' and path.parts[1] != 'kitchen-bot':
+        if path.parts[0] == 'outputs' and path.parts[1] not in {'kitchen-bot','kitchen-assets'}:
             continue
         yield path
 
