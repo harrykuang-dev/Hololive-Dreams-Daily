@@ -63,6 +63,8 @@ SAMPLES = [
     ('lottery_result', '09.52.54.01', 115.5),
     ('minigame_portal', '09.52.54.01', 125),
     ('cooking_setup', '09.52.54.01', 127),
+    ('cooking_result', '09.52.54.01', 426),
+    ('cooking_rewards', '09.52.54.01', 428),
     ('cooking_energy', '09.52.54.01', 129),
     ('energy_controls', '09.52.54.01', 129.4),
     ('jump_setup', '13.51.56.03', 1370),

@@ -1,19 +1,20 @@
 """One isolated Jump Rope round per fresh parent resource authorization."""
-from dataclasses import asdict, replace
+from dataclasses import replace
 import json
 from pathlib import Path
-import time
 
 from .contracts import ConfigurationError, TaskResult, TaskStatus
 from .navigation import NavigationError
-from .resources import EnergySettings, ResourceUnavailable, parse_fraction, read_one, read_setup_cost
+from .resources import EnergySettings
+from .minigames import MinigameResults, start_minigame
 from .workers import WorkerSupervisor
 
 
-class JumpRunner:
+class JumpRunner(MinigameResults):
     def __init__(self, navigator, root: Path | None = None, data: Path | None = None, progress=lambda result: None,
                  supervisor=WorkerSupervisor):
-        self.nav, self.root, self.data = navigator, root, data
+        super().__init__(navigator, 'jump_rope')
+        self.root, self.data = root, data
         self.progress, self.supervisor = progress, supervisor
 
     def release_space(self):
@@ -22,111 +23,7 @@ class JumpRunner:
             self.nav.recording.mark('module_key_up', key=0x20)
 
     def start_round(self, status, energy, budget, before_input=lambda: None):
-        if status.get('phase') != 'capture_ready':
-            raise NavigationError('跳繩模組尚未確認擷取就緒')
-        observation = self.nav.observe()
-        if observation.scene != 'jump_setup':
-            raise NavigationError('跳繩開始前畫面不符')
-        buttons = self.nav.text(observation, '^遊玩$', (980, 610, 260, 85))
-        resource = parse_fraction(read_one(self.nav, observation, '[0-9].*[/／].*[0-9]',
-                                           (1025, 25, 145, 60)))
-        cost = read_setup_cost(self.nav, observation)
-        if len(buttons) != 1:
-            raise NavigationError('無法唯一確認跳繩遊玩按鈕')
-        if (cost != energy.effective_cost or not resource.permits(cost, budget)
-                or (cost == 0 and resource.available != 0)):
-            raise ResourceUnavailable('跳繩實際消耗或本次資源上限不符，未開始遊玩')
-        age = time.monotonic()-observation.captured_at
-        if not 0 <= age <= 2:
-            raise NavigationError('跳繩開始前的資源畫面已過期')
-        metadata = {'task': 'jump_rope', 'cost': cost, 'resource': asdict(resource),
-                    'budget_remaining': budget}
-        if self.nav.recording:
-            self.nav.recording.mark('minigame_start_verified', **metadata)
-        before_input()
-        x, y, w, h = buttons[0].box
-        self.nav.inputs.click(int(x+w/2), int(y+h/2))
-        return metadata
-
-    def result_page(self, *, timeout=15):
-        deadline = time.monotonic()+timeout
-        while True:
-            observation = self.nav.observe()
-            if observation.scene == 'jump_result':
-                title = self.nav.text(observation, r'^SCORE\s*ATTACK$', (600, 130, 600, 200))
-                next_buttons = self.nav.text(observation, '下一步$', (980, 610, 260, 90))
-                if len(title) == len(next_buttons) == 1:
-                    return observation, next_buttons[0].box
-            if time.monotonic() >= deadline:
-                self.nav.save(observation, 'jump-result-not-confirmed')
-                raise NavigationError('跳繩模組結束後未確認分數結果頁')
-            self.nav.inputs.pause(.2)
-
-    def finish_result(self):
-        current = self.nav.observe()
-        if button := self.reward_button(current):
-            return self.close_reward(button)
-        if button := self.event_button(current):
-            return self.finish_event(current, button)
-        self.nav.inputs.pause(.8)
-        _, button = self.result_page()
-        x, y, w, h = button
-        self.nav.inputs.click(int(x+w/2), int(y+h/2))
-        deadline = time.monotonic()+15
-        while True:
-            updated = self.nav.observe()
-            if button := self.reward_button(updated):
-                self.nav.save(updated, 'jump-rewards-confirmed')
-                return self.close_reward(button)
-            if time.monotonic() >= deadline:
-                self.nav.save(updated, 'jump-rewards-not-confirmed')
-                raise NavigationError('跳繩獎勵頁尚未確認，未重複下一步')
-            self.nav.inputs.pause(.2)
-
-    def reward_button(self, observation):
-        if observation.scene != 'jump_result':
-            return None
-        labels = self.nav.text(observation, '(本次跳躍次數|獲得獎勵)$', (610, 220, 340, 210))
-        if any(sum(item.text.strip().endswith(label) for item in labels) != 1
-               for label in ('本次跳躍次數', '獲得獎勵')):
-            return None
-        buttons = self.nav.text(observation, '^OK[!！]?$', (980, 610, 260, 90))
-        return buttons[0].box if len(buttons) == 1 else None
-
-    def close_reward(self, button):
-        x, y, w, h = button
-        self.nav.inputs.click(int(x+w/2), int(y+h/2))
-        return self.finish_event()
-
-    def event_button(self, observation):
-        if observation.scene != 'jump_result':
-            return None
-        labels = self.nav.text(observation, '^(活動加成|已持有的活動加成指定成員|已解鎖全部劇情)$',
-                               (650, 220, 550, 400))
-        words = {item.text.strip() for item in labels}
-        if len(words.intersection({'活動加成', '已持有的活動加成指定成員', '已解鎖全部劇情'})) < 2:
-            return None
-        buttons = self.nav.text(observation, '下一步$', (980, 610, 260, 90))
-        return buttons[0].box if len(buttons) == 1 else None
-
-    def finish_event(self, observation=None, button=None):
-        deadline = time.monotonic()+45
-        clicked = False
-        while True:
-            observation = observation or self.nav.observe()
-            if observation.scene in {'jump_setup', 'home'}:
-                return self.nav.wait_for({'jump_setup', 'home'}, timeout=5)
-            button = button or self.event_button(observation)
-            if button is not None and not clicked:
-                self.nav.save(observation, 'jump-event-result')
-                x, y, w, h = button
-                self.nav.inputs.click(int(x+w/2), int(y+h/2))
-                clicked = True
-            if time.monotonic() >= deadline:
-                self.nav.save(observation, 'jump-result-return-stalled')
-                raise NavigationError('跳繩結果尚未返回設定頁，未重複確認')
-            self.nav.inputs.pause(.2)
-            observation = button = None
+        return start_minigame(self.nav, 'jump_rope', status, energy, budget, before_input)
 
     def run(self, config):
         if config.task != 'jump_rope' or config.entry_only or self.root is None or self.data is None:

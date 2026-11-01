@@ -8,6 +8,7 @@ from daily.jump import JumpRunner
 from daily.navigation import NavigationError
 from daily.resources import EnergySelection, ResourceUnavailable
 from daily.contracts import ResourceObservation
+from daily.minigames import start_minigame
 
 
 def preflight(tmp_path, *, balance=30, cost=3, age=0, scene='jump_setup'):
@@ -40,6 +41,13 @@ def test_jump_requires_capture_readiness_before_parent_start(tmp_path):
     runner, energy, events = preflight(tmp_path)
     with pytest.raises(NavigationError, match='擷取就緒'):
         runner.start_round({'phase':'loading'}, energy, 3)
+    assert not events
+
+
+def test_live_cannot_use_the_shared_minigame_start_boundary(tmp_path):
+    runner, energy, events = preflight(tmp_path)
+    with pytest.raises(NavigationError):
+        start_minigame(runner.nav, 'solo_live', {'phase':'capture_ready'}, energy, 3)
     assert not events
 
 

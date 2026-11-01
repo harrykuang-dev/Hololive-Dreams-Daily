@@ -128,9 +128,63 @@ def main():
                 raise RuntimeError('Round target was not reached')
             publish('complete', completed=session.completed_rounds,
                     diagnostic_directory=str(session.directory))
+        elif config.task == 'cooking':
+            if config.rounds != 1:
+                raise ValueError('Cooking worker requires one separately authorized round')
+            os.environ['COOKING_STOP_FILE'] = str(args.stop)
+            os.environ['COOKING_STOP_KEY'] = 'INSERT'
+            os.environ['COOKING_TOGGLE_FILE'] = str(args.status.parent / 'toggle')
+            stop_hooks.append(lambda: args.stop.touch(exist_ok=True))
+            from daily.cooking_runtime import load_cooking
+            model, assets, warmup = load_cooking(source)
+            from standalone import Desktop, play
+            import diagnostic_store as diagnostics
+            directory = args.status.parent / 'diagnostics'
+            store = diagnostics.configure(directory, True, module='cooking',
+                                          models=assets, warmup_ms=warmup)
+            try:
+                desktop = Desktop('hololive-Dreams')
+                try:
+                    if desktop.capture() is None:
+                        raise RuntimeError('Cooking capture is not ready in the foreground')
+                    publish('ready', phase='capture_ready', backend=model.runtime.backend)
+                    wait_for_start(args.status.parent / 'start.json', args.job_id,
+                        lambda: stopped.is_set() or args.stop.exists() or not parent_alive(args.parent_pid))
+                    publish('running', phase='authorized')
+                    deadline = time.monotonic()+60
+                    while True:
+                        if stopped.is_set() or args.stop.exists() or not parent_alive(args.parent_pid):
+                            raise InterruptedError('Cooking start cancelled')
+                        frame = desktop.capture()
+                        if frame is None:
+                            raise RuntimeError('Cooking lost foreground before the order screen')
+                        canonical, _, _ = model.normalize(frame)
+                        phase = model.screen_state.classify(canonical)['phase']
+                        if phase in {'order', 'playing'}:
+                            break
+                        if time.monotonic() >= deadline:
+                            raise RuntimeError('Cooking order screen did not appear after authorized start')
+                        time.sleep(.1)
+                finally:
+                    desktop.close()
+                if stopped.is_set() or args.stop.exists():
+                    raise InterruptedError('Cooking start cancelled')
+                options = argparse.Namespace(title='hololive-Dreams', output=directory,
+                    fps=20, seconds=420, diagnostic_lossless_interval=2.)
+                result = play(options, model, autostart=True,
+                              status_callback=lambda phase: publish('running', phase=phase))
+                if stopped.is_set() or args.stop.exists():
+                    publish('cancelled', completed=0)
+                    return 2
+                reading = result.get('result', {})
+                if not result.get('natural_end') or reading.get('verified') is not True:
+                    raise RuntimeError('Cooking did not confirm natural completion and result numbers')
+            finally:
+                store.finish()
+            publish('complete', completed=1, result=reading,
+                    diagnostic_directory=str(directory))
         else:
-            # Cooking and High & Low need per-round resource gating and native
-            # configurable caps respectively before enabling their workers.
+            # High & Low requires a native configurable cap before integration.
             raise RuntimeError('Module integration is not enabled yet')
         return 0
     except Exception as error:

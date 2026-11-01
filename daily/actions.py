@@ -23,6 +23,7 @@ from .calendar import DailyAttempts, DailyUnavailable
 from .park import ParkRunner
 from .fishing import FishingRunner
 from .jump import JumpRunner
+from .cooking import CookingRunner
 from .rewards import RewardsRunner
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -140,5 +141,6 @@ class RunDailyTask(CustomAction):
             data = Path(os.environ.get('PI_USER_DATA_DIR', ROOT / 'userdata')) / 'daily'
             return JumpRunner(navigator, ROOT, data, progress).run(config)
         if config.task == 'cooking':
-            EnergySettings(navigator).configure(config.task, config.multiplier, config.resource_budget)
+            data = Path(os.environ.get('PI_USER_DATA_DIR', ROOT / 'userdata')) / 'daily'
+            return CookingRunner(navigator, ROOT, data, progress).run(config)
         raise NavigationError('已到達導航入口；完整任務執行尚未啟用')

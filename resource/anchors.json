@@ -431,6 +431,33 @@
     },
     "sha256": "ffdfc338bf1bca3d5883c5ba1a08079d0ea083b2b6f01d184e5f90b1f8bfb2e2"
   },
+  "cooking_result": {
+    "file": "anchors/cooking_result.png",
+    "roi": [
+      18,
+      15,
+      265,
+      75
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "cooking_result",
+      "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",
+      "seconds": 426,
+      "client": [
+        115,
+        133,
+        1484,
+        834
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "3e1b3231f5786afbfab68ade77ca72836ce77ffc967624ed61993c8e578ad498"
+    },
+    "sha256": "4fb82235b3985e389d97b0b61a59f5fe1d9433d8de61bc4be420fd33534643a0"
+  },
   "jump_setup": {
     "file": "anchors/jump_setup.png",
     "roi": [
@@ -1261,6 +1288,34 @@
       "sha256": "d80c9899d15b0482bb0d608ab6a717deeb8978a46c0ab7ab8821add6f5a47a99"
     },
     "sha256": "5aa320ac5ab87f26adceabd65270b9a4a38e4ca69a876b89a594ebfb9a7e10ae",
+    "scene": false
+  },
+  "home_games_button": {
+    "file": "anchors/home_games_button.png",
+    "roi": [
+      814,
+      37,
+      29,
+      24
+    ],
+    "threshold": 0.9,
+    "source": {
+      "scene": "home",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 1995,
+      "client": [
+        219,
+        115,
+        1484,
+        836
+      ],
+      "frame_size": [
+        1280,
+        720
+      ],
+      "sha256": "563e1fa6e37ba6ff662d8dc38ae653716b915c731da74fad59feaf8db7e47241"
+    },
+    "sha256": "e0a5dea5e3d5687344ee3ea2337c1dfc3a224b87c2b475b0eca9088850000713",
     "scene": false
   }
 }

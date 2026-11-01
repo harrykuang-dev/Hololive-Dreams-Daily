@@ -26,6 +26,24 @@ class Context:
         return SimpleNamespace(hit=True, filtered_results=[SimpleNamespace(text=w, box=(1, 2, 3, 4)) for w in self.words])
 
 
+@pytest.mark.parametrize('labels,icon,accepted', [(0, True, True), (0, False, False),
+                                                (1, False, True), (2, True, False)])
+def test_games_navigation_requires_home_and_positive_label_or_gamepad(labels, icon, accepted):
+    nav = Navigator.__new__(Navigator)
+    calls = []
+    nav.to_home = lambda: calls.append('home')
+    nav.wait_for = lambda scenes: Observation(None, next(iter(scenes)), 0)
+    nav.text = lambda *a, **k: [SimpleNamespace(box=(814,37,29,24))] * labels
+    nav.vision = SimpleNamespace(match=lambda *a: SimpleNamespace(box=(814,37,29,24)) if icon else None)
+    nav.inputs = SimpleNamespace(click=lambda *a: calls.append(a))
+    if accepted:
+        assert nav.to_minigame_portal().scene == 'minigame_portal'
+        assert calls == ['home', (828,49)]
+    else:
+        with pytest.raises(NavigationError): nav.to_minigame_portal()
+        assert calls == ['home']
+
+
 def test_changing_park_backdrop_requires_multiple_toolbar_labels(tmp_path):
     root = Path(__file__).resolve().parents[1]
     context = Context(['遊戲', 'Live', '任務', '成就'])

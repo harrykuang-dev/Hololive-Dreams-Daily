@@ -66,13 +66,28 @@ class InspectRecordings(CustomAction):
                         'energy_zero_nominal': 'energy_settings', 'solo_setup_zero': 'solo_setup',
                         'jump_rewards': 'jump_result', 'jump_rewards_native': 'jump_result',
                         'jump_event_native': 'jump_result',
-                        'gift_house_high_marker_native': 'home'}.get(path.stem, expected)
+                        'cooking_rewards': 'cooking_result',
+                        'gift_house_high_marker_native': 'home', 'home_games_native': 'home'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
+            if path.stem in {'home', 'home_games_native'}:
+                button = vision.match(frame, 'home_games_button')
+                if scene != 'home' or button is None:
+                    raise ValueError('Park gamepad button was not positively confirmed')
+                result['games_button'] = list(button.box)
             if path.stem == 'jump_event_native':
                 from daily.jump import JumpRunner
                 if JumpRunner(navigator).event_button(Observation(frame, scene, time.monotonic())) is None:
                     raise ValueError('Native Jump event result Next was not uniquely confirmed')
+            if path.stem in {'cooking_result', 'cooking_rewards'}:
+                from daily.minigames import MinigameResults
+                observation = Observation(frame, scene, time.monotonic())
+                if path.stem == 'cooking_rewards':
+                    if MinigameResults(navigator, 'cooking').reward_button(observation) is None:
+                        raise ValueError('Cooking reward details and OK were not uniquely confirmed')
+                elif not (len(navigator.text(observation, r'^SCORE\s*ATTACK$', (600, 130, 600, 200))) == 1
+                          and len(navigator.text(observation, '下一步$', (980, 610, 260, 90))) == 1):
+                    raise ValueError('Cooking score result and Next were not uniquely confirmed')
             if path.stem in {'game_title', 'game_title_ready'}:
                 button = navigator.game_title_button(Observation(frame, scene, time.monotonic()),
                                                      ready=path.stem == 'game_title_ready')

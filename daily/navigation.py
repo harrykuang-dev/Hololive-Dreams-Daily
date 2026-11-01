@@ -313,6 +313,9 @@ class Navigator:
         if observation.scene == 'jump_result':
             from .jump import JumpRunner
             observation = JumpRunner(self).finish_result()
+        if observation.scene == 'cooking_result':
+            from .minigames import MinigameResults
+            observation = MinigameResults(self, 'cooking').finish_result()
         if observation.scene == 'energy_settings':
             observation = self.cancel_energy_settings()
         for _ in range(4):
@@ -368,7 +371,21 @@ class Navigator:
 
     def to_minigame_portal(self):
         self.to_home()
-        return self.click_text('home', '^遊戲$', 'minigame_portal', roi=(730, 10, 380, 100))
+        observation = self.wait_for({'home'})
+        labels = self.text(observation, '^遊戲$', roi=(730, 10, 380, 100))
+        if len(labels) == 1:
+            x, y, w, h = labels[0].box
+        elif not labels:
+            # Park scenery can make the small label unreadable. The solid
+            # gamepad glyph is independent of the changing backdrop.
+            button = self.vision.match(observation.image, 'home_games_button')
+            if button is None:
+                raise NavigationError('無法確認樂園的遊戲按鈕')
+            x, y, w, h = button.box
+        else:
+            raise NavigationError('無法唯一確認樂園的遊戲按鈕')
+        self.inputs.click(int(x+w/2), int(y+h/2))
+        return self.wait_for({'minigame_portal'})
 
     def to_solo_setup(self):
         if self.observe().scene == 'solo_setup':
