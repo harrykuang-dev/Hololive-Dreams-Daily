@@ -78,6 +78,10 @@ class Navigator:
                     return Observation(frame, 'login_notice', captured)
                 if self.live_achievement_button(observation):
                     return Observation(frame, 'live_achievement', captured)
+                if self.game_title_button(observation):
+                    return Observation(frame, 'game_title', captured)
+                if self.game_title_ready_button(observation):
+                    return Observation(frame, 'game_title_ready', captured)
                 # GET overlays inherit the underlying page's colour. Require
                 # both labels instead of matching a blue header on a red page.
                 if self.received_reward_button(observation):
@@ -118,6 +122,7 @@ class Navigator:
         reward_closed = False
         notice_closed = False
         achievement_closed = False
+        game_entered = set()
         while True:
             observation = self.observe()
             recovery = None
@@ -134,6 +139,10 @@ class Navigator:
                     recovery = self.login_notice_button
                 elif observation.scene == 'live_achievement' and not achievement_closed:
                     recovery = self.live_achievement_button
+                elif observation.scene == 'game_title' and observation.scene not in game_entered:
+                    recovery = self.game_title_button
+                elif observation.scene == 'game_title_ready' and observation.scene not in game_entered:
+                    recovery = self.game_title_ready_button
             if recovery is not None:
                 button = recovery(observation)
                 if button is None:
@@ -151,6 +160,8 @@ class Navigator:
                 elif observation.scene == 'live_achievement':
                     achievement_closed = True
                     reward_closed = False
+                elif observation.scene in {'game_title', 'game_title_ready'}:
+                    game_entered.add(observation.scene)
                 deadline = time.monotonic() + timeout
                 stable_since = last_scene = None
                 continue
@@ -231,6 +242,26 @@ class Navigator:
             return None
         return (1015, 70, 60, 60)
 
+    def game_title_button(self, observation, *, ready=False):
+        # Ordinary entry to the already-open Steam game, never a credentials or
+        # account-selection dialog. Background animation is not an anchor.
+        versions = [item for item in self.text(observation, r'^ver[.]\s*[0-9]+(?:[.][0-9]+){2}$', (10, 10, 210, 65))
+                    if re.fullmatch(r'ver[.]\s*[0-9]+(?:[.][0-9]+){2}', getattr(item, 'text', '').strip())]
+        if len(versions) != 1:
+            return None
+        engine = [item for item in self.text(observation, '^CRIWARE$', (1000, 10, 120, 95))
+                  if getattr(item, 'text', '').strip() == 'CRIWARE']
+        if len(engine) != 1:
+            return None
+        expected = r'^TAP\s+TO\s+START$' if ready else '^登入$'
+        roi = (520, 630, 240, 70) if ready else (540, 620, 200, 90)
+        buttons = [item for item in self.text(observation, expected, roi)
+                   if re.fullmatch(expected, getattr(item, 'text', '').strip())]
+        return tuple(buttons[0].box) if len(buttons) == 1 else None
+
+    def game_title_ready_button(self, observation):
+        return self.game_title_button(observation, ready=True)
+
     def text(self, observation: Observation, expected: str, roi=None, *, only_rec=False):
         # This is recognition only. The OCR pipeline has no input action.
         node = {'recognition': 'OCR', 'expected': [expected], 'threshold': .75,
@@ -256,6 +287,8 @@ class Navigator:
         while observation.scene is None and time.monotonic() < deadline:
             self.inputs.pause(.2)
             observation = self.observe()
+        if observation.scene in {'game_title', 'game_title_ready'}:
+            return self.wait_for({'home'}, timeout=120)
         if observation.scene in {'date_changed', 'login_bonus', 'login_bonus_standard',
                                  'login_notice'}:
             return self.wait_for({'home'}, timeout=45)

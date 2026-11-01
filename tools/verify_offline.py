@@ -65,6 +65,12 @@ class InspectRecordings(CustomAction):
                         'live_reward_transition': 'holowork_get'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
+            if path.stem in {'game_title', 'game_title_ready'}:
+                button = navigator.game_title_button(Observation(frame, scene, time.monotonic()),
+                                                     ready=path.stem == 'game_title_ready')
+                if scene != path.stem or button is None:
+                    raise ValueError('Game title did not have version, engine mark and unique entry')
+                result['game_entry'] = list(button)
             if path.stem == 'date_changed':
                 button = navigator.date_change_button(Observation(frame, scene, time.monotonic()))
                 if scene != 'date_changed' or button is None:

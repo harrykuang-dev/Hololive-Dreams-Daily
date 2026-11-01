@@ -53,7 +53,7 @@ def test_date_recovery_requires_exact_notice_and_unique_ok(labels, button_count,
     assert (navigator.date_change_button(None) is not None) == accepted
 
 
-@pytest.mark.parametrize('scene', ['date_changed', 'login_bonus', 'login_bonus_standard', 'holowork_get', 'login_notice'])
+@pytest.mark.parametrize('scene', ['date_changed', 'login_bonus', 'login_bonus_standard', 'holowork_get', 'login_notice', 'game_title', 'game_title_ready'])
 def test_unchanged_recovery_notice_is_acknowledged_once_then_times_out(monkeypatch, scene):
     navigator = Navigator.__new__(Navigator)
     now, clicks = [0.], []
@@ -68,6 +68,8 @@ def test_unchanged_recovery_notice_is_acknowledged_once_then_times_out(monkeypat
     navigator.received_reward_button = navigator.date_change_button
     navigator.standard_login_bonus_button = navigator.date_change_button
     navigator.login_notice_button = navigator.date_change_button
+    navigator.game_title_button = navigator.date_change_button
+    navigator.game_title_ready_button = navigator.date_change_button
     navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args))
     navigator.save = lambda *args: 'date-stalled.png'
     with pytest.raises(NavigationError, match='逾時'):
@@ -83,6 +85,33 @@ def test_login_recovery_requires_event_title_and_exact_continue_hint(title, hint
     navigator.text = lambda observation, expected, roi, **kw: [SimpleNamespace(
         text=title if expected == '^萬聖節$' else hint, box=(560, 625, 180, 50))]
     assert (navigator.login_bonus_button(None) is not None) == accepted
+
+
+@pytest.mark.parametrize('version,engine,buttons,accepted', [
+    ('ver.1.2.101', 'CRIWARE', ['登入'], True),
+    ('ver.1.2.101', '', ['登入'], False),
+    ('invalid', 'CRIWARE', ['登入'], False),
+    ('ver.1.2.101', 'CRIWARE', ['登入', '登入'], False)])
+def test_game_entry_needs_version_engine_mark_and_unique_button(version, engine, buttons, accepted):
+    navigator = Navigator.__new__(Navigator)
+    def text(observation, expected, roi):
+        words = [version] if roi[0] == 10 else [engine] if roi[0] == 1000 else buttons
+        return [SimpleNamespace(text=word, box=(610, 648, 58, 30)) for word in words]
+    navigator.text = text
+    assert (navigator.game_title_button(None) is not None) == accepted
+
+
+def test_game_title_login_and_tap_start_are_distinct_once_only_steps(monkeypatch):
+    navigator = Navigator.__new__(Navigator)
+    scenes = iter(['game_title', None, 'game_title_ready', 'home', 'home'])
+    navigator.observe = lambda: Observation(None, next(scenes), 0)
+    navigator.game_title_button = lambda observation: (610, 648, 58, 30)
+    navigator.game_title_ready_button = lambda observation: (554, 652, 170, 23)
+    clicks = []
+    navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args))
+    monkeypatch.setattr(navigation.time, 'sleep', lambda seconds: None)
+    assert navigator.wait_for({'home'}, stable_for=0).scene == 'home'
+    assert clicks == [(639, 663), (639, 663)]
 
 
 def test_reset_login_reward_chain_returns_home_without_repeated_confirmations(monkeypatch):
