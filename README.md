@@ -38,6 +38,8 @@ Once-daily attempts are recorded before the first interaction. A recorded failed
 
 Reward collection checks daily, weekly and season missions, the pass, achievements, the gift box and the current event's daily and free missions. An uninterrupted recorded run confirmed seven available reward groups, including actual event rewards, and returned to the park. A claim is clicked once and requires a confirmed received or disabled state before proceeding. Empty-page checks are also verified; future event layouts require validation.
 
+Development and test copies can share daily-attempt records by setting the same absolute `attempt_directory` in their local `config/recording.json`. Preserve and merge existing records before enabling this setting. `tools/stage_dev.py` uses a shared ledger for copies under the same working directory. Without the setting, the original per-application data directory remains in use; records are not moved automatically.
+
 ## Development
 
 `runtime-packages.lock.json` pins the CPython embeddable archive and the exact package metadata versions used by the separate agent and minigame interpreters. `tools/prepare_portable_runtime.py` validates installed distribution file hashes before copying, excludes local metadata and bytecode, and checks imports without game input. Its explicit module paths keep user packages outside the runtime.

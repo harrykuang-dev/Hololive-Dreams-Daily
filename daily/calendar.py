@@ -62,7 +62,13 @@ class DailyAttempts:
     def from_runtime(cls, root: Path, data: Path, recording):
         path = root / 'config' / 'recording.json'
         settings = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
-        return cls(data / 'attempts', not_before=settings.get('daily_test_not_before'),
+        directory = data / 'attempts'
+        if 'attempt_directory' in settings:
+            value = settings['attempt_directory']
+            if not isinstance(value, str) or not Path(value).is_absolute():
+                raise ValueError('Daily attempt directory must be an absolute path')
+            directory = Path(value)
+        return cls(directory, not_before=settings.get('daily_test_not_before'),
                    guard=recording.check, recording=recording.paths)
 
     def reserve(self, task: str) -> DailyAttempt:

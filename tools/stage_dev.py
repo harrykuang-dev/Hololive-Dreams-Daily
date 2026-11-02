@@ -35,6 +35,7 @@ def stage(gui: Path, python: Path, output: Path, module_python: Path | None = No
     shutil.copy2(ROOT / 'config.template.json', config / 'config.template.json')
     (config / 'recording.json').write_text(json.dumps(
         {'directory': str((output.parent / 'recordings').resolve()),
+         'attempt_directory': str((output.parent / 'daily-attempts').resolve()),
          'daily_test_not_before': datetime.now(timezone(timedelta(hours=8))).replace(
              hour=4, minute=5, second=0, microsecond=0).isoformat()}, indent=2), encoding='utf-8')
     if module_python is not None:

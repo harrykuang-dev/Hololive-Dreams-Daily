@@ -4,10 +4,44 @@ import json
 import pytest
 
 from daily.calendar import DailyAttempts, DailyUnavailable, game_day
+from types import SimpleNamespace
 
 
 def moment(value):
     return datetime.fromisoformat(value)
+
+
+def test_runtime_shared_ledger_blocks_second_application(tmp_path):
+    shared = tmp_path / 'shared-attempts'
+    recording = SimpleNamespace(check=lambda: None, paths=lambda: {})
+    ledgers = []
+    for app in ('development', 'test-bundle'):
+        root = tmp_path / app
+        (root / 'config').mkdir(parents=True)
+        (root / 'config/recording.json').write_text(json.dumps({'attempt_directory': str(shared)}))
+        ledger = DailyAttempts.from_runtime(root, root / 'userdata/daily', recording)
+        ledger.clock = lambda: moment('2026-11-02T22:00:00+08:00')
+        ledgers.append(ledger)
+    ledgers[0].reserve('lottery').finish(evidence='received.png')
+    with pytest.raises(DailyUnavailable):
+        ledgers[1].reserve('lottery')
+    assert ledgers[1].attempted_tasks() == {'lottery'}
+
+
+@pytest.mark.parametrize('value', ['', 'relative/attempts', None, 123])
+def test_runtime_attempt_override_rejects_invalid_paths(tmp_path, value):
+    (tmp_path / 'config').mkdir()
+    (tmp_path / 'config/recording.json').write_text(json.dumps({'attempt_directory': value}))
+    recording = SimpleNamespace(check=lambda: pytest.fail('Must not start game input'), paths=lambda: {})
+    with pytest.raises(ValueError, match='absolute'):
+        DailyAttempts.from_runtime(tmp_path, tmp_path / 'userdata', recording)
+
+
+def test_runtime_without_override_preserves_existing_ledger(tmp_path):
+    recording = SimpleNamespace(check=lambda: None, paths=lambda: {})
+    data = tmp_path / 'userdata/daily'
+    ledger = DailyAttempts.from_runtime(tmp_path, data, recording)
+    assert ledger.directory == data / 'attempts'
 
 
 def test_game_day_changes_at_four_in_utc_plus_eight():
