@@ -78,6 +78,8 @@ class Navigator:
                     return Observation(frame, 'multi_ready', captured)
                 if self.event_home_controls(observation):
                     return Observation(frame, 'event_home', captured)
+                if self.expired_conversion_button(observation):
+                    return Observation(frame, 'expired_conversion', captured)
                 if self.date_change_button(observation):
                     return Observation(frame, 'date_changed', captured)
                 if self.login_bonus_button(observation):
@@ -174,7 +176,7 @@ class Navigator:
             observation = self.observe()
             recovery = None
             bonus_key = None
-            if observation.scene in {'login_bonus', 'login_bonus_standard', 'login_reward'}:
+            if observation.scene in {'login_bonus', 'login_bonus_standard', 'login_reward', 'expired_conversion'}:
                 bonus_key = self.login_page_key(observation)
             if 'home' in scenes:
                 if observation.scene == 'date_changed' and not date_acknowledged:
@@ -185,6 +187,8 @@ class Navigator:
                     recovery = self.standard_login_bonus_button
                 elif observation.scene == 'login_reward' and bonus_key not in bonus_acknowledged:
                     recovery = self.login_reward_button
+                elif observation.scene == 'expired_conversion' and bonus_key not in bonus_acknowledged:
+                    recovery = self.expired_conversion_button
                 elif observation.scene is None and login_flow:
                     # After verified login/reset, an unfamiliar illustration
                     # may hide its title. Its exact continuation footer is
@@ -268,6 +272,17 @@ class Navigator:
             return None
         buttons = [item for item in self.text(observation, '^OK$', (980, 600, 260, 105))
                    if getattr(item, 'text', '').strip() == 'OK']
+        return tuple(buttons[0].box) if len(buttons) == 1 else None
+
+    def expired_conversion_button(self, observation):
+        expected = r'^超過期限\s*[，,]?\s*已轉換$'
+        titles = [item for item in self.text(observation, expected, (520, 145, 250, 65))
+                  if re.fullmatch(expected, getattr(item, 'text', '').strip())]
+        if len(titles) != 1:
+            return None
+        expected = r'^[✓✔√]?\s*OK[!！]?$'
+        buttons = [item for item in self.text(observation, expected, (780, 505, 205, 75))
+                   if re.fullmatch(expected, getattr(item, 'text', '').strip())]
         return tuple(buttons[0].box) if len(buttons) == 1 else None
 
     def login_bonus_button(self, observation):
@@ -404,7 +419,7 @@ class Navigator:
             observation = self.observe()
         if observation.scene in {'game_title', 'game_title_ready'}:
             return self.wait_for({'home'}, timeout=120)
-        if observation.scene in {'date_changed', 'login_bonus', 'login_bonus_standard', 'login_reward',
+        if observation.scene in {'date_changed', 'login_bonus', 'login_bonus_standard', 'login_reward', 'expired_conversion',
                                  'login_notice'}:
             return self.wait_for({'home'}, timeout=45)
         if observation.scene in {'holowork_get', 'live_achievement'}:

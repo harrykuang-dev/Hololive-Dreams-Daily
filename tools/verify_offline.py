@@ -84,6 +84,10 @@ class InspectRecordings(CustomAction):
                         'live_result_event': 'live_result'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
+            if path.stem == 'expired_conversion':
+                if scene != 'expired_conversion' or navigator.expired_conversion_button(
+                        Observation(frame, scene, time.monotonic())) is None:
+                    raise ValueError('Expired-item conversion notice was not uniquely confirmed')
             if path.stem == 'energy_minigame_zero':
                 energy = EnergySettings(navigator).read(Observation(frame, scene, time.monotonic()))
                 if energy.multiplier != 0 or energy.cost != 0 or not energy.resource.permits(0, 0):

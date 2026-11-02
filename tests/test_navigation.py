@@ -128,6 +128,20 @@ def test_fishing_failure_recovery_only_cancels_without_counting_or_continuing():
     assert calls == [('fishing_failure', r'^[×xX✕]?\s*取消$', 'home', {'roi': (720, 620, 230, 80)})]
 
 
+@pytest.mark.parametrize('title,buttons,accepted', [
+    (['超過期限，已轉換'], ['OK!'], True), (['超過期限已轉換'], ['✓ OK！'], True),
+    ([], ['OK!'], False), (['其他確認'], ['OK!'], False),
+    (['超過期限，已轉換'], ['OK!', 'OK!'], False),
+    (['超過期限，已轉換']*2, ['OK!'], False), (['超過期限，已轉換'], [], False)])
+def test_expired_conversion_requires_its_exact_heading_and_unique_acknowledgement(title, buttons, accepted):
+    nav = Navigator.__new__(Navigator)
+    def text(obs, expected, roi):
+        words = title if roi[0] == 520 else buttons
+        return [SimpleNamespace(text=word, box=(850, 530, 70, 25)) for word in words]
+    nav.text = text
+    assert (nav.expired_conversion_button(None) is not None) == accepted
+
+
 @pytest.mark.parametrize('labels,button_count,accepted', [
     (['日期已變更'], 1, True), (['日期已變更'], 2, False),
     (['其他確認'], 1, False), (['日期已變更'], 0, False)])
@@ -140,7 +154,7 @@ def test_date_recovery_requires_exact_notice_and_unique_ok(labels, button_count,
     assert (navigator.date_change_button(None) is not None) == accepted
 
 
-@pytest.mark.parametrize('scene', ['date_changed', 'login_bonus', 'login_bonus_standard', 'login_reward', 'holowork_get', 'login_notice', 'game_title', 'game_title_ready'])
+@pytest.mark.parametrize('scene', ['date_changed', 'login_bonus', 'login_bonus_standard', 'login_reward', 'expired_conversion', 'holowork_get', 'login_notice', 'game_title', 'game_title_ready'])
 def test_unchanged_recovery_notice_is_acknowledged_once_then_times_out(monkeypatch, scene):
     navigator = Navigator.__new__(Navigator)
     now, clicks = [0.], []
@@ -155,6 +169,7 @@ def test_unchanged_recovery_notice_is_acknowledged_once_then_times_out(monkeypat
     navigator.received_reward_button = navigator.date_change_button
     navigator.standard_login_bonus_button = navigator.date_change_button
     navigator.login_reward_button = navigator.date_change_button
+    navigator.expired_conversion_button = navigator.date_change_button
     navigator.login_notice_button = navigator.date_change_button
     navigator.game_title_button = navigator.date_change_button
     navigator.game_title_ready_button = navigator.date_change_button
