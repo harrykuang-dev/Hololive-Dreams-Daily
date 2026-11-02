@@ -285,6 +285,15 @@ class Navigator:
                    if re.fullmatch(expected, getattr(item, 'text', '').strip())]
         return tuple(buttons[0].box) if len(buttons) == 1 else None
 
+    def gift_transfer_dialogue(self, observation):
+        lines = self.text(observation, '.+', (200, 610, 850, 60))
+        signature = '|'.join(getattr(item, 'text', '').strip() for item in lines)
+        if re.sub(r'[\s|，,！!。.]+', '', signature) != '這是我的一點小心意收下吧':
+            return None
+        keys = [item for item in self.text(observation, '^E$', (975, 665, 40, 45))
+                if getattr(item, 'text', '').strip() == 'E']
+        return signature if len(keys) == 1 else None
+
     def login_bonus_button(self, observation):
         # This observed event login page is not a generic "continue" handler.
         titles = [item for item in self.text(observation, '^萬聖節$', (450, 140, 390, 160))
@@ -426,7 +435,8 @@ class Navigator:
             observation = self.wait_for({'home', 'live_result', 'song_select', 'solo_setup',
                                          'holowork', 'daily_missions', 'achievements',
                                          'event_missions', 'gifts'}, timeout=45)
-        if self.vision.match(observation.image, 'park_dialogue_next'):
+        if (self.vision.match(observation.image, 'park_dialogue_next')
+                or (observation.scene == 'home' and self.gift_transfer_dialogue(observation))):
             raise NavigationError('角色對話尚未結束，未嘗試其他選單')
         if observation.scene == 'notifications':
             self.inputs.key(0x1B, .08)

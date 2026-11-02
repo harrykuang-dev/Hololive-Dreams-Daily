@@ -56,7 +56,8 @@ def test_explicit_empty_energy_policy_uses_zero_effective_cost_without_changing_
     calls = []
     nav = SimpleNamespace(open_energy_settings=lambda task: object(),
                           click_text=lambda *a, **k: calls.append('confirm'),
-                          text=lambda *a, **k: [SimpleNamespace(text='×0', box=(850, 590, 150, 30))])
+                          text=lambda ob, expected, roi: [SimpleNamespace(
+                              text='0/20' if roi == (1025, 25, 145, 60) else '×0', box=(850, 590, 150, 30))])
     settings = EnergySettings(nav)
     settings.wait_read = lambda ob: (ob, EnergySelection(1, 1, ResourceObservation(0, 20), True))
     selection = settings.configure('solo_live', 1, budget_remaining=0)
@@ -105,3 +106,34 @@ def test_truncated_ten_cannot_be_treated_as_a_positive_cost_zero_multiplier():
     settings = EnergySettings(SimpleNamespace(text=text))
     with pytest.raises(NavigationError, match='矛盾'):
         settings.read(Observation(np.zeros((720, 1280, 3), dtype=np.uint8), 'energy_settings', 0))
+
+
+@pytest.mark.parametrize('notes,expected', [(['能量不足時，將消耗目前的能量'], 2),
+    ([], 5), (['其他提示'], 5), (['能量不足時將消耗目前的能量']*2, 5)])
+def test_positive_shortage_requires_the_exact_observed_policy_before_using_remaining_energy(notes, expected):
+    def text(observation, pattern, roi, **kwargs):
+        words = ['5'] if roi in {(1115, 339, 92, 65), (975, 545, 100, 70)} else (
+            ['2/10'] if roi == (1025, 25, 145, 60) else notes)
+        return [SimpleNamespace(text=word) for word in words]
+    selection = EnergySettings(SimpleNamespace(text=text)).read(
+        Observation(np.zeros((720, 1280, 3), dtype=np.uint8), 'energy_settings', 0))
+    assert selection.effective_cost == expected and not selection.empty_energy_play
+    assert selection.partial_energy_play == (expected == 2)
+
+
+@pytest.mark.parametrize('displayed,balance,allowed', [(5, 2, True), (2, 2, True), (5, 3, False), (4, 2, False)])
+def test_partial_energy_confirmation_keeps_the_observed_balance_and_accepts_only_its_nominal_or_effective_cost(displayed, balance, allowed):
+    calls = []
+    def text(observation, pattern, roi):
+        word = f'{balance}/10' if roi == (1025, 25, 145, 60) else str(displayed)
+        return [SimpleNamespace(text=word)]
+    nav = SimpleNamespace(open_energy_settings=lambda task: object(),
+        text=text, save=lambda *a: 'mismatch.png',
+        click_text=lambda *a, **kw: calls.append('confirm') or SimpleNamespace(scene='solo_setup'))
+    settings = EnergySettings(nav)
+    settings.wait_read = lambda ob: (ob, EnergySelection(5, 5, ResourceObservation(2, 10), partial_energy_play=True))
+    if allowed:
+        assert settings.configure('solo_live', 5, 2).effective_cost == 2
+    else:
+        with pytest.raises(NavigationError): settings.configure('solo_live', 5, 2)
+    assert calls == ['confirm']  # This only changes settings, never starts a song.

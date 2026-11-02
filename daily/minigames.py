@@ -17,16 +17,19 @@ def start_minigame(nav, task, status, energy, budget, before_input=lambda: None)
         raise NavigationError('小遊戲開始前畫面不符')
     buttons = nav.text(observation, '^遊玩$', (980, 610, 260, 85))
     resource = parse_fraction(read_one(nav, observation, '[0-9].*[/／].*[0-9]', (1025, 25, 145, 60)))
-    cost = read_setup_cost(nav, observation)
+    displayed_cost = read_setup_cost(nav, observation)
+    cost = energy.cost_at_setup(displayed_cost, resource)
     if len(buttons) != 1:
         raise NavigationError('無法唯一確認小遊戲遊玩按鈕')
     explicit_free = energy.multiplier == 0 and energy.cost == 0
-    if (cost != energy.effective_cost or not resource.permits(cost, budget)
+    if (cost is None or cost != energy.effective_cost or not resource.permits(cost, budget)
             or (cost == 0 and resource.available != 0 and not explicit_free)):
         raise ResourceUnavailable('小遊戲實際消耗或本次資源上限不符，未開始遊玩')
     if not 0 <= time.monotonic()-observation.captured_at <= 2:
         raise NavigationError('小遊戲開始前的資源畫面已過期')
-    metadata = {'task': task, 'cost': cost, 'resource': asdict(resource), 'budget_remaining': budget}
+    metadata = {'task': task, 'cost': cost, 'displayed_cost': displayed_cost,
+                'nominal_cost': energy.cost, 'partial_energy_policy_verified': energy.partial_energy_play,
+                'resource': asdict(resource), 'budget_remaining': budget}
     if nav.recording:
         nav.recording.mark('minigame_start_verified', **metadata)
     before_input()

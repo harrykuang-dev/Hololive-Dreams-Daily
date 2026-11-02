@@ -81,6 +81,22 @@ def test_explicit_zero_multiplier_permits_free_play_with_known_energy(tmp_path, 
     assert events == ['audit', 'click']
 
 
+@pytest.mark.parametrize('displayed,balance,budget,policy,allowed', [
+    (15, 10, 10, True, True), (10, 10, 10, True, True),
+    (15, 10, 9, True, False), (15, 11, 10, True, False), (15, 10, 10, False, False)])
+def test_partial_minigame_cost_needs_observed_policy_same_balance_and_budget(tmp_path, displayed, balance, budget, policy, allowed):
+    runner, _, events = preflight(tmp_path, balance=balance, cost=displayed)
+    energy = EnergySelection(1, 15, ResourceObservation(10, 100), partial_energy_play=policy)
+    if allowed:
+        metadata = runner.start_round({'phase': 'capture_ready'}, energy, budget)
+        assert metadata['cost'] == 10 and metadata['displayed_cost'] == displayed
+        assert events == ['audit', 'click']
+    else:
+        with pytest.raises(ResourceUnavailable):
+            runner.start_round({'phase': 'capture_ready'}, energy, budget)
+        assert not events
+
+
 @pytest.mark.parametrize('labels,allowed', [(['ō本次跳躍次數','獲得獎勵'],True),
     (['獲得獎勵'],False), (['本次跳躍次數','本次跳躍次數','獲得獎勵'],False)])
 def test_reward_ok_requires_both_unique_jump_summary_labels(tmp_path, labels, allowed):

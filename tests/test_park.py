@@ -10,6 +10,22 @@ from daily.navigation import NavigationError
 from daily.park import GIFT_PLACES, LOTTERY_PLACE, ParkRunner, ParkView
 
 
+@pytest.mark.parametrize('speaker,lines,lottery,kind', [
+    ([], ['這是我的一點小心意，收下吧！'], False, 'dialogue'),
+    ([], ['這是我的一點小心意，收下吧！'], True, 'unknown'),
+    ([], ['其他還未完成的對話'], False, 'unknown'),
+    (['一', '其他'], ['這是我的一點小心意，收下吧！'], False, 'unknown'),
+    ([], ['這是我的一點小心意，收下吧！']*2, False, 'unknown'),
+    (['正常角色'], ['一般對話'], False, 'dialogue')])
+def test_symbol_name_gift_requires_complete_transfer_line_and_dialogue_control(speaker, lines, lottery, kind):
+    def text(observation, expected, roi):
+        words = lines if roi == (200, 610, 850, 60) else speaker if roi == (550, 560, 170, 50) else []
+        return [SimpleNamespace(text=word) for word in words]
+    nav = SimpleNamespace(text=text, vision=SimpleNamespace(match=lambda image, name: name == 'park_dialogue_next'))
+    view = ParkRunner(nav).read(SimpleNamespace(image=None, scene='home'), LOTTERY_PLACE if lottery else GIFT_PLACES[0])
+    assert view.kind == kind
+
+
 def runner_for(tmp_path, monkeypatch, kinds):
     elapsed, events = [0.0], []
     monkeypatch.setattr(park.time, 'monotonic', lambda: elapsed[0])

@@ -72,7 +72,9 @@ class LiveControls:
             recording.mark('live_start_verified', task=config.task, auto=asdict(state.auto),
                            resource=asdict(state.resource), cost=state.effective_cost, displayed_cost=state.cost,
                            nominal_cost=energy.cost if energy is not None else state.cost,
-                           empty_energy_policy_verified=proof.empty_policy_verified, budget_remaining=budget_remaining)
+                           empty_energy_policy_verified=proof.empty_policy_verified,
+                           partial_energy_policy_verified=proof.partial_policy_verified,
+                           budget_remaining=budget_remaining)
         x, y, w, h = buttons[0].box
         if auto_supervisor is None:
             self.nav.inputs.click(int(x+w/2), int(y+h/2), before_post=lambda:

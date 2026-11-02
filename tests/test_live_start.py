@@ -172,3 +172,28 @@ def test_countdown_uses_only_unique_confined_numeric_timer_without_authorizing_s
     assert result.remaining_seconds == timer and result.captured_at == 100
     assert result.auto_enabled and not result.start_authorized
     assert rois == [(1170, 35, 100, 60)]
+
+
+@pytest.mark.parametrize('displayed,budget,balance,policy,auto,allowed', [
+    (5, 2, 2, True, True, True), (2, 2, 2, True, True, True),
+    (5, 1, 2, True, True, False), (5, 2, 2, False, True, False),
+    (5, 2, 3, True, True, False), (2, 2, 2, True, False, False)])
+def test_partial_live_energy_never_bypasses_budget_fresh_balance_or_actual_auto(displayed, budget, balance, policy, auto, allowed):
+    control, calls = controls(replace(state(enabled=auto), resource=ResourceObservation(balance, 10), cost=displayed))
+    energy = EnergySelection(5, 5, ResourceObservation(2, 10), partial_energy_play=policy)
+    config = TaskConfig('solo_live', multiplier=5, resource_budget=budget)
+    if allowed:
+        assert control.start(config, energy=energy).effective_cost == 2
+        assert len(calls) == 1
+    else:
+        with pytest.raises(LiveBlocked): control.start(config, energy=energy)
+        assert not calls
+
+
+@pytest.mark.parametrize('snapshot', [EnergySelection(5, 5, ResourceObservation(2, 10), partial_energy_play=True),
+                                    EnergySelection(5, 5, ResourceObservation(0, 20), empty_energy_play=True)])
+def test_policy_snapshot_change_cannot_fall_back_to_the_legacy_zero_energy_gate(snapshot):
+    control, calls = controls(replace(state(), resource=ResourceObservation(0, 10), cost=0))
+    with pytest.raises(LiveBlocked, match='快照'):
+        control.start(TaskConfig('solo_live', multiplier=5, resource_budget=0), energy=snapshot)
+    assert not calls

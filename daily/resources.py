@@ -72,10 +72,27 @@ class EnergySelection:
     cost: int
     resource: ResourceObservation
     empty_energy_play: bool = False
+    partial_energy_play: bool = False
 
     @property
     def effective_cost(self):
-        return 0 if self.empty_energy_play and self.resource.available == 0 else self.cost
+        if self.empty_energy_play is True and self.resource.available == 0:
+            return 0
+        if (self.partial_energy_play is True and type(self.cost) is int
+                and type(self.resource.available) is int and 0 < self.resource.available < self.cost):
+            return self.resource.available
+        return self.cost
+
+    def cost_at_setup(self, displayed_cost, resource):
+        if type(displayed_cost) is not int or displayed_cost < 0 or type(self.cost) is not int:
+            return None
+        if self.empty_energy_play is True or self.partial_energy_play is True:
+            # The policy depends on this exact balance, not a later regenerated
+            # or unreadable counter. Either nominal or effective display is valid.
+            if resource != self.resource or displayed_cost not in {self.cost, self.effective_cost}:
+                return None
+            return self.effective_cost
+        return displayed_cost if displayed_cost == self.cost else None
 
 
 class EnergySettings:
@@ -109,12 +126,14 @@ class EnergySettings:
             raise NavigationError('無法確認能量倍率與實際消耗量')
         if multiplier == 0 and cost != 0:
             raise NavigationError('零倍率與顯示消耗量矛盾，停止調整')
-        empty_energy_play = False
-        if resource.available == 0:
+        empty_energy_play = partial_energy_play = False
+        if type(resource.available) is int and 0 <= resource.available < cost:
             notes = self.nav.text(observation, '.+', (820, 485, 300, 50))
             normalized = [re.sub(r'[\s，,]', '', item.text).replace('时', '時').replace('将', '將') for item in notes]
-            empty_energy_play = normalized.count('能量不足時將消耗目前的能量') == 1
-        return EnergySelection(multiplier, cost, resource, empty_energy_play)
+            policy = normalized.count('能量不足時將消耗目前的能量') == 1
+            empty_energy_play = policy and resource.available == 0
+            partial_energy_play = policy and resource.available > 0
+        return EnergySelection(multiplier, cost, resource, empty_energy_play, partial_energy_play)
 
     def configure(self, task, multiplier, budget_remaining=None):
         observation = self.nav.open_energy_settings(task)
@@ -148,13 +167,17 @@ class EnergySettings:
                 f'未開始遊玩：實際消耗 {selection.effective_cost}，現有能量 {selection.resource.available}，'
                 f'本次消耗上限 {budget_remaining if budget_remaining is not None else "未設定"}。'
                 '消耗上限 0 僅允許零消耗；料理／跳繩可將消耗倍率設為 0。')
-        if selection.empty_energy_play and getattr(self.nav, 'recording', None) is not None:
+        if (selection.empty_energy_play or selection.partial_energy_play) and getattr(self.nav, 'recording', None) is not None:
             evidence = self.nav.save(observation, 'energy-empty-policy')
             self.nav.recording.mark('energy_empty_policy_verified', nominal_cost=selection.cost,
                                     resource=selection.resource.__dict__, evidence=evidence)
         target_scene = {'solo_live': 'solo_setup', 'cooking': 'cooking_setup', 'jump_rope': 'jump_setup'}[task]
         setup = self.nav.click_text('energy_settings', '決定$', target_scene, roi=(970, 625, 240, 75))
-        if read_setup_cost(self.nav, setup) != selection.effective_cost:
+        displayed = read_setup_cost(self.nav, setup)
+        resource = selection.resource
+        if selection.empty_energy_play or selection.partial_energy_play:
+            resource = parse_fraction(read_one(self.nav, setup, '[0-9].*[/／].*[0-9]', (1025, 25, 145, 60)))
+        if selection.cost_at_setup(displayed, resource) != selection.effective_cost:
             evidence = self.nav.save(setup, 'energy-confirmed-cost-mismatch')
             raise NavigationError(f'設定後的實際消耗量不符，未開始遊玩；{evidence}')
         return selection

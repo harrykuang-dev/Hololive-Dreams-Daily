@@ -1,4 +1,5 @@
 {
   "CurrentLanguage": "zh-Hant",
+  "ContinueRunningWhenError": false,
   "UI.HasCompletedFirstUseTutorial": true
 }

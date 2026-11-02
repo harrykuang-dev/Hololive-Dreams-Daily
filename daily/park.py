@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from statistics import median
+import re
 import time
 
 from .contracts import TaskResult, TaskStatus
@@ -54,10 +55,17 @@ class ParkRunner:
         if self.nav.vision.match(observation.image, 'park_dialogue_next'):
             lines = self.nav.text(observation, '.+', (200, 610, 850, 60))
             speaker = self.nav.text(observation, place.speaker or '.+', (550, 560, 170, 50))
-            if len(speaker) == 1 and lines:
-                signature = '|'.join(getattr(item, 'text', '').strip() for item in lines)
+            signature = '|'.join(getattr(item, 'text', '').strip() for item in lines)
+            # Some names are symbols, not OCR-readable words. The exact gift
+            # handover line plus the observed dialogue-next control is enough
+            # for this one continuation, never a new initial interaction.
+            gift_line = (place in GIFT_PLACES and not speaker and
+                         re.sub(r'[\s|，,！!。.]+', '', signature) == '這是我的一點小心意收下吧')
+            if lines and (len(speaker) == 1 or gift_line):
                 return ParkView('dialogue', observation, signature=signature)
             return ParkView('unknown', observation)
+        if place in GIFT_PLACES and (signature := self.nav.gift_transfer_dialogue(observation)):
+            return ParkView('dialogue', observation, signature=signature)
         if observation.scene == 'home':
             labels = self.nav.text(observation, place.prompt, (860, 405, 370, 85))
             key = self.nav.vision.match(observation.image, 'park_interact_key')
