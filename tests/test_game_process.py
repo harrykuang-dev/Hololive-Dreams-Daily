@@ -1,4 +1,5 @@
 import pytest
+import threading
 
 from daily.game_process import GameProcess, GameProcessError
 
@@ -105,3 +106,44 @@ def test_shutdown_denial_does_not_claim_the_game_was_closed():
         game.emergency_stop()
     game.close()
     assert backend.events[-1] == ('close', 'retained-process-object')
+
+
+def test_close_cannot_release_handle_while_emergency_shutdown_uses_it():
+    backend = FakeBackend()
+    entered, resume, closing, released = (threading.Event() for _ in range(4))
+    errors = []
+    def terminate(handle):
+        entered.set()
+        if not resume.wait(3):
+            raise RuntimeError('test shutdown was not resumed')
+        backend.events.append(('terminate', handle))
+    def close_handle(handle):
+        backend.events.append(('close', handle))
+        released.set()
+    backend.terminate, backend.close_handle = terminate, close_handle
+    game = GameProcess(123, backend=backend)
+    def run(action):
+        try:
+            action()
+        except BaseException as error:
+            errors.append(error)
+    stopper = threading.Thread(target=lambda: run(game.emergency_stop))
+    def close():
+        closing.set()
+        game.close()
+    closer = threading.Thread(target=lambda: run(close))
+    stopper.start()
+    try:
+        assert entered.wait(1)
+        closer.start()
+        assert closing.wait(1)
+        assert not released.wait(.1)
+    finally:
+        resume.set()
+        stopper.join(3)
+        if closer.ident is not None:
+            closer.join(3)
+    assert not errors and not stopper.is_alive() and not closer.is_alive()
+    assert backend.events[-3:] == [('terminate', 'retained-process-object'),
+                                  ('wait', 'retained-process-object'),
+                                  ('close', 'retained-process-object')]
