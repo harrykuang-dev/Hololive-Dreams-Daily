@@ -192,7 +192,7 @@ def test_gift_camera_calibrates_recorded_response_within_existing_move_limit(tmp
     assert not any(kind == 'key' for kind, _ in events)
 
 
-def test_unresponsive_camera_retains_six_move_stop_and_evidence(tmp_path, monkeypatch):
+def test_unresponsive_camera_retains_twelve_move_stop_and_evidence(tmp_path, monkeypatch):
     runner, events = runner_for(tmp_path, monkeypatch, ['park'])
     prepare_house_entry(runner)
     runner.house_gift_offset = lambda view: 182.5
@@ -201,7 +201,7 @@ def test_unresponsive_camera_retains_six_move_stop_and_evidence(tmp_path, monkey
     runner.nav.save = lambda observation, label: saved.append(label)
     with pytest.raises(NavigationError, match='上限'):
         runner.entry('park_gifts')
-    assert len([event for event in events if event[0] == 'camera']) == 6
+    assert len([event for event in events if event[0] == 'camera']) == 12
     assert saved == ['gift-camera-limit']
     assert not any(kind == 'key' for kind, _ in events)
 

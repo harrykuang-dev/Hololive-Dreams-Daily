@@ -129,14 +129,14 @@ class ParkRunner:
                     raise NavigationError('鏡頭移動未讓禮物標記接近中央，停止接近')
                 if previous_offset is not None and previous_dx:
                     # Measure this client's actual camera response. A fixed
-                    # proportional step can exhaust the six-move allowance
+                    # proportional step can exhaust the bounded allowance
                     # even while every fresh marker moves toward the centre.
                     gain = (previous_offset-offset)/previous_dx
                     if .25 <= gain <= 8:
                         camera_gains.append(gain)
                 previous_offset = None
                 if abs(offset) > 35:
-                    if camera_steps >= 6:
+                    if camera_steps >= 12:
                         self.nav.save(view.observation, 'gift-camera-limit')
                         raise NavigationError('禮物鏡頭對準次數已達上限')
                     step = offset*.75/median(camera_gains[-3:]) if camera_gains else offset*.15

@@ -47,6 +47,16 @@ class InspectRecordings(CustomAction):
         for path in sorted(self.samples.glob('*.png')):
             frame = cv2.imread(str(path))
             scene = navigator.interpret(frame).scene
+            if path.stem == 'event_home' and scene == 'event_home':
+                controls = navigator.text(Observation(frame, scene, time.monotonic()), '^任務$', (1180, 425, 90, 35))
+                if len(controls) != 1:
+                    raise ValueError('Event home lacks a unique task entry')
+            if path.stem == 'event_home' and scene != 'event_home':
+                obs = Observation(frame, scene, time.monotonic())
+                print(json.dumps({'event_home_ocr': {
+                    str(roi): [getattr(item, 'text', '') for item in navigator.text(obs, '.+', roi)]
+                    for roi in [(1160, 200, 115, 65), (1160, 305, 115, 65),
+                                (1160, 410, 115, 65), (20, 20, 370, 65)]}}, ensure_ascii=False))
             expected = {'auto_playing': 'live_playing', 'cooking_energy': 'energy_settings',
                         'energy_controls': 'energy_settings', 'fishing_map_initial': 'fishing_map_second',
                         'fishing_map_popup': 'fishing_map_second', 'holowork_dispatch': 'holowork',

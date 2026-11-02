@@ -52,6 +52,26 @@ def test_changing_park_backdrop_requires_multiple_toolbar_labels(tmp_path):
     assert context.recognition_calls[0][1]['DailyOCR']['roi'] == [700, 15, 480, 100]
 
 
+@pytest.mark.parametrize('missing', [None, 'Live', '活動排名', '兌換所', '活動加成'])
+def test_event_home_uses_independent_labels_with_dynamic_badge(missing):
+    nav = Navigator.__new__(Navigator)
+    labels = {'Live', '活動排名', '兌換所', '活動加成', '遊玩方式'} - {missing}
+    def text(obs, expected, roi):
+        wanted = {'遊玩方式', '活動加成'} if roi[0] == 20 else (
+            {'兌換所'} if roi[0] == 1160 else {'Live'} if roi[0] == 910 else {'活動排名'})
+        return [SimpleNamespace(text=label) for label in labels.intersection(wanted)]
+    nav.text = text
+    assert nav.event_home_controls(None) == (missing is None)
+
+
+def test_to_home_enters_generic_login_reward_recovery():
+    nav = Navigator.__new__(Navigator)
+    nav.observe = lambda: Observation(None, 'login_reward', 0)
+    expected = Observation(None, 'home', 0)
+    nav.wait_for = lambda scenes, **kwargs: expected if scenes == {'home'} else None
+    assert nav.to_home() is expected
+
+
 def test_one_generic_label_does_not_classify_unknown_scene(tmp_path):
     root = Path(__file__).resolve().parents[1]
     context = Context(['任務'])

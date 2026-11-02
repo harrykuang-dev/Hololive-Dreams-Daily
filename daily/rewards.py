@@ -179,7 +179,7 @@ class RewardsRunner:
         self.nav.to_home()
         self.nav.click_text('home', '^活動$', 'event_list', roi=(700, 10, 200, 110))
         self.nav.click_text('event_list', r'^[→➜]?\s*GO$', 'event_home', roi=(1000, 610, 230, 85))
-        self.nav.click_text('event_home', '^任務$', 'event_missions', roi=(1170, 400, 100, 70))
+        self.nav.click_text('event_home', '^任務$', 'event_missions', roi=(1180, 425, 90, 35))
         for page, label, roi in (('event_daily', '每日', (560, 115, 110, 50)),
                                  ('event_free', '自由', (980, 115, 110, 50))):
             observation = self.nav.wait_for({'event_missions'}, timeout=5)

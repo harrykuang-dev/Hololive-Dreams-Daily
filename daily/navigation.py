@@ -68,6 +68,8 @@ class Navigator:
             if len(words.intersection({'遊戲', 'Live', '任務', '成就'})) >= 3:
                 scene = 'home'
             else:
+                if self.event_home_controls(observation):
+                    return Observation(frame, 'event_home', captured)
                 if self.date_change_button(observation):
                     return Observation(frame, 'date_changed', captured)
                 if self.login_bonus_button(observation):
@@ -199,6 +201,24 @@ class Navigator:
                 evidence = self.save(observation, 'unknown')
                 raise NavigationError(f'等待畫面逾時：{", ".join(scenes)}；{evidence}')
             time.sleep(.2)
+
+    def event_home_controls(self, observation):
+        # Reward badges overlap the old task-icon template. Verify independent
+        # menu words instead of depending on badge state, artwork or UI colour.
+        for expected, roi in (
+            (r'^兌[換换]所$', (1160, 200, 115, 65)),
+            (r'^活動排名$', (320, 590, 200, 60)),
+            (r'^(?:[♫♪🎵]\s*)?Live$', (910, 605, 175, 70))):
+            # Let Maa detect the word without interpreting an emoji character
+            # class; Python then validates the complete, constrained label.
+            capture = 'Live$' if roi[0] == 910 else expected
+            hits = [item for item in self.text(observation, capture, roi)
+                    if re.fullmatch(expected, getattr(item, 'text', '').strip())]
+            if len(hits) != 1:
+                return False
+        headings = self.text(observation, r'^(遊玩方式|活動加成|众活動加成)$', (20, 20, 370, 65))
+        words = {getattr(item, 'text', '').strip().removeprefix('众') for item in headings}
+        return words == {'遊玩方式', '活動加成'}
 
     def date_change_button(self, observation):
         labels = [item for item in self.text(observation, '^日期已變更$', (450, 290, 390, 140))
@@ -343,7 +363,7 @@ class Navigator:
             observation = self.observe()
         if observation.scene in {'game_title', 'game_title_ready'}:
             return self.wait_for({'home'}, timeout=120)
-        if observation.scene in {'date_changed', 'login_bonus', 'login_bonus_standard',
+        if observation.scene in {'date_changed', 'login_bonus', 'login_bonus_standard', 'login_reward',
                                  'login_notice'}:
             return self.wait_for({'home'}, timeout=45)
         if observation.scene in {'holowork_get', 'live_achievement'}:
