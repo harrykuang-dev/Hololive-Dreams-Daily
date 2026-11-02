@@ -42,6 +42,8 @@ Development and test copies can share daily-attempt records by setting the same 
 
 ## Development
 
+Multiplayer countdown protection currently has offline component validation only; matchmaking is not connected or enabled. Its independent watchdog retains game and parent process handles. Unknown or stale evidence cannot extend its deadline, ready state cannot regress to matchmaking, and parent loss or cancellation before final Auto authorization requests shutdown of the controlled game. Filesystem threads are separate from deadline handling. Blocked-I/O tests use a simulated game, not native game-shutdown acceptance. Independent launch, handshake and the full multiplayer flow remain pending.
+
 `runtime-packages.lock.json` pins the CPython embeddable archive and the exact package metadata versions used by the separate agent and minigame interpreters. `tools/prepare_portable_runtime.py` validates installed distribution file hashes before copying, excludes local metadata and bytecode, and checks imports without game input. Its explicit module paths keep user packages outside the runtime.
 
 `tools/build_development_bundle.py` accepts the pinned GUI archive and both prepared runtimes. It requires clean committed source, preserves pinned upstream code and model identities, and creates a file-hash inventory. Output must be a new directory. Use `--verify --output <bundle>` before first launch; runtime settings and logs generated later change that pristine inventory. The resulting local development bundle still requires .NET10 and the Microsoft Visual C++ runtime. It is not a binary release or acceptance of the full daily flow.
