@@ -222,7 +222,9 @@ class InspectRecordings(CustomAction):
                 FishingRunner(navigator, ROOT, self.samples.parent).verify_practice_bait(
                     Observation(frame, scene, time.monotonic()))
                 result['practice_bait_verified'] = True
-            if path.stem == 'fishing_result':
+            if path.stem in {'fishing_result', 'fishing_failure'}:
+                if scene != path.stem:
+                    raise ValueError('Fishing result scene was not positively confirmed')
                 result['cancel_buttons'] = len(navigator.text(
                     Observation(frame, scene, time.monotonic()), r'^[×xX✕]?\s*取消$', (720, 620, 230, 80)))
                 if result['cancel_buttons'] != 1:

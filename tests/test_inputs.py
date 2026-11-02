@@ -105,3 +105,26 @@ def test_camera_movement_is_bounded_and_requires_recording_guard():
     with pytest.raises(RuntimeError):
         inputs.look(20)
     assert not controller.events
+
+
+@pytest.mark.parametrize('action,audit,blocked', [
+    ('key', 'key_down', 'down'), ('click', 'click', 'click'),
+    ('look', 'mouse_move', 'move')])
+def test_lost_guard_during_audit_prevents_new_input_but_allows_owned_release(action, audit, blocked):
+    controller = Controller()
+    allowed = [True]
+    def trace(name, **details):
+        if name == audit:
+            allowed[0] = False
+    def guard():
+        if not allowed[0]:
+            raise RuntimeError('guard lost during audit')
+    inputs = Inputs(controller, trace=trace, guard=guard)
+    operations = {'key': lambda: inputs.key(0x57), 'click': lambda: inputs.click(10, 20),
+                  'look': lambda: inputs.look(20)}
+    with pytest.raises(RuntimeError, match='guard lost'):
+        operations[action]()
+    assert not any(event[0] == blocked for event in controller.events)
+    assert not inputs.held
+    if action == 'click':
+        assert controller.events[-1] == ('up', 0xA5)

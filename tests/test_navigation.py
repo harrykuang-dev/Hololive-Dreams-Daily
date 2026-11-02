@@ -103,6 +103,31 @@ def test_multiplayer_ready_controls_override_shared_song_artwork(tmp_path):
     assert nav.observe().scene == 'multi_ready'
 
 
+@pytest.mark.parametrize('missing', [None, 'title', 'reason', 'cancel', 'continue'])
+def test_fishing_failure_requires_unique_result_reason_and_both_controls(missing):
+    nav = Navigator.__new__(Navigator)
+    values = {870: ('title', '失敗'), 790: ('reason', '魚餌被吃掉了……'),
+              720: ('cancel', '×取消'), 1000: ('continue', '繼續')}
+    def text(obs, expected, roi):
+        key, word = values[roi[0]]
+        return [] if key == missing else [SimpleNamespace(text=word)]
+    nav.text = text
+    assert nav.fishing_failure_controls(None) == (missing is None)
+
+
+def test_fishing_failure_recovery_only_cancels_without_counting_or_continuing():
+    nav = Navigator.__new__(Navigator)
+    nav.observe = lambda: Observation(None, 'fishing_failure', 0)
+    nav.vision = SimpleNamespace(match=lambda *args: None)
+    calls = []
+    def click_text(source, text, destination, **kwargs):
+        calls.append((source, text, destination, kwargs))
+        return Observation(None, destination, 0)
+    nav.click_text = click_text
+    assert nav.to_home().scene == 'home'
+    assert calls == [('fishing_failure', r'^[×xX✕]?\s*取消$', 'home', {'roi': (720, 620, 230, 80)})]
+
+
 @pytest.mark.parametrize('labels,button_count,accepted', [
     (['日期已變更'], 1, True), (['日期已變更'], 2, False),
     (['其他確認'], 1, False), (['日期已變更'], 0, False)])

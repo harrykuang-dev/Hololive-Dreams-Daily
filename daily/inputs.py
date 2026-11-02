@@ -40,9 +40,12 @@ class Inputs:
 
     def down(self, key: int):
         self.check()
+        self.trace('key_down', key=key)
+        # Audit hooks can block while recording, cancellation or supervision
+        # changes. Recheck before posting any new system input.
+        self.check()
         # Remember it before posting: a failed acknowledgement can still mean key-down happened.
         self.held.add(key)
-        self.trace('key_down', key=key)
         self.wait(self.controller.post_key_down(key))
 
     def up(self, key: int):
@@ -55,6 +58,7 @@ class Inputs:
         try:
             self.down(self.RIGHT_ALT)
             self.pause(.08)
+            self.check()
             self.wait(self.controller.post_relative_move(1, 0))
             self.trace('mouse_move', dx=1, dy=0)
             self.pause(.08)
@@ -68,6 +72,7 @@ class Inputs:
         with self.cursor():
             self.check()
             self.trace('click', x=x, y=y)
+            self.check()
             if before_post is not None:
                 before_post()
             self.wait(self.controller.post_click(x, y))
@@ -88,6 +93,7 @@ class Inputs:
         if any(type(value) is not int or abs(value) > 120 for value in (dx, dy)):
             raise ValueError('Camera segments must be integers within120pixels')
         self.trace('mouse_move', dx=dx, dy=dy, mode='camera')
+        self.check()
         self.wait(self.controller.post_relative_move(dx, dy))
 
     def pause(self, duration: float):

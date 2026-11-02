@@ -72,6 +72,8 @@ class Navigator:
             if len(words.intersection({'遊戲', 'Live', '任務', '成就'})) >= 3:
                 scene = 'home'
             else:
+                if self.fishing_failure_controls(observation):
+                    return Observation(frame, 'fishing_failure', captured)
                 if self.multiplayer_ready_controls(observation):
                     return Observation(frame, 'multi_ready', captured)
                 if self.event_home_controls(observation):
@@ -131,6 +133,22 @@ class Navigator:
         # EXPERT can fall below the OCR threshold. Require all other fixed
         # labels, without interpreting the Auto label as an enabled switch.
         return all(words.count(word) == 1 for word in ('EASY', 'NORMAL', 'HARD'))
+
+    def fishing_failure_controls(self, observation):
+        # A failed catch has a different heading from the success template.
+        # Only recognize its fixed labels; never click Continue to recover it.
+        groups = [
+            (r'^失敗$', (870, 150, 220, 100)),
+            (r'^魚[餌饵]被吃掉了[.…⋯]*$', (790, 245, 350, 70)),
+            (r'^[×xX✕]?\s*取消$', (720, 620, 230, 80)),
+            (r'^繼續$', (1000, 620, 200, 80)),
+        ]
+        for expected, roi in groups:
+            labels = [item for item in self.text(observation, expected, roi)
+                      if re.fullmatch(expected, getattr(item, 'text', '').strip())]
+            if len(labels) != 1:
+                return False
+        return True
 
     def save(self, observation: Observation, name: str) -> str:
         path = self.evidence / f'{name}-{time.time_ns()}.png'
@@ -398,8 +416,8 @@ class Navigator:
         if observation.scene == 'notifications':
             self.inputs.key(0x1B, .08)
             return self.wait_for({'home'}, timeout=45)
-        if observation.scene == 'fishing_result':
-            return self.click_text('fishing_result', r'^[×xX✕]?\s*取消$', 'home', roi=(720, 620, 230, 80))
+        if observation.scene in {'fishing_result', 'fishing_failure'}:
+            return self.click_text(observation.scene, r'^[×xX✕]?\s*取消$', 'home', roi=(720, 620, 230, 80))
         if observation.scene == 'other_menu':
             observation = self.click_text('other_menu', '取消$', 'main_menu', roi=(990, 610, 240, 100))
         if observation.scene == 'live_result':
