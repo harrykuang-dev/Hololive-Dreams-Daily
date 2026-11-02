@@ -173,6 +173,39 @@ def test_gift_camera_stops_if_fresh_marker_moves_further_from_center(tmp_path, m
     assert events == [('click', (190, 205)), ('camera', 30)]
 
 
+def test_gift_camera_calibrates_recorded_response_within_existing_move_limit(tmp_path, monkeypatch):
+    runner, events = runner_for(tmp_path, monkeypatch, ['park'])
+    prepare_house_entry(runner)
+    # Native recording: initial offset182.5, dx27 moved marker35 pixels.
+    offset = [182.5]
+    runner.house_gift_offset = lambda view: offset[0]
+    observation = SimpleNamespace(image=None)
+    runner.read = lambda *args: ParkView('entry' if abs(offset[0]) <= 35 else 'park', observation)
+    def move(dx):
+        events.append(('camera', dx))
+        offset[0] -= dx*35/27
+    runner.nav.inputs.look = move
+    place, view = runner.entry('park_gifts')
+    assert place == GIFT_PLACES[0] and view.kind == 'entry'
+    moves = [value for kind, value in events if kind == 'camera']
+    assert 1 < len(moves) <= 6 and all(abs(dx) <= 40 for dx in moves)
+    assert not any(kind == 'key' for kind, _ in events)
+
+
+def test_unresponsive_camera_retains_six_move_stop_and_evidence(tmp_path, monkeypatch):
+    runner, events = runner_for(tmp_path, monkeypatch, ['park'])
+    prepare_house_entry(runner)
+    runner.house_gift_offset = lambda view: 182.5
+    runner.nav.inputs.look = lambda dx: events.append(('camera', dx))
+    saved = []
+    runner.nav.save = lambda observation, label: saved.append(label)
+    with pytest.raises(NavigationError, match='上限'):
+        runner.entry('park_gifts')
+    assert len([event for event in events if event[0] == 'camera']) == 6
+    assert saved == ['gift-camera-limit']
+    assert not any(kind == 'key' for kind, _ in events)
+
+
 def test_prompt_appearing_while_waiting_for_marker_prevents_further_movement(tmp_path, monkeypatch):
     runner, events = runner_for(tmp_path, monkeypatch, ['park', 'entry'])
     prepare_house_entry(runner)

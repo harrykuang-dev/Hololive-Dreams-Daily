@@ -74,6 +74,8 @@ class Navigator:
                     return Observation(frame, 'login_bonus', captured)
                 if self.standard_login_bonus_button(observation):
                     return Observation(frame, 'login_bonus_standard', captured)
+                if self.login_reward_button(observation):
+                    return Observation(frame, 'login_reward', captured)
                 if self.login_notice_button(observation):
                     return Observation(frame, 'login_notice', captured)
                 if self.live_achievement_button(observation):
@@ -119,6 +121,8 @@ class Navigator:
         last_scene = None
         date_acknowledged = False
         bonus_acknowledged = set()
+        bonus_clicks = 0
+        login_flow = False
         reward_closed = False
         notice_closed = False
         achievement_closed = False
@@ -126,13 +130,26 @@ class Navigator:
         while True:
             observation = self.observe()
             recovery = None
+            bonus_key = None
+            if observation.scene in {'login_bonus', 'login_bonus_standard', 'login_reward'}:
+                bonus_key = self.login_page_key(observation)
             if 'home' in scenes:
                 if observation.scene == 'date_changed' and not date_acknowledged:
                     recovery = self.date_change_button
-                elif observation.scene == 'login_bonus' and observation.scene not in bonus_acknowledged:
+                elif observation.scene == 'login_bonus' and bonus_key not in bonus_acknowledged:
                     recovery = self.login_bonus_button
-                elif observation.scene == 'login_bonus_standard' and observation.scene not in bonus_acknowledged:
+                elif observation.scene == 'login_bonus_standard' and bonus_key not in bonus_acknowledged:
                     recovery = self.standard_login_bonus_button
+                elif observation.scene == 'login_reward' and bonus_key not in bonus_acknowledged:
+                    recovery = self.login_reward_button
+                elif observation.scene is None and login_flow:
+                    # After verified login/reset, an unfamiliar illustration
+                    # may hide its title. Its exact continuation footer is
+                    # sufficient here, but never in an arbitrary game scene.
+                    key = ('startup_reward', self.login_page_key(observation))
+                    if key not in bonus_acknowledged and self.login_continuation_button(observation):
+                        bonus_key = key
+                        recovery = self.login_continuation_button
                 elif observation.scene == 'holowork_get' and not reward_closed:
                     recovery = self.received_reward_button
                 elif observation.scene == 'login_notice' and not notice_closed:
@@ -144,14 +161,18 @@ class Navigator:
                 elif observation.scene == 'game_title_ready' and observation.scene not in game_entered:
                     recovery = self.game_title_ready_button
             if recovery is not None:
+                if bonus_key is not None and bonus_clicks >= 12:
+                    raise NavigationError('登入獎勵頁數已達上限，請檢查錄影')
                 button = recovery(observation)
                 if button is None:
                     raise NavigationError('換日／登入獎勵提示已改變，未確認其他對話框')
                 x, y, w, h = button
                 self.inputs.click(int(x+w/2), int(y+h/2))
+                login_flow |= observation.scene in {'game_title_ready', 'date_changed'}
                 date_acknowledged |= observation.scene == 'date_changed'
-                if observation.scene in {'login_bonus', 'login_bonus_standard'}:
-                    bonus_acknowledged.add(observation.scene)
+                if bonus_key is not None:
+                    bonus_acknowledged.add(bonus_key)
+                    bonus_clicks += 1
                     reward_closed = False
                 elif observation.scene == 'holowork_get':
                     reward_closed = True
@@ -197,6 +218,39 @@ class Navigator:
         hints = [item for item in self.text(observation, '^點擊繼續$', (560, 625, 180, 50), only_rec=True)
                  if getattr(item, 'text', '').strip() == '點擊繼續']
         return tuple(hints[0].box) if len(hints) == 1 else None
+
+    def login_page_key(self, observation):
+        # Page text distinguishes consecutive rewards of the same layout;
+        # animated illustrations must not re-arm an unchanged reward page.
+        if observation.image is None:
+            return observation.scene
+        words = self.text(observation, '.+', (80, 70, 1120, 530))
+        return (observation.scene, tuple(sorted(re.sub(r'\s+', '', item.text)
+                                               for item in words)))
+
+    def login_reward_button(self, observation):
+        # Recognize the meaning of the page, never a character, illustration,
+        # event name or colour. The footer authorizes a blank-area click.
+        titles = self.text(observation, '.+', (60, 30, 1160, 510))
+        words = ' '.join(getattr(item, 'text', '').strip() for item in titles)
+        if not (re.search(r'LOGIN', words, re.I) and re.search(r'BONUS', words, re.I)
+                or re.search(r'登[入錄]\s*(獎勵|禮)', words)):
+            return None
+        return self.login_continuation_button(observation)
+
+    def login_continuation_button(self, observation):
+        expected = r'^(?:點擊(?:繼續|空白處|空白區域|任意位置|畫面)(?:繼續|領取)?|TAP\s+TO\s+CONTINUE)$'
+        hints = [item for item in self.text(observation, expected, (60, 550, 1160, 155))
+                 if re.fullmatch(expected, getattr(item, 'text', '').strip(), re.I)]
+        if not hints:
+            # Animated decorative footers can evade text detection. Read only
+            # the continuation strip, without depending on its illustration.
+            hints = [item for item in self.text(observation, expected, (560, 625, 180, 50), only_rec=True)
+                     if re.fullmatch(expected, getattr(item, 'text', '').strip(), re.I)]
+        if len(hints) != 1:
+            return None
+        # The footer itself is a non-purchase blank-area continuation surface.
+        return tuple(hints[0].box)
 
     def received_reward_button(self, observation):
         titles = [item for item in self.text(observation, '^GET!$', (530, 20, 230, 110))

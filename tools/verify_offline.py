@@ -111,6 +111,20 @@ class InspectRecordings(CustomAction):
                 if scene != 'date_changed' or button is None:
                     raise ValueError('Date-change notice did not have its unique confirmation')
                 result['date_confirmation'] = list(button)
+            if path.stem == 'login_bonus_standard':
+                generic = navigator.login_reward_button(Observation(frame, scene, time.monotonic()))
+                if generic is None:
+                    obs = Observation(frame, scene, time.monotonic())
+                    diagnostic = {}
+                    for name, roi, only_rec in (
+                        ('heading', (60, 30, 1160, 510), False),
+                        ('footer', (60, 550, 1160, 155), False),
+                        ('footer_strip', (560, 625, 180, 50), True)):
+                        diagnostic[name] = [getattr(item, 'text', '') for item in
+                            navigator.text(obs, '.+', roi, only_rec=only_rec)]
+                    raise ValueError('Login reward semantic heading/footer was not recognized: '
+                                     + json.dumps(diagnostic, ensure_ascii=False))
+                result['generic_bonus_continue'] = list(generic)
             if path.stem == 'login_bonus':
                 button = navigator.login_bonus_button(Observation(frame, scene, time.monotonic()))
                 if scene != 'login_bonus' or button is None:

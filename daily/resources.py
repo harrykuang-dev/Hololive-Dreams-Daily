@@ -138,7 +138,10 @@ class EnergySettings:
                            resource=selection.resource.__dict__, budget_remaining=budget_remaining)
         if selection.cost < 0 or not selection.resource.permits(selection.effective_cost, budget_remaining):
             self.nav.cancel_energy_settings()
-            raise ResourceUnavailable('現有能量或本次消耗上限不足，未開始遊玩')
+            raise ResourceUnavailable(
+                f'未開始遊玩：實際消耗 {selection.effective_cost}，現有能量 {selection.resource.available}，'
+                f'本次消耗上限 {budget_remaining if budget_remaining is not None else "未設定"}。'
+                '消耗上限 0 僅允許零消耗；料理／跳繩可將消耗倍率設為 0。')
         if selection.empty_energy_play and getattr(self.nav, 'recording', None) is not None:
             evidence = self.nav.save(observation, 'energy-empty-policy')
             self.nav.recording.mark('energy_empty_policy_verified', nominal_cost=selection.cost,

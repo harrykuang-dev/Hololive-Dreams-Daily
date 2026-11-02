@@ -97,6 +97,10 @@ class RunDailyTask(CustomAction):
             finally:
                 self._lock.release()
         print(json.dumps(result.to_dict(), ensure_ascii=False), flush=True)
+        if result.status == TaskStatus.SKIPPED and config is not None and config.task in {'cooking', 'jump_rope'}:
+            # A requested game that never started must not look like a passed
+            # gameplay task in the GUI. The journal retains the precise skip.
+            return False
         # An entry check is successful navigation, not completed gameplay.
         return result.status in (TaskStatus.COMPLETE, TaskStatus.ENTRY_VERIFIED,
                                  TaskStatus.NAVIGATION_VERIFIED, TaskStatus.SKIPPED)

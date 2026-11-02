@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from statistics import median
 import time
 
 from .contracts import TaskResult, TaskStatus
@@ -96,6 +97,8 @@ class ParkRunner:
         self.nav.wait_for({'home'}, timeout=45)
         forward_steps = camera_steps = 0
         previous_offset = None
+        previous_dx = None
+        camera_gains = []
         for segment in range(27):
             view = self.read(self.nav.observe(), place)
             deadline = time.monotonic()+5
@@ -124,14 +127,24 @@ class ParkRunner:
                 if previous_offset is not None and abs(offset) > abs(previous_offset)*1.1+5:
                     self.nav.save(view.observation, 'gift-camera-wrong-direction')
                     raise NavigationError('鏡頭移動未讓禮物標記接近中央，停止接近')
+                if previous_offset is not None and previous_dx:
+                    # Measure this client's actual camera response. A fixed
+                    # proportional step can exhaust the six-move allowance
+                    # even while every fresh marker moves toward the centre.
+                    gain = (previous_offset-offset)/previous_dx
+                    if .25 <= gain <= 8:
+                        camera_gains.append(gain)
                 previous_offset = None
                 if abs(offset) > 35:
                     if camera_steps >= 6:
+                        self.nav.save(view.observation, 'gift-camera-limit')
                         raise NavigationError('禮物鏡頭對準次數已達上限')
-                    dx = max(-40, min(40, round(offset*.15)))
+                    step = offset*.75/median(camera_gains[-3:]) if camera_gains else offset*.15
+                    dx = max(-40, min(40, round(step)))
                     self.nav.inputs.look(dx)
                     self.nav.inputs.pause(.15)
                     previous_offset = offset
+                    previous_dx = dx
                     camera_steps += 1
                     continue
             if view.kind == 'prompt_loading':

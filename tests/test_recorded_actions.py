@@ -60,6 +60,16 @@ def test_startup_failure_never_enters_navigation(recorded_action, monkeypatch):
     assert test.result()['result']['status'] == 'failed'
 
 
+@pytest.mark.parametrize('task', ['cooking', 'jump_rope'])
+def test_skipped_minigame_does_not_pass_gui_task(recorded_action, monkeypatch, task):
+    test = recorded_action
+    monkeypatch.setattr(actions, 'read_settings', lambda *args: {'task': task, 'rounds': '1'})
+    monkeypatch.setattr(test.action, 'execute', lambda *args, **kwargs:
+                        TaskResult(TaskStatus.SKIPPED, 'budget prevents start'))
+    assert not test.action.run(test.context, test.args)
+    assert test.result()['result']['status'] == 'skipped'
+
+
 def test_release_and_recording_finish_follow_task_result(recorded_action, monkeypatch):
     test = recorded_action
     monkeypatch.setattr(test.action, 'execute', lambda *args, **kwargs:

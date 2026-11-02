@@ -4,6 +4,10 @@ A Windows daily-routine program built with MaaFramework, MFAAvalonia and isolate
 
 Development is in progress. The current source includes the task configuration interface, recording-based recognition, Auto checks, result journals, navigation primitives and isolated worker supervision. Full daily execution and portable packaging are not yet accepted. Only Connect is selected by default.
 
+Cooking and Jump Rope are connected to their isolated gameplay modules. Turn off entry-only mode and enter the round count for gameplay tests. A blank resource budget adds no session spending limit; a budget of0 permits only an observed zero-cost start. Both minigames support an explicit multiplier of0. A game skipped before starting because of its resource budget no longer passes the GUI task; its journal retains the actual cost, balance and budget. Leave the optional Jump Rope stop score blank to use the module's normal ending condition.
+
+Login rewards can be dismissed through their login-reward heading and footer continuation/blank-area instruction, independent of character artwork, event illustrations or UI colours. After verified login or date reset, a clear continuation footer also handles new illustrations with unreadable headings; this fallback does not apply to arbitrary unknown game scenes. Different reward pages of the same layout are distinguished by their text; an unchanged page is not clicked again, and recovery stops after12 pages. The new generic recognition passed offline tests; native startup across different login layouts remains for user testing.
+
 Cooking, solo Live and multiplayer Live each require a user-entered round count. Fishing uses the second location shown in the reference recording. Once-daily features can be validated at their interaction entry without consuming a play.
 
 Game-window recordings and time-aligned step logs are required for live task execution. Recording failure stops further actions while still releasing held keys. Recordings remain local; development staging places them beside the staged application under `recordings`. Once-daily full tests use fresh attempts after04:05 UTC+8; the game day resets at04:00.
