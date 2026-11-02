@@ -11,10 +11,13 @@ from daily.resources import EnergySelection, read_setup_cost
 
 def controls(state):
     calls = []
+    def click(*xy, before_post):
+        before_post()
+        calls.append(xy)
     observation = SimpleNamespace(scene='solo_setup')
     nav = SimpleNamespace(observe=lambda: observation,
                           text=lambda *a: [SimpleNamespace(box=(1100, 630, 100, 40))],
-                          inputs=SimpleNamespace(click=lambda *xy: calls.append(xy)))
+                          inputs=SimpleNamespace(click=click))
     control = LiveControls(nav)
     control.read = lambda ob: state
     return control, calls
@@ -54,6 +57,50 @@ def test_fresh_game_auto_allows_only_one_observed_decide_click():
     control, calls = controls(state())
     control.start(TaskConfig('solo_live', rounds=1, resource_budget=1))
     assert calls == [(1150, 650)]
+
+
+def test_multiplayer_never_starts_without_independent_guard():
+    control, calls = controls(state(scene='multi_ready'))
+    with pytest.raises(LiveBlocked, match='監督'):
+        control.start(TaskConfig('multi_live'))
+    assert not calls
+
+
+def test_solo_rechecks_snapshot_freshness_after_recording_audit(monkeypatch):
+    now = [100.0]
+    monkeypatch.setattr('daily.contracts.time.monotonic', lambda: now[0])
+    control, calls = controls(state())
+    def delayed_audit(*args, **kwargs):
+        now[0] += 3
+    control.nav.recording = SimpleNamespace(mark=delayed_audit)
+    with pytest.raises(LiveBlocked, match='Auto'):
+        control.start(TaskConfig('solo_live'))
+    assert not calls
+
+
+def test_guarded_multiplayer_runs_audit_and_final_check_before_input_then_releases():
+    timeline = []
+    snapshot = state(scene='multi_ready')
+    control, _ = controls(snapshot)
+    control.nav.observe = lambda: SimpleNamespace(scene='multi_ready')
+    control.nav.recording = SimpleNamespace(mark=lambda *args, **kwargs: timeline.append('audit'))
+    def click(x, y, *, before_post):
+        timeline.append('cursor_audit')
+        before_post()
+        timeline.append('input_ack')
+    control.nav.inputs.click = click
+    token = object()
+    class Supervisor:
+        def prepare_start(self, config, read_state, budget, *, energy):
+            assert read_state.auto is snapshot.auto and budget == 1
+            timeline.append('full_gate')
+            return token
+        def perform_start(self, permit, action):
+            assert permit is token
+            action(lambda: timeline.append('final_check'))
+            timeline.append('release_guard')
+    control.start(TaskConfig('multi_live', resource_budget=1), auto_supervisor=Supervisor())
+    assert timeline == ['audit', 'full_gate', 'cursor_audit', 'final_check', 'input_ack', 'release_guard']
 
 
 @pytest.mark.parametrize('remaining', [0, 1])

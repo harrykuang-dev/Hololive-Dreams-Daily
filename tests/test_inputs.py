@@ -52,6 +52,19 @@ def test_click_failure_still_releases_alt():
     assert not inputs.held
 
 
+def test_final_pre_post_check_runs_after_audit_and_blocks_click_with_key_release():
+    controller = Controller()
+    timeline = []
+    inputs = Inputs(controller, trace=lambda name, **kw: timeline.append(name))
+    def expired():
+        assert timeline[-1] == 'click'
+        raise RuntimeError('final authorization expired during audit')
+    with pytest.raises(RuntimeError, match='expired'):
+        inputs.click(10, 20, before_post=expired)
+    assert not any(event[0] == 'click' for event in controller.events)
+    assert controller.events[-1] == ('up', 0xA5) and not inputs.held
+
+
 def test_cancellation_does_not_click():
     controller = Controller()
     inputs = Inputs(controller, stopping=lambda: True)

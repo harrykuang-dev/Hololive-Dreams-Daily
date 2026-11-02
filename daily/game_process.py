@@ -7,6 +7,7 @@ import ctypes
 from ctypes import wintypes
 from pathlib import PureWindowsPath
 import os
+import threading
 
 
 class GameProcessError(RuntimeError):
@@ -90,6 +91,7 @@ class WindowsProcessBackend:
 
 class GameProcess:
     def __init__(self, hwnd, *, expected_pid=None, expected_image=None, backend=None):
+        self._lock = threading.RLock()
         if type(hwnd) is not int or hwnd <= 0:
             raise GameProcessError('Invalid game window')
         self.backend = backend if backend is not None else WindowsProcessBackend()
@@ -114,6 +116,10 @@ class GameProcess:
             raise
 
     def emergency_stop(self):
+        with self._lock:
+            return self._emergency_stop()
+
+    def _emergency_stop(self):
         if self.handle is None:
             raise GameProcessError('Game supervision handle is closed')
         if not self.backend.is_running(self.handle):
@@ -131,9 +137,10 @@ class GameProcess:
         return True
 
     def close(self):
-        if self.handle is not None:
-            self.backend.close_handle(self.handle)
-            self.handle = None
+        with self._lock:
+            if self.handle is not None:
+                self.backend.close_handle(self.handle)
+                self.handle = None
 
 
 class ParentProcess:

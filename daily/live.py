@@ -1,7 +1,7 @@
 """Game-provided Auto checks at the actual Live start/ready boundary."""
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, replace
 import time
 
 import cv2
@@ -12,18 +12,7 @@ from .inputs import Cancelled, InputFailure
 from .navigation import NavigationError
 from .resources import EnergySettings, ResourceUnavailable, parse_fraction, read_one, read_setup_cost, parse_consumption
 from .vision import parse_remaining
-
-
-class LiveBlocked(NavigationError):
-    pass
-
-
-@dataclass(frozen=True)
-class LiveState:
-    auto: AutoObservation
-    resource: ResourceObservation
-    cost: int | None
-    effective_cost: int | None = None
+from .live_validation import LiveBlocked, LiveState, validate_live_start
 
 
 class LiveControls:
@@ -46,9 +35,11 @@ class LiveControls:
         cost = read_setup_cost(self.nav, observation, multiplayer=not solo)
         return LiveState(auto, parse_fraction(fraction), cost)
 
-    def start(self, config, budget_remaining=None, *, energy=None):
+    def start(self, config, budget_remaining=None, *, energy=None, auto_supervisor=None):
         if config.entry_only:
             raise LiveBlocked('入口驗證模式不會開始 Live')
+        if config.task == 'multi_live' and auto_supervisor is None:
+            raise LiveBlocked('多人 Live 必須先啟用獨立 Auto 監督程序')
         if budget_remaining is None:
             budget_remaining = config.resource_budget
         expected = {'solo_live': 'solo_setup', 'multi_live': 'multi_ready'}.get(config.task)
@@ -59,30 +50,23 @@ class LiveControls:
         if len(buttons) != 1:
             raise LiveBlocked('無法唯一確認 Live 決定按鈕')
         state = self.read(observation)
-        zero_energy = state.cost == 0 and state.resource.available == 0
-        verified_empty_policy = (energy is not None and energy.empty_energy_play
-                                 and energy.resource.available == state.resource.available == 0
-                                 and state.cost in {energy.cost, energy.effective_cost}
-                                 and energy.multiplier == config.multiplier)
-        effective_cost = 0 if zero_energy or verified_empty_policy else state.cost
-        if (config.multiplier < 1 or state.cost is None or state.cost < 0 or
-                (state.cost != config.multiplier and not zero_energy)):
-            raise LiveBlocked('Live 實際消耗量與使用者設定不符')
-        if not state.resource.permits(effective_cost, budget_remaining):
-            raise LiveBlocked('Live 現有能量或本次消耗上限不足')
-        # This final, fresh check immediately precedes the only start input.
-        # No worker or note-input controller is involved in Live gameplay.
-        if not state.auto.permits_start():
-            raise LiveBlocked('未確認遊戲內建 Auto 已開啟且仍有可用次數')
+        proof = validate_live_start(config, state, budget_remaining, energy=energy)
+        state = proof.state
         recording = getattr(self.nav, 'recording', None)
         if recording is not None:
             recording.mark('live_start_verified', task=config.task, auto=asdict(state.auto),
-                           resource=asdict(state.resource), cost=effective_cost, displayed_cost=state.cost,
+                           resource=asdict(state.resource), cost=state.effective_cost, displayed_cost=state.cost,
                            nominal_cost=energy.cost if energy is not None else state.cost,
-                           empty_energy_policy_verified=verified_empty_policy, budget_remaining=budget_remaining)
+                           empty_energy_policy_verified=proof.empty_policy_verified, budget_remaining=budget_remaining)
         x, y, w, h = buttons[0].box
-        self.nav.inputs.click(int(x+w/2), int(y+h/2))
-        return replace(state, effective_cost=effective_cost)
+        if auto_supervisor is None:
+            self.nav.inputs.click(int(x+w/2), int(y+h/2), before_post=lambda:
+                validate_live_start(config, state, budget_remaining, energy=energy))
+        else:
+            permit = auto_supervisor.prepare_start(config, state, budget_remaining, energy=energy)
+            auto_supervisor.perform_start(permit, lambda preflight:
+                self.nav.inputs.click(int(x+w/2), int(y+h/2), before_post=preflight))
+        return state
 
 
 class SoloLiveRunner:

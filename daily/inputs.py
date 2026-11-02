@@ -63,11 +63,13 @@ class Inputs:
         finally:
             self.release_all()
 
-    def click(self, x: int, y: int):
+    def click(self, x: int, y: int, *, before_post=None):
         self.check()
         with self.cursor():
             self.check()
             self.trace('click', x=x, y=y)
+            if before_post is not None:
+                before_post()
             self.wait(self.controller.post_click(x, y))
 
     def key(self, key: int, duration: float = 0.05):
