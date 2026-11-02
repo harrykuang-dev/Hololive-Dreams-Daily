@@ -20,7 +20,7 @@ from maa.toolkit import Toolkit
 from daily.vision import Vision
 from daily.navigation import Navigator, Observation
 from daily.resources import EnergySettings
-from daily.live import LiveControls
+from daily.live import LiveControls, SoloLiveRunner
 from daily.holowork import HoloWorkRunner
 from daily.park import ParkRunner, GIFT_PLACES, LOTTERY_PLACE
 from daily.fishing import FishingRunner
@@ -80,7 +80,8 @@ class InspectRecordings(CustomAction):
                         'gift_house_high_marker_native': 'home', 'home_games_native': 'home',
                         'energy_minigame_zero': 'energy_settings',
                         'cooking_setup_free': 'cooking_setup',
-                        'cooking_rewards_free_native': 'cooking_result'}.get(path.stem, expected)
+                        'cooking_rewards_free_native': 'cooking_result',
+                        'live_result_event': 'live_result'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
             if path.stem == 'energy_minigame_zero':
@@ -218,6 +219,11 @@ class InspectRecordings(CustomAction):
             if scene == 'live_result':
                 result['auto_result'] = bool(navigator.text(Observation(frame, scene, time.monotonic()),
                                                            '^AUTO LIVE$', (650, 180, 530, 330)))
+                if path.stem == 'live_result_event':
+                    buttons = SoloLiveRunner(navigator).next_buttons(Observation(frame, scene, time.monotonic()))
+                    result['next_buttons'] = len(buttons)
+                    if not result['auto_result'] or len(buttons) != 1:
+                        raise ValueError('Event Auto result lacks a unique complete Next label')
             if path.stem == 'fishing_setup_second':
                 FishingRunner(navigator, ROOT, self.samples.parent).verify_practice_bait(
                     Observation(frame, scene, time.monotonic()))

@@ -93,3 +93,22 @@ def test_next_stability_observes_the_button_instead_of_animated_result_art(monke
         _, buttons = runner.wait_next_button(observe())
         assert len(buttons) == 1 and frames[0] < 12
     assert not clicks
+
+
+@pytest.mark.parametrize('primary,fallback,expected', [
+    (0, ['下一步'], 1), (0, ['一步'], 0), (0, [], 0),
+    (0, ['下一步', '下一步'], 2), (2, ['下一步'], 2), (1, [], 1)])
+def test_next_fallback_requires_complete_unique_label_and_does_not_hide_ambiguity(primary, fallback, expected):
+    calls = []
+    def text(observation, pattern, roi):
+        calls.append(roi)
+        words = ['下一步']*primary if roi == (1020, 610, 230, 100) else fallback
+        return [SimpleNamespace(text=word, box=(1107, 638, 78, 27)) for word in words]
+    runner = SoloLiveRunner(SimpleNamespace(text=text))
+    assert len(runner.next_buttons(SimpleNamespace(scene='live_result'))) == expected
+    assert len(calls) == (2 if primary == 0 else 1)
+
+
+def test_next_label_is_not_used_outside_a_verified_live_result():
+    runner = SoloLiveRunner(SimpleNamespace(text=lambda *a: pytest.fail('No speculative Next search')))
+    assert runner.next_buttons(SimpleNamespace(scene=None)) == []

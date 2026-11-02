@@ -89,6 +89,17 @@ class SoloLiveRunner:
         self.nav, self.progress = navigator, progress
         self.controls = LiveControls(navigator)
 
+    def next_buttons(self, observation):
+        if observation.scene != 'live_result':
+            return []
+        buttons = self.nav.text(observation, '下一步$', (1020, 610, 230, 100))
+        if not buttons:
+            # Event button art can make the detector omit the first glyph in
+            # a wide crop. Retry the fixed full label, never accept just 一步.
+            buttons = [item for item in self.nav.text(observation, '^下一步$', (1105, 630, 95, 50))
+                       if getattr(item, 'text', '').strip() == '下一步']
+        return buttons
+
     def run(self, config):
         completed, spent, pending, evidence = 0, 0, False, None
         try:
@@ -164,7 +175,7 @@ class SoloLiveRunner:
                     return updated
                 if updated.scene == 'live_result':
                     difference = float(np.mean(cv2.absdiff(before, updated.image[180:580, 600:1200])))
-                    if difference > 8 and self.nav.text(updated, '下一步$', (1020, 610, 230, 100)):
+                    if difference > 8 and self.next_buttons(updated):
                         observation = updated
                         break
                     if not retried and time.monotonic() >= retry_after:
@@ -206,7 +217,7 @@ class SoloLiveRunner:
                 deadline, not_before = time.monotonic()+15, time.monotonic()+1.5
                 stable_since = previous = None
             elif observation.scene == 'live_result' and reward is None and achievement is None:
-                buttons = self.nav.text(observation, '下一步$', (1020, 610, 230, 100))
+                buttons = self.next_buttons(observation)
                 # Characters, rank effects and rewards keep animating after
                 # Next is ready. Require the observed control itself to settle.
                 panel = observation.image[630:675, 1060:1200]
