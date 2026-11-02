@@ -89,8 +89,12 @@ class EnergySettings:
         # dark digits on a light field; recognition-only uses this fixed widget
         # ROI so the text detector cannot silently omit the large styled digit.
         enhanced = replace(observation, image=cv2.cvtColor(observation.image[:, :, 2], cv2.COLOR_GRAY2BGR))
-        numbers = self.nav.text(enhanced, '^[0-9]+$', (1145, 339, 62, 65), only_rec=True)
-        multiplier = parse_remaining(numbers[0].text) if len(numbers) == 1 else None
+        # Two-digit values expand leftwards. The former single-digit crop
+        # could turn an actual 10 into 0 and select the wrong adjustment.
+        numbers = self.nav.text(enhanced, r'^[×xX]?\s*[0-9]{1,2}$', (1115, 339, 92, 65), only_rec=True)
+        value = (re.fullmatch(r'[×xX]?\s*([0-9]{1,2})', numbers[0].text.strip())
+                 if len(numbers) == 1 else None)
+        multiplier = int(value[1]) if value else None
         costs = self.nav.text(observation, '^[0-9]+$', (975, 545, 100, 70), only_rec=True)
         cost = parse_remaining(costs[0].text) if len(costs) == 1 else None
         if cost is None and multiplier == 0 and not costs:
@@ -103,6 +107,8 @@ class EnergySettings:
         resource = parse_fraction(fraction)
         if multiplier is None or cost is None:
             raise NavigationError('無法確認能量倍率與實際消耗量')
+        if multiplier == 0 and cost != 0:
+            raise NavigationError('零倍率與顯示消耗量矛盾，停止調整')
         empty_energy_play = False
         if resource.available == 0:
             notes = self.nav.text(observation, '.+', (820, 485, 300, 50))

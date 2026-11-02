@@ -69,7 +69,7 @@ def test_explicit_empty_energy_policy_uses_zero_effective_cost_without_changing_
                                                    ('0',['0','0'],False)])
 def test_missing_large_cost_requires_positive_unique_zero_in_its_own_crop(multiplier, zeros, allowed):
     def text(observation, expected, roi, **kwargs):
-        if roi == (1145,339,62,65): words = [multiplier]
+        if roi == (1115,339,92,65): words = [multiplier]
         elif roi == (998,555,50,50): words = zeros
         elif roi == (1025,25,145,60): words = ['53/100']
         else: words = []
@@ -81,3 +81,27 @@ def test_missing_large_cost_requires_positive_unique_zero_in_its_own_crop(multip
         assert value.multiplier == value.cost == 0 and value.resource.available == 53
     else:
         with pytest.raises(NavigationError): settings.read(ob)
+
+
+@pytest.mark.parametrize('multiplier,cost', [('1', '1'), ('9', '9'), ('10', '10'), ('99', '99'),
+                                          ('×2', '60'), ('x10', '10')])
+def test_multiplier_crop_includes_leading_digit_of_two_digit_values(multiplier, cost):
+    rois = []
+    def text(observation, expected, roi, **kwargs):
+        rois.append(roi)
+        words = [multiplier] if roi == (1115, 339, 92, 65) else (
+            [cost] if roi == (975, 545, 100, 70) else ['2/10'])
+        return [SimpleNamespace(text=word) for word in words]
+    selection = EnergySettings(SimpleNamespace(text=text)).read(
+        Observation(np.zeros((720, 1280, 3), dtype=np.uint8), 'energy_settings', 0))
+    assert selection.multiplier == int(multiplier.lstrip('×xX')) and selection.cost == int(cost)
+    assert rois[0] == (1115, 339, 92, 65)
+
+
+def test_truncated_ten_cannot_be_treated_as_a_positive_cost_zero_multiplier():
+    def text(observation, expected, roi, **kwargs):
+        word = '0' if roi == (1115, 339, 92, 65) else '10' if roi == (975, 545, 100, 70) else '2/10'
+        return [SimpleNamespace(text=word)]
+    settings = EnergySettings(SimpleNamespace(text=text))
+    with pytest.raises(NavigationError, match='矛盾'):
+        settings.read(Observation(np.zeros((720, 1280, 3), dtype=np.uint8), 'energy_settings', 0))
