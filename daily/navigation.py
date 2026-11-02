@@ -55,6 +55,10 @@ class Navigator:
         frame = self.vision.normalize(image)
         scene = self.vision.scene(frame)
         observation = Observation(frame, scene, captured)
+        if scene == 'song_select' and self.multiplayer_ready_controls(observation):
+            # Both pages share song artwork. Ready's fixed controls take
+            # precedence over the selection template's changing background.
+            return Observation(frame, 'multi_ready', captured)
         if scene == 'fishing_map_second':
             # MAP's large shared header cannot distinguish the three areas.
             area = self.text(observation, '汽水泡泡灣', (65, 5, 350, 110))
@@ -68,6 +72,8 @@ class Navigator:
             if len(words.intersection({'遊戲', 'Live', '任務', '成就'})) >= 3:
                 scene = 'home'
             else:
+                if self.multiplayer_ready_controls(observation):
+                    return Observation(frame, 'multi_ready', captured)
                 if self.event_home_controls(observation):
                     return Observation(frame, 'event_home', captured)
                 if self.date_change_button(observation):
@@ -108,6 +114,23 @@ class Navigator:
                     scene = 'fishing_map_second' if any('汽水泡泡灣' in getattr(item, 'text', '')
                                                        for item in area) else 'park_map'
         return Observation(frame, scene, captured)
+
+    def multiplayer_ready_controls(self, observation):
+        heading = r'^(?:∴\s*)?難易度選擇中$'
+        labels = [getattr(item, 'text', '').strip() for item in
+                  self.text(observation, heading, (540, 5, 240, 55))]
+        if sum(bool(re.fullmatch(heading, label)) for label in labels) != 1:
+            return False
+        auto = [item for item in self.text(observation, '^AUTO$', (125, 625, 90, 55))
+                if getattr(item, 'text', '').strip() == 'AUTO']
+        if len(auto) != 1:
+            return False
+        difficulty = self.text(observation, r'EASY|NORMAL|HARD|EXPERT', (700, 650, 325, 50))
+        words = re.findall(r'\b(?:EASY|NORMAL|HARD|EXPERT)\b',
+                           ' '.join(getattr(item, 'text', '') for item in difficulty))
+        # EXPERT can fall below the OCR threshold. Require all other fixed
+        # labels, without interpreting the Auto label as an enabled switch.
+        return all(words.count(word) == 1 for word in ('EASY', 'NORMAL', 'HARD'))
 
     def save(self, observation: Observation, name: str) -> str:
         path = self.evidence / f'{name}-{time.time_ns()}.png'

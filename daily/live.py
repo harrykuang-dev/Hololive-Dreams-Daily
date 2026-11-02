@@ -13,6 +13,7 @@ from .navigation import NavigationError
 from .resources import EnergySettings, ResourceUnavailable, parse_fraction, read_one, read_setup_cost, parse_consumption
 from .vision import parse_remaining
 from .live_validation import LiveBlocked, LiveState, validate_live_start
+from .auto_deadline import CountdownObservation
 
 
 class LiveControls:
@@ -34,6 +35,20 @@ class LiveControls:
         fraction = read_one(self.nav, observation, '[0-9].*[/／].*[0-9]', (1025, 25, 145, 60))
         cost = read_setup_cost(self.nav, observation, multiplayer=not solo)
         return LiveState(auto, parse_fraction(fraction), cost)
+
+    def read_countdown(self, observation):
+        """Preparation evidence only; never authorizes release of protection."""
+        if observation.scene != 'multi_ready':
+            raise LiveBlocked('目前不是多人 Live 難度選擇畫面')
+        state = self.read(observation)
+        labels = self.nav.text(observation, r'^[0-9]{1,2}$', (1170, 35, 100, 60))
+        timer = None
+        if len(labels) == 1:
+            value = labels[0].text.strip()
+            if value.isascii() and value.isdecimal() and 0 <= int(value) <= 30:
+                timer = int(value)
+        return CountdownObservation('multi_ready', observation.captured_at,
+                                    state.auto.enabled, state.auto.remaining, timer)
 
     def start(self, config, budget_remaining=None, *, energy=None, auto_supervisor=None):
         if config.entry_only:

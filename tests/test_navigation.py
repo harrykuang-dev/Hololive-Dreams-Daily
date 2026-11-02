@@ -79,6 +79,30 @@ def test_one_generic_label_does_not_classify_unknown_scene(tmp_path):
     assert navigator.observe().scene is None
 
 
+@pytest.mark.parametrize('heading,auto,difficulty,accepted', [
+    (['難易度選擇中'], ['AUTO'], ['EASY NORMAL HARD'], True),
+    (['∴難易度選擇中'], ['AUTO'], ['EASY NORMAL HARD EXPERT'], True),
+    ([], ['AUTO'], ['EASY NORMAL HARD'], False),
+    (['難易度選擇中']*2, ['AUTO'], ['EASY NORMAL HARD'], False),
+    (['難易度選擇中'], [], ['EASY NORMAL HARD'], False),
+    (['難易度選擇中'], ['AUTO'], ['EASY NORMAL'], False),
+    (['難易度選擇中'], ['AUTO'], ['EASY EASY NORMAL HARD'], False)])
+def test_multiplayer_ready_requires_fixed_heading_auto_and_distinct_difficulties(heading, auto, difficulty, accepted):
+    nav = Navigator.__new__(Navigator)
+    def text(obs, expected, roi):
+        words = heading if roi[0] == 540 else auto if roi[0] == 125 else difficulty
+        return [SimpleNamespace(text=word) for word in words]
+    nav.text = text
+    assert nav.multiplayer_ready_controls(None) == accepted
+
+
+def test_multiplayer_ready_controls_override_shared_song_artwork(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    nav = Navigator(Context(['難易度選擇中', 'AUTO', 'EASY NORMAL HARD']), root/'resource', tmp_path)
+    nav.vision.scene = lambda frame: 'song_select'
+    assert nav.observe().scene == 'multi_ready'
+
+
 @pytest.mark.parametrize('labels,button_count,accepted', [
     (['日期已變更'], 1, True), (['日期已變更'], 2, False),
     (['其他確認'], 1, False), (['日期已變更'], 0, False)])

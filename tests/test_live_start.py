@@ -157,3 +157,18 @@ def test_solo_cost_reads_only_the_confined_numeric_field(texts, cost):
     nav = SimpleNamespace(text=text)
     assert read_setup_cost(nav, SimpleNamespace(scene='solo_setup')) == cost
     assert calls == [(840, 586, 72, 37)]
+
+
+@pytest.mark.parametrize('labels,timer', [(['30'], 30), (['0'], 0), (['8'], 8),
+    ([], None), (['30', '20'], None), (['31'], None), (['3K'], None), (['３０'], None)])
+def test_countdown_uses_only_unique_confined_numeric_timer_without_authorizing_start(labels, timer):
+    control, _ = controls(state(scene='multi_ready'))
+    rois = []
+    def text(observation, expected, roi):
+        rois.append(roi)
+        return [SimpleNamespace(text=value) for value in labels]
+    control.nav.text = text
+    result = control.read_countdown(SimpleNamespace(scene='multi_ready', captured_at=100))
+    assert result.remaining_seconds == timer and result.captured_at == 100
+    assert result.auto_enabled and not result.start_authorized
+    assert rois == [(1170, 35, 100, 60)]

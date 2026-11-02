@@ -195,6 +195,12 @@ class InspectRecordings(CustomAction):
                               auto_remaining=observation.remaining)
                 result['live_state'] = asdict(LiveControls(navigator).read(
                     Observation(frame, scene, time.monotonic())))
+                if path.stem == 'multi_ready':
+                    countdown = LiveControls(navigator).read_countdown(
+                        Observation(frame, scene, time.monotonic()))
+                    result['countdown'] = asdict(countdown)
+                    if countdown.remaining_seconds is None or countdown.start_authorized:
+                        raise ValueError('Multiplayer preparation timer was not positively read')
                 if path.stem == 'solo_setup_nine' and result['live_state']['cost'] != 9:
                     raise ValueError('Nine-energy field was confused with the reward multiplier')
                 if path.stem == 'solo_setup_zero' and not (
