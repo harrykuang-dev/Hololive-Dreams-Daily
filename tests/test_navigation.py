@@ -57,6 +57,7 @@ def test_changing_park_backdrop_requires_multiple_toolbar_labels(tmp_path):
     (['任務', '成就'], False, False, None),
     (['遊戲', '任務'], True, False, None),
     (['任務', '成就'], True, True, 'park_dialogue'),
+    (['遊戲', '任務', '成就'], True, True, 'park_dialogue'),
 ])
 def test_home_gamepad_substitutes_only_for_its_own_missing_label(tmp_path, labels, icon, dialogue, scene):
     root = Path(__file__).resolve().parents[1]

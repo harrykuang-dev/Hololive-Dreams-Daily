@@ -77,7 +77,7 @@ class Navigator:
                 scene = 'home'
             elif (len(words) == 2 and '遊戲' not in words
                     and self.vision.match(frame, 'home_games_button')):
-                scene = 'park_dialogue' if self.vision.match(frame, 'park_dialogue_next') else 'home'
+                scene = 'home'
             else:
                 if self.fishing_failure_controls(observation):
                     return Observation(frame, 'fishing_failure', captured)
@@ -124,7 +124,8 @@ class Navigator:
                     area = self.text(observation, '汽水泡泡灣', (65, 5, 350, 110))
                     scene = 'fishing_map_second' if any('汽水泡泡灣' in getattr(item, 'text', '')
                                                        for item in area) else 'park_map'
-        if scene == 'home' and self.park_dialogue_footer(observation):
+        if scene == 'home' and (self.vision.match(frame, 'park_dialogue_next')
+                                or self.park_dialogue_footer(observation)):
             scene = 'park_dialogue'
         return Observation(frame, scene, captured)
 
