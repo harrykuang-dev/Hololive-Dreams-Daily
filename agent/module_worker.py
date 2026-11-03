@@ -226,7 +226,7 @@ def main():
                 publish('running', phase='authorized')
                 wait_for_table(bot, cancelled)
                 bot.DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-                result = play(bot, config.target, cancelled=cancelled, publish=publish,
+                result = play(bot, config.strategy, cancelled=cancelled, publish=publish,
                               verify_window=verify_window)
                 publish('complete', completed=1, result=result)
             finally:

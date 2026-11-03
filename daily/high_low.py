@@ -5,7 +5,6 @@ import time
 
 from .calendar import DailyUnavailable
 from .contracts import ConfigurationError, TaskResult, TaskStatus
-from .high_low_worker import DAILY_COIN_CAP
 from .navigation import NavigationError
 from .workers import WorkerSupervisor
 
@@ -20,22 +19,31 @@ class HighLowRunner:
         return (len(self.nav.text(observation, '^投注並開始$', (510, 540, 260, 95))) == 1
                 and len(self.nav.text(observation, r'^投[注註]金額為\s*50\s*枚硬幣$', (460, 125, 360, 65))) == 1)
 
+    def invitation(self, observation):
+        if (observation.scene != 'park_dialogue' and
+                not self.nav.vision.match(observation.image, 'park_dialogue_next')):
+            return False
+        names = self.nav.text(observation, r'^(Shiori|佩克拉)$', (550, 560, 170, 50))
+        if len(names) != 1:
+            return False
+        expected = (r'^若想抓住機會[，, ]*那就全力以赴吧[。.]?$' if names[0].text.strip() == 'Shiori'
+                    else r'想玩嗎\s*PEKO')
+        return len(self.nav.text(observation, expected, (200, 610, 850, 60))) == 1
+
     def open_table(self):
         observation = self.nav.observe()
-        if observation.scene != 'home' or len(self.nav.text(observation, '^比大小$', (700, 300, 560, 310))) != 1:
+        if observation.scene == 'home' and len(self.nav.text(observation, '^比大小$', (700, 300, 560, 310))) == 1:
+            self.nav.inputs.key(0x45, .12)
+        elif not self.invitation(observation):
             raise NavigationError('未確認比大小互動入口')
-        self.nav.inputs.key(0x45, .12)
         deadline, dialogue_advanced = time.monotonic()+18, False
         while time.monotonic() < deadline:
             observation = self.nav.observe()
             if self.table(observation):
                 return
-            if not dialogue_advanced and (observation.scene == 'park_dialogue' or
-                    self.nav.vision.match(observation.image, 'park_dialogue_next')):
-                invitation = self.nav.text(observation, r'想玩|比大小|卡牌遊戲', (200, 610, 850, 60))
-                if len(invitation) == 1:
-                    self.nav.inputs.key(0x45, .12)
-                    dialogue_advanced = True
+            if not dialogue_advanced and self.invitation(observation):
+                self.nav.inputs.key(0x45, .12)
+                dialogue_advanced = True
             self.nav.inputs.pause(.2)
         self.nav.save(observation, 'high-low-table-unconfirmed')
         raise NavigationError('未確認比大小牌桌，未授權投注')
@@ -62,8 +70,6 @@ class HighLowRunner:
         raise NavigationError('比大小已停止，未確認安全的離開牌桌按鈕')
 
     def run(self, config):
-        if config.target is not None and not 1 <= config.target <= DAILY_COIN_CAP:
-            raise ConfigurationError('比大小獎勵目標必須介於 1 至 20000')
         if 'high_low' in self.nav.daily_attempts.attempted_tasks():
             raise DailyUnavailable('比大小本遊戲日已有嘗試紀錄')
         path = self.root / 'config/modules.json'
@@ -72,7 +78,8 @@ class HighLowRunner:
         modules = Path(settings.get('module_root', self.root / 'upstream/holodori/upstream'))
         if not python.is_file() or not (modules / 'high_low/auto_bot.py').is_file():
             raise ConfigurationError('比大小獨立模組執行環境尚未準備')
-        self.nav.to_high_low_entry()
+        if not self.invitation(self.nav.observe()):
+            self.nav.to_high_low_entry()
         attempt = None
         hwnd = self.nav.recording.hwnd
 
@@ -100,8 +107,7 @@ class HighLowRunner:
             credited, wins = result.get('credited'), result.get('wins')
             reason = result.get('reason')
             if (attempt is None or type(credited) is not int or credited < 0 or type(wins) is not int or wins < 0
-                    or reason not in {'target', 'cap'} or (reason == 'target' and
-                        (config.target is None or credited < config.target or wins < 1))):
+                    or reason not in {'cap', 'phases'} or (reason == 'phases' and config.strategy != 'aggressive')):
                 raise NavigationError('比大小未回報有效的結算或上限證據')
             evidence = self.nav.save(self.nav.observe(), 'high-low-stopped')
             attempt.finish(evidence=evidence)

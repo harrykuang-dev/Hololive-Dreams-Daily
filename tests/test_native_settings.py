@@ -40,7 +40,7 @@ def test_multiple_ui_options_survive_real_maa_overrides(tmp_path):
     cases = [('cooking', {'rounds': '7', 'multiplier': '3', 'resource_budget': '180', 'entry_only': True}),
              ('solo_live', {'rounds': '2', 'multiplier': '5', 'resource_budget': '10',
                             'team': '4', 'song': 'Miracle Palette', 'entry_only': False}),
-             ('high_low', {'target': '40000', 'entry_only': False})]
+             ('high_low', {'strategy': 'aggressive', 'entry_only': False})]
     for task, options in cases:
         overrides = [{setting_node(task, field): {'custom_action_param': {field: value}}}
                      for field, value in options.items()]

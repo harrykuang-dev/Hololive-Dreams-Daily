@@ -246,12 +246,12 @@
       "entry_only": false
     }
   },
-  "DailyConfig_high_low_target": {
+  "DailyConfig_high_low_strategy": {
     "recognition": "DirectHit",
     "action": "Custom",
     "custom_action": "RunDailyTask",
     "custom_action_param": {
-      "target": ""
+      "strategy": "conservative"
     }
   },
   "Daily_jump_rope": {

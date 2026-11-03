@@ -23,7 +23,6 @@
   "solo_live_song": "Song (blank: keep)",
   "invalid_song": "Enter a valid value",
   "task_high_low": "High & Low",
-  "high_low_target": "Coin goal",
   "invalid_target": "Enter a valid value",
   "task_jump_rope": "Jump Rope",
   "jump_rope_rounds": "Rounds (required)",
@@ -44,5 +43,8 @@
   "no": "No",
   "starting": "Starting {name}",
   "finished": "Finished {name}; see task record for the result",
-  "failed": "Task stopped: {name}"
+  "failed": "Task stopped: {name}",
+  "high_low_strategy": "Strategy",
+  "high_low_conservative": "Conservative",
+  "high_low_aggressive": "Aggressive"
 }

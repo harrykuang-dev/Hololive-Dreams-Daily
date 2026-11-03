@@ -10,8 +10,10 @@ def defaults(task):
         values['rounds'] = '' if task in USER_ENTERED_ROUNDS else '1'
     if task in ('cooking', 'solo_live', 'multi_live', 'jump_rope'):
         values.update(multiplier='1', resource_budget='')
-    if task in ('fishing', 'high_low'):
-        values['target'] = '3' if task == 'fishing' else ''
+    if task == 'fishing':
+        values['target'] = '3'
+    if task == 'high_low':
+        values['strategy'] = 'conservative'
     if task in ('solo_live', 'multi_live'):
         values['team'] = 'current'
     if task == 'solo_live':

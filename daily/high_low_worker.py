@@ -5,8 +5,9 @@ import time
 DAILY_COIN_CAP = 20_000
 
 
-def play(bot, target, *, cancelled, publish, verify_window):
-    """Stop at a confirmed reward goal or at the game's daily limit."""
+def play(bot, strategy, *, cancelled, publish, verify_window):
+    """Use the pinned module's settlement and strategy completion rules."""
+    mode = {'conservative': 'legacy', 'aggressive': 'phased'}[strategy]
     baseline = None
     coins = 0
     credited = wins = 0
@@ -51,17 +52,14 @@ def play(bot, target, *, cancelled, publish, verify_window):
             credited += amount
             wins += 1
             publish('running', phase='settled', coins=coins, credited=credited, wins=wins)
-            if target is not None and credited >= target:
-                reason = 'target'
-                bot.bot_running = False
-            elif coins >= DAILY_COIN_CAP:
+            if coins >= DAILY_COIN_CAP:
                 reason = 'cap'
                 bot.bot_running = False
 
     try:
         bot.safe_click = guarded_click
         bot.bot_running = True
-        bot.auto_play_loop(mode='legacy', notify=notify)
+        bot.auto_play_loop(mode=mode, notify=notify)
     finally:
         bot.bot_running = False
         bot.safe_click = original_click
@@ -69,8 +67,10 @@ def play(bot, target, *, cancelled, publish, verify_window):
         raise click_error
     if cancelled():
         raise InterruptedError('High & Low cancelled')
+    if mode == 'phased' and bot.load_daily_stage() == 3:
+        reason = 'phases'
     if reason is None:
-        raise RuntimeError('High & Low ended without a verified goal or game limit')
+        raise RuntimeError('High & Low ended without a verified strategy result or game limit')
     return {'credited': credited, 'wins': wins, 'reason': reason}
 
 

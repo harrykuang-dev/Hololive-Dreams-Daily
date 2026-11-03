@@ -28,7 +28,7 @@ Minigame navigation can verify the park's gamepad icon when its small text label
 
 Cooking and Jump Rope accept an explicit zero-energy setting. The actual widget and setup cost must both read zero, and the remaining resource balance must still be valid. Cooking's recorded two-round run used a zero resource budget with nonzero energy remaining. This option is separate from Live's positive consumption multiplier.
 
-High & Low has passed recorded map navigation to the interaction prompt. Full mode verifies the table and its 50-coin wager, then hands play to the pinned module in a separate process. Play stops after the first verified settlement that reaches the configured coin goal, so the last settlement can take the total above the goal. A blank goal follows the module's daily limit. The isolated runtime and table recognition have passed offline checks. Full live play is under validation.
+High & Low verifies the table and its 50-coin wager before handing play to the pinned module in a separate process. Conservative uses the module's original strategy. Aggressive uses its three-stage strategy. The isolated runtime, both strategy selections, and the recorded dialogue and table recognition have passed offline checks. Live navigation reached the opening dialogue. Full play and settlement await a recorded test.
 
 Solo Live has passed recorded single-round foreground tests with one-energy, nine-energy and zero-energy consumption, plus an uninterrupted two-round test with separate Auto, resource and remaining-budget checks before each song. A zero resource budget permits play only when the observed effective cost is zero; it does not replenish energy or waive Auto-use checks. The game's consumption multiplier remains positive. The current song, difficulty and team must be retained. Multiplayer has passed recorded navigation from the park to its mode-selection page. Matchmaking, the ready/start entry and multiplayer play remain unverified and disabled.
 
@@ -71,6 +71,8 @@ python -m pytest -q
 Clone with submodules. `dependencies.lock.json` records the selected upstream commits. Upstream modules require their own runtime dependencies and models; the Maa agent environment is kept separate. See `THIRD_PARTY_NOTICES.md` and `upstream/holodori/LICENSES.md` for component notices.
 
 For the separate Jump Rope interpreter, install `requirements-modules-jump.txt` and run `python tools/check_jump_runtime.py`. This performs DirectML model warmup without game input; optional `--sample` arguments verify rope and player-marker detection on local game-only frames. Fifteen warmup frames and three reference frames passed on the development machine. This does not validate gameplay timing or enable the task's worker.
+
+In the prepared module environment, install the additional High & Low dependencies with `python -m pip install --no-deps -r requirements-modules-high-low.txt`. Its OCR uses the ONNX Runtime supplied by `onnxruntime-directml`.
 
 The Jump Rope worker requests a separate parent authorization for each round after its first captured frame. The parent rechecks the actual cost, resource balance and budget before starting. Adapter tests cover readiness, cancellation and stale authorization; the native test verified the handshake and the configured stop score. The optional stop score accepts1–999. An uninterrupted two-round zero-energy Jump Rope run has also passed native acceptance.
 

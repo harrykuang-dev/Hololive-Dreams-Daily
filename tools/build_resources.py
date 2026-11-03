@@ -105,10 +105,18 @@ def generate():
                       'Resource budget (optional)', default='', verify=r'^$|^(0|[1-9][0-9]{0,8})$')
             interface['option'][task + '_resource_budget']['description'] = (
                 '空白時以現有資源餘量為限；0 表示不消耗資源，不會自動補充。')
-        if task in ('fishing', 'high_low'):
-            add_input('target', '目標釣獲數' if task == 'fishing' else '本次收益目標（空白為遊戲上限）',
-                      'Target catches' if task == 'fishing' else 'Profit target (blank: game cap)',
-                      default='3' if task == 'fishing' else '', verify=r'^$|^[1-9][0-9]{0,8}$')
+        if task == 'fishing':
+            add_input('target', '目標釣獲數', 'Target catches', default='3', verify=r'^$|^[1-9][0-9]{0,8}$')
+        if task == 'high_low':
+            option_name = 'high_low_strategy'
+            interface['option'][option_name] = {
+                'type': 'select', 'label': '$' + option_name, 'default_case': 'Conservative',
+                'cases': [{'name': name, 'label': '$high_low_' + name.lower(), 'pipeline_override': {
+                    setting_node(task, 'strategy'): {'custom_action_param': {'strategy': name.lower()}}}}
+                    for name in ('Conservative', 'Aggressive')]}
+            row['option'].append(option_name)
+            translations['zh_tw'].update(high_low_strategy='策略', high_low_conservative='保守', high_low_aggressive='激進')
+            translations['en_us'].update(high_low_strategy='Strategy', high_low_conservative='Conservative', high_low_aggressive='Aggressive')
         if task == 'jump_rope':
             add_input('score_limit', '跳繩停止分數（可空白）', 'Jump Rope stop score (optional)',
                       default='', verify=r'^$|^[1-9][0-9]{0,2}$')

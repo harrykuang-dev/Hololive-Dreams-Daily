@@ -113,7 +113,7 @@
       "entry": "Daily_high_low",
       "default_check": false,
       "option": [
-        "high_low_target",
+        "high_low_strategy",
         "high_low_entry_only"
       ]
     },
@@ -506,26 +506,34 @@
         }
       ]
     },
-    "high_low_target": {
-      "type": "input",
-      "label": "$high_low_target",
-      "inputs": [
+    "high_low_strategy": {
+      "type": "select",
+      "label": "$high_low_strategy",
+      "default_case": "Conservative",
+      "cases": [
         {
-          "name": "target",
-          "label": "$high_low_target",
-          "pipeline_type": "string",
-          "verify": "^$|^[1-9][0-9]{0,8}$",
-          "pattern_msg": "$invalid_target",
-          "default": ""
-        }
-      ],
-      "pipeline_override": {
-        "DailyConfig_high_low_target": {
-          "custom_action_param": {
-            "target": "{target}"
+          "name": "Conservative",
+          "label": "$high_low_conservative",
+          "pipeline_override": {
+            "DailyConfig_high_low_strategy": {
+              "custom_action_param": {
+                "strategy": "conservative"
+              }
+            }
+          }
+        },
+        {
+          "name": "Aggressive",
+          "label": "$high_low_aggressive",
+          "pipeline_override": {
+            "DailyConfig_high_low_strategy": {
+              "custom_action_param": {
+                "strategy": "aggressive"
+              }
+            }
           }
         }
-      }
+      ]
     },
     "high_low_entry_only": {
       "type": "switch",

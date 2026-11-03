@@ -48,6 +48,7 @@ class TaskConfig:
     song: str = ''
     difficulty: str = 'current'
     team: str = 'current'
+    strategy: str = 'conservative'
 
     @classmethod
     def parse(cls, data: dict) -> 'TaskConfig':
@@ -64,12 +65,15 @@ class TaskConfig:
         entry = data.get('entry_only', False)
         if entry not in (True, False, 'true', 'false'):
             raise ConfigurationError('入口驗證選項無效')
+        strategy = data.get('strategy', 'conservative')
+        if strategy not in ('conservative', 'aggressive'):
+            raise ConfigurationError('比大小策略無效')
         return cls(task=task, rounds=rounds, multiplier=multiplier,
                    entry_only=entry is True or entry == 'true',
                    resource_budget=optional_number('resource_budget', minimum=0),
                    target=optional_number('target'), score_limit=optional_number('score_limit'),
                    song=str(data.get('song', '')), difficulty=str(data.get('difficulty', 'current')),
-                   team=str(data.get('team', 'current')))
+                   team=str(data.get('team', 'current')), strategy=strategy)
 
     def to_dict(self):
         return asdict(self)

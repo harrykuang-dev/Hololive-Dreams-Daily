@@ -1,29 +1,33 @@
 from types import SimpleNamespace
+import re
 
 import pytest
 
 from daily.high_low_worker import play
+from daily.high_low import HighLowRunner
 
 
-@pytest.mark.parametrize('target,opening,amount,reason', [
-    (100, 500, 400, 'target'), (None, 19_800, 400, 'cap'),
+@pytest.mark.parametrize('strategy,mode,opening,reason', [
+    ('conservative', 'legacy', 19_800, 'cap'), ('aggressive', 'phased', 500, 'phases'),
 ])
-def test_high_low_goal_waits_for_new_settlement_before_stopping(target, opening, amount, reason):
+def test_high_low_strategy_uses_pinned_completion(strategy, mode, opening, reason):
     events = []
-    bot = SimpleNamespace(safe_click=lambda *args: events.append('click'))
+    bot = SimpleNamespace(safe_click=lambda *args: events.append('click'), load_daily_stage=lambda: 3)
+    selected = mode
+    amount = 400
 
     def upstream(*, mode, notify):
-        assert mode == 'legacy'
+        assert mode == selected
         notify('stats', {'coins': opening})
         assert bot.bot_running
         bot.safe_click(1, 2)
         notify('stats', {'coins': opening + amount})
         assert bot.bot_running
         notify('credit', {'amount': amount})
-        assert not bot.bot_running
+        assert bot.bot_running is (strategy == 'aggressive')
 
     bot.auto_play_loop = upstream
-    result = play(bot, target, cancelled=lambda: False,
+    result = play(bot, strategy, cancelled=lambda: False,
                   publish=lambda *a, **k: events.append('settled'),
                   verify_window=lambda: events.append('window'))
     assert result == {'credited': amount, 'wins': 1, 'reason': reason}
@@ -37,7 +41,7 @@ def test_high_low_never_accepts_unconfirmed_credit():
 
     bot = SimpleNamespace(auto_play_loop=upstream, safe_click=lambda: None)
     with pytest.raises(RuntimeError, match='Unverified'):
-        play(bot, 100, cancelled=lambda: False, publish=lambda *a, **k: None,
+        play(bot, 'conservative', cancelled=lambda: False, publish=lambda *a, **k: None,
              verify_window=lambda: None)
     assert not bot.bot_running
 
@@ -57,6 +61,26 @@ def test_high_low_guard_blocks_click_on_window_change_even_if_upstream_swallows_
 
     bot.auto_play_loop = upstream
     with pytest.raises(RuntimeError, match='Window changed'):
-        play(bot, 100, cancelled=lambda: False, publish=lambda *a, **k: None,
+        play(bot, 'conservative', cancelled=lambda: False, publish=lambda *a, **k: None,
              verify_window=lost_window)
     assert not bot.bot_running and bot.safe_click is original
+
+
+def test_high_low_advances_the_already_open_shiori_invitation_once():
+    text_by_roi = {(550, 560, 170, 50): 'Shiori',
+                   (200, 610, 850, 60): '若想抓住機會，那就全力以赴吧。'}
+    dialogue = SimpleNamespace(scene='park_dialogue', image=None)
+    table = SimpleNamespace(scene=None, image=None)
+    observations = iter((dialogue, dialogue, table))
+    events = []
+
+    def text(observation, pattern, roi):
+        value = text_by_roi.get(roi, '')
+        return [SimpleNamespace(text=value)] if re.search(pattern, value) else []
+
+    nav = SimpleNamespace(observe=lambda: next(observations), text=text,
+        inputs=SimpleNamespace(key=lambda key, duration: events.append(key), pause=lambda _: None))
+    runner = HighLowRunner(nav, None, None)
+    runner.table = lambda observation: observation is table
+    runner.open_table()
+    assert events == [0x45]
