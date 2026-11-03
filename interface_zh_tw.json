@@ -23,7 +23,7 @@
   "solo_live_song": "歌曲（空白為沿用）",
   "invalid_song": "請填入有效數值",
   "task_high_low": "High & Low",
-  "high_low_target": "本次入帳硬幣目標（空白為每日上限）",
+  "high_low_target": "硬幣目標",
   "invalid_target": "請填入有效數值",
   "task_jump_rope": "跳繩",
   "jump_rope_rounds": "局數（必填）",
