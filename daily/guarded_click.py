@@ -6,6 +6,8 @@ movement-key or arbitrary executable command.
 from dataclasses import dataclass
 import math
 
+LIVE_START_ROI = (1030, 610, 220, 85)
+
 
 class GuardedClickError(RuntimeError):
     pass
@@ -38,6 +40,12 @@ class ClickRequest:
                 or type(self.captured_at) not in (float, int) or not math.isfinite(self.captured_at)
                 or not 0 <= now-self.captured_at <= 2):
             raise GuardedClickError('Click evidence expired')
+
+    def check_live_purpose(self, purpose):
+        x, y, width, height = LIVE_START_ROI
+        in_start_region = x <= self.x < x+width and y <= self.y < y+height
+        if in_start_region != (purpose == 'start'):
+            raise GuardedClickError('Only the verified start command may target the Live start region')
 
 
 def execute_click(request, inputs, *, clock, check_target):

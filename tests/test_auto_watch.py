@@ -102,3 +102,72 @@ def test_parent_loss_before_arm_does_not_close_game(tmp_path):
     code = watch({'job_id': 'job', 'parent_pid': 1, 'game_pid': 2, 'game_image': 'game', 'hwnd': 3}, channel,
                  game_factory=lambda *args, **kwargs: game, alive=lambda pid: False)
     assert code == 2 and events == ['close_handle']
+
+
+@pytest.mark.parametrize('mode', ['released', 'held', 'wrong_sequence', 'parent_loss', 'prepare_targets_start'])
+def test_guarded_lane_release_is_bound_to_this_start_and_cleanup_order(mode):
+    now = [100.0]
+    events = []
+    messages = {}
+    job = 'guarded-round'
+    config = dict(job_id=job, parent_pid=1, game_pid=2, game_image='game', hwnd=3)
+    game = SimpleNamespace(pid=2, image='game', handle=object(),
+        backend=SimpleNamespace(is_running=lambda _: True),
+        emergency_stop=lambda: events.append('stop_game') or True,
+        close=lambda: events.append('close_game_handle'))
+
+    def click(purpose, sequence, x, y):
+        messages['click'] = dict(job_id=job, purpose=purpose, request=dict(
+            job_id=job, sequence=sequence, x=x, y=y, captured_at=now[0]))
+
+    def evidence(*, authorized=False, sequence=None, captured_at=None):
+        messages['observation'] = dict(job_id=job, input_sequence=sequence, observation=dict(
+            scene='multi_ready', captured_at=now[0] if captured_at is None else captured_at,
+            auto_enabled=True, auto_remaining=3, start_authorized=authorized))
+
+    class Lane:
+        ack = None
+        error = None
+        cleanup_complete = False
+        process = SimpleNamespace(poll=lambda: None)
+
+        def prepare(self):
+            events.append('prepare_input')
+
+        def dispatch(self, request):
+            sequence = request['sequence']
+            events.append(f'click_{sequence}')
+            self.ack = dict(sequence=sequence if sequence == 1 or mode != 'wrong_sequence' else 1,
+                            captured_at=request['captured_at'], released=sequence == 1 or mode != 'held')
+            if sequence == 2:
+                evidence(authorized=True, sequence=2, captured_at=request['captured_at'])
+            return sequence
+
+        def abort(self):
+            events.append('cleanup_input')
+            self.cleanup_complete = True
+
+    def publish(state, **details):
+        if state == 'ready':
+            assert details['input_protocol'] == 1
+            messages['arm'] = dict(job_id=job, decision='arm', captured_at=now[0])
+        elif state == 'armed' and 'click_1' not in events:
+            click('match', 1, 500, 400)
+        elif state == 'armed' and details.get('input_ack') == 1 and messages['click']['request']['sequence'] == 1:
+            evidence()
+            click('prepare' if mode == 'prepare_targets_start' else 'start', 2, 1150, 650)
+        elif state == 'auto_verified':
+            events.append('release_guard')
+
+    lane = Lane()
+    channel = SimpleNamespace(publish=publish, error=None, message=messages.get, flag=lambda _: False)
+    code = watch(config, channel, game_factory=lambda *a, **k: game, lane_factory=lambda _: lane,
+                 alive=lambda _: mode != 'parent_loss' or 'click_2' not in events,
+                 clock=lambda: now[0], pause=lambda delay: now.__setitem__(0, now[0]+delay))
+    if mode == 'released':
+        assert code == 0 and events == ['prepare_input', 'click_1', 'click_2', 'cleanup_input',
+                                        'release_guard', 'close_game_handle']
+    else:
+        assert code != 0 and events[-3:] == ['stop_game', 'cleanup_input', 'close_game_handle']
+        assert 'release_guard' not in events
+        assert ('click_2' not in events) == (mode == 'prepare_targets_start')

@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 
 from .contracts import AutoObservation, ResourceObservation, TaskResult, TaskStatus
+from .guarded_click import LIVE_START_ROI
 from .inputs import Cancelled, InputFailure
 from .navigation import NavigationError
 from .resources import EnergySettings, ResourceUnavailable, parse_fraction, read_one, read_setup_cost, parse_consumption
@@ -61,7 +62,7 @@ class LiveControls:
         observation = self.nav.observe()
         if expected is None or observation.scene != expected:
             raise LiveBlocked('Live 開始畫面不符，未開始遊玩')
-        buttons = self.nav.text(observation, '決定$', (1030, 610, 220, 85))
+        buttons = self.nav.text(observation, '決定$', LIVE_START_ROI)
         if len(buttons) != 1:
             raise LiveBlocked('無法唯一確認 Live 決定按鈕')
         state = self.read(observation)
@@ -81,8 +82,7 @@ class LiveControls:
                 validate_live_start(config, state, budget_remaining, energy=energy))
         else:
             permit = auto_supervisor.prepare_start(config, state, budget_remaining, energy=energy)
-            auto_supervisor.perform_start(permit, lambda preflight:
-                self.nav.inputs.click(int(x+w/2), int(y+h/2), before_post=preflight))
+            auto_supervisor.perform_start(permit, int(x+w/2), int(y+h/2))
         return state
 
 

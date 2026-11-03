@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT))
 from daily.auto_watch import watch
 from daily.processes import publish_status
 from daily.game_process import ParentProcess
+from daily.input_lane import InputLane
 from daily.watch_mailbox import WatchMailbox
 
 
@@ -29,7 +30,12 @@ def main():
         parent = ParentProcess(config['parent_pid'], expected_creation=config['parent_creation'])
         channel = WatchMailbox(directory, config['job_id'], publish)
         channel.start()
-        return watch(config, channel, alive=parent.alive)
+        def make_lane(identity):
+            keys = ('job_id', 'hwnd', 'game_pid', 'game_image')
+            return InputLane(ROOT, Path(sys.executable), directory/'input',
+                             {key: identity[key] for key in keys}, exclusive_input=True)
+        return watch(config, channel, alive=parent.alive,
+                     lane_factory=make_lane if config.get('input_protocol') == 1 else None)
     except Exception as error:
         publish('failed', error=f'{type(error).__name__}: {error}')
         return 1

@@ -58,7 +58,7 @@ class WatchMailbox:
         try:
             while not self._stop.is_set():
                 snapshot = {name: self.reader(self.directory/(name+'.json'), self.job_id)
-                            for name in ('arm', 'observation')}
+                            for name in ('arm', 'observation', 'click')}
                 snapshot.update({name: (self.directory/name).exists()
                                  for name in ('abort', 'cancel_before_arm')})
                 self._snapshot = snapshot

@@ -78,29 +78,25 @@ def test_solo_rechecks_snapshot_freshness_after_recording_audit(monkeypatch):
     assert not calls
 
 
-def test_guarded_multiplayer_runs_audit_and_final_check_before_input_then_releases():
+def test_guarded_multiplayer_passes_verified_button_to_supervisor_only():
     timeline = []
     snapshot = state(scene='multi_ready')
     control, _ = controls(snapshot)
     control.nav.observe = lambda: SimpleNamespace(scene='multi_ready')
     control.nav.recording = SimpleNamespace(mark=lambda *args, **kwargs: timeline.append('audit'))
-    def click(x, y, *, before_post):
-        timeline.append('cursor_audit')
-        before_post()
-        timeline.append('input_ack')
-    control.nav.inputs.click = click
+    control.nav.inputs.click = lambda *a, **k: pytest.fail('Multiplayer bypassed its input supervisor')
     token = object()
     class Supervisor:
         def prepare_start(self, config, read_state, budget, *, energy):
             assert read_state.auto is snapshot.auto and budget == 1
             timeline.append('full_gate')
             return token
-        def perform_start(self, permit, action):
+        def perform_start(self, permit, x, y):
             assert permit is token
-            action(lambda: timeline.append('final_check'))
-            timeline.append('release_guard')
+            assert (x, y) == (1150, 650)
+            timeline.append('supervised_start')
     control.start(TaskConfig('multi_live', resource_budget=1), auto_supervisor=Supervisor())
-    assert timeline == ['audit', 'full_gate', 'cursor_audit', 'final_check', 'input_ack', 'release_guard']
+    assert timeline == ['audit', 'full_gate', 'supervised_start']
 
 
 @pytest.mark.parametrize('remaining', [0, 1])

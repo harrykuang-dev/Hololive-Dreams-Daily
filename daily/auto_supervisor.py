@@ -13,6 +13,7 @@ import uuid
 
 from .auto_deadline import CountdownObservation, finite_number
 from .game_process import GameProcess, current_creation_time
+from .guarded_click import ClickRequest
 from .inputs import Cancelled
 from .processes import publish_status
 from .live_validation import LiveStartProof, validate_live_start
@@ -43,6 +44,7 @@ class AutoSupervisor:
         self.phase = 'new'
         self.job_id = uuid.uuid4().hex
         self._armed = False
+        self._input_sequence = 0
         self._permit = None
         self._owner = threading.get_ident()
         self._lock = threading.RLock()
@@ -66,7 +68,7 @@ class AutoSupervisor:
         except (OSError, ValueError, AttributeError):
             return None
 
-    def _wait(self, expected, timeout):
+    def _wait(self, expected, timeout, *, accept=lambda _state: True):
         deadline = self.clock()+timeout
         while True:
             self._check_owner()
@@ -75,7 +77,7 @@ class AutoSupervisor:
                 name = state.get('state')
                 if name in {'failed', 'game_closed', 'closing_game', 'cancelled_before_arm'}:
                     raise AutoGuardError(state.get('error') or state.get('reason') or name)
-                if name in expected:
+                if name in expected and accept(state):
                     code = self.process.poll()
                     if code is not None and not (name == 'auto_verified' and code == 0):
                         raise AutoGuardError('Watchdog exited during handshake')
@@ -86,7 +88,7 @@ class AutoSupervisor:
                 # status read and poll. Re-read once before rejecting it.
                 final = self._status()
                 if (code == 0 and final is not None and final.get('state') == 'auto_verified'
-                        and 'auto_verified' in expected):
+                        and 'auto_verified' in expected and accept(final)):
                     return final
                 raise AutoGuardError('Watchdog did not acknowledge the current round')
             if self.clock() >= deadline:
@@ -104,7 +106,8 @@ class AutoSupervisor:
                 self.directory.mkdir(parents=True, exist_ok=False)
                 config = {'job_id': self.job_id, 'parent_pid': os.getpid(),
                           'parent_creation': self.creation_time(), 'hwnd': self.hwnd,
-                          'game_pid': self.game.pid, 'game_image': self.game.image}
+                          'game_pid': self.game.pid, 'game_image': self.game.image,
+                          'input_protocol': 1}
                 path = self.directory/'config.json'
                 publish_status(path, config)
                 self.log = (self.directory/'watchdog.log').open('w', encoding='utf-8')
@@ -115,9 +118,11 @@ class AutoSupervisor:
                 self.process = self.launcher([str(self.python), '-I', '-B', '-X', 'utf8',
                     str(self.root/'agent/auto_watch_worker.py'), '--config', str(path)],
                     cwd=self.root, stdout=self.log, stderr=self.log, creationflags=flags)
-                ready = self._wait({'ready'}, 12)
+                ready = self._wait({'ready'}, 18)
                 if ready.get('game_pid') != self.game.pid or ready.get('game_image') != self.game.image:
                     raise AutoGuardError('Watchdog bound a different game process')
+                if ready.get('input_protocol') != 1:
+                    raise AutoGuardError('Watchdog lacks the guarded input worker')
                 self.phase = 'prepared'
                 self.trace('multi_watchdog_ready', job_id=self.job_id, game_pid=self.game.pid)
             except BaseException:
@@ -125,7 +130,7 @@ class AutoSupervisor:
                 raise
         return self
 
-    def match(self, action):
+    def match(self, x, y, *, captured_at):
         with self._lock:
             self._check_owner()
             if self.phase != 'prepared':
@@ -151,10 +156,40 @@ class AutoSupervisor:
                 if (self.game.backend.pid_for_window(self.hwnd) != self.game.pid
                         or not self.game.backend.is_running(self.game.handle)):
                     raise AutoGuardError('Game identity changed after matching audit')
-                action()
+                self._click(x, y, captured_at, 'match')
             except BaseException:
                 self.close()
                 raise
+
+    def click(self, x, y, *, captured_at):
+        with self._lock:
+            try:
+                self._permit = None
+                self._click(x, y, captured_at, 'prepare')
+            except BaseException:
+                self.close()
+                raise
+
+    def _click(self, x, y, captured_at, purpose, *, before_post=None):
+        self._check()
+        sequence = self._input_sequence + 1
+        request = ClickRequest.parse({'job_id': self.job_id, 'sequence': sequence,
+            'x': x, 'y': y, 'captured_at': captured_at}, self.job_id,
+            last_sequence=self._input_sequence, now=self.clock())
+        request.check_live_purpose(purpose)
+        self.trace('multi_click_request', purpose=purpose, sequence=sequence, x=x, y=y,
+                   captured_at=captured_at)
+        self._check()
+        if before_post is not None:
+            before_post()
+        request.check_fresh(self.clock())
+        publish_status(self.directory/'click.json', {'job_id': self.job_id,
+            'purpose': purpose, 'request': asdict(request)})
+        self._wait({'armed'}, 2, accept=lambda state: type(state.get('input_ack')) is int
+                   and state['input_ack'] == sequence)
+        request.check_fresh(self.clock())
+        self._input_sequence = sequence
+        return sequence
 
     def observe(self, observation: CountdownObservation):
         with self._lock:
@@ -214,29 +249,26 @@ class AutoSupervisor:
         if checked != proof:
             raise AutoGuardError('The final Live gate proof changed')
 
-    def perform_start(self, permit, action):
+    def perform_start(self, permit, x, y):
         """Own the order: full proof, pre-post check, input ACK, final release."""
         with self._lock:
             try:
                 self.verify_permit(permit)
-                checked = 0
-                def before_post():
-                    nonlocal checked
-                    checked += 1
-                    if checked != 1:
-                        raise AutoGuardError('Final input preflight must run exactly once')
-                    self.verify_permit(permit)
-                action(before_post)
-                if checked != 1:
-                    raise AutoGuardError('Start input did not run its final preflight')
+                auto = permit.proof.state.auto
+                observed = CountdownObservation(auto.scene, auto.captured_at, auto.enabled, auto.remaining)
+                publish_status(self.directory/'observation.json', {
+                    'job_id': self.job_id, 'observation': asdict(observed)})
+                self._wait({'armed'}, .75, accept=lambda state: state.get('ready_seen') is True
+                           and state.get('last_capture') == auto.captured_at)
+                sequence = self._click(x, y, auto.captured_at, 'start',
+                                       before_post=lambda: self.verify_permit(permit))
                 self.verify_permit(permit)
                 self._permit = None
-                auto = permit.proof.state.auto
                 message = CountdownObservation(auto.scene, auto.captured_at, auto.enabled,
                                                 auto.remaining, start_authorized=True)
                 publish_status(self.directory/'observation.json', {
-                    'job_id': self.job_id, 'observation': asdict(message)})
-                self._wait({'auto_verified'}, .75)
+                    'job_id': self.job_id, 'input_sequence': sequence, 'observation': asdict(message)})
+                self._wait({'auto_verified'}, .75, accept=lambda state: state.get('input_ack') == sequence)
                 self.phase = 'safe_auto'
             except BaseException:
                 self.close()
@@ -246,19 +278,17 @@ class AutoSupervisor:
         with self._lock:
             if self.phase == 'closed':
                 return
-            safe_to_stop_worker = not self._armed or self.phase == 'safe_auto'
             try:
                 if self._armed and self.phase != 'safe_auto' and self.game is not None:
                     # Kill the exact retained game handle BEFORE any file/log
                     # write can block the parent cancellation path.
                     self.game.emergency_stop()
-                    safe_to_stop_worker = True
                 if self.process is not None and self.process.poll() is None:
-                    if safe_to_stop_worker:
-                        # Shutdown affects only our own subprocess. An armed
-                        # worker is never removed while an unverified game runs.
-                        self.process.terminate()
-                        self.process.wait(timeout=5)
+                    if not self._armed:
+                        (self.directory/'cancel_before_arm').touch(exist_ok=True)
+                    # The watchdog owns the input worker. Let it observe the
+                    # closed game and clean up before removing any handles.
+                    self.process.wait(timeout=10)
             finally:
                 if self.game is not None:
                     self.game.close()
