@@ -377,3 +377,18 @@ def test_notifications_retry_only_from_observed_home(tmp_path, monkeypatch, afte
         with pytest.raises(NavigationError, match='未確認通知面板'):
             navigator.open_notifications()
     assert clicks == [(260, 54)] * expected_clicks
+
+
+def test_dialogue_footer_takes_priority_over_park_toolbar(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    navigator = Navigator(Context([]), root / 'resource', tmp_path)
+    navigator.vision.scene = lambda _: 'home'
+    image = np.zeros((720, 1280, 3), dtype=np.uint8)
+    image[676:702, 982:1008] = (200, 140, 50)
+    navigator.text = lambda *a: [SimpleNamespace(text='E')]
+    assert navigator.interpret(image).scene == 'park_dialogue'
+    navigator.text = lambda *a: []
+    assert navigator.interpret(image).scene == 'home'
+    navigator.text = lambda *a: [SimpleNamespace(text='E')]
+    image[665:710, 975:1015] = (200, 140, 50)
+    assert navigator.interpret(image).scene == 'home'

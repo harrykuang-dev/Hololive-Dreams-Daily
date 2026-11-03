@@ -121,6 +121,8 @@ class Navigator:
                     area = self.text(observation, '汽水泡泡灣', (65, 5, 350, 110))
                     scene = 'fishing_map_second' if any('汽水泡泡灣' in getattr(item, 'text', '')
                                                        for item in area) else 'park_map'
+        if scene == 'home' and self.park_dialogue_footer(observation):
+            scene = 'park_dialogue'
         return Observation(frame, scene, captured)
 
     @staticmethod
@@ -322,6 +324,27 @@ class Navigator:
                 if getattr(item, 'text', '').strip() == 'E']
         return signature if len(keys) == 1 else None
 
+    def park_dialogue_footer(self, observation):
+        if observation.image is None:
+            return False
+        footer = observation.image[665:710, 975:1015]
+        blue = cv2.inRange(footer, (149, 90, 0), (255, 230, 110))
+        # A 26px blue keycap with white lettering sits in this footer, away
+        # from the ordinary interaction E in the centre-right of the park.
+        centre = blue[11:37, 7:33]
+        if cv2.countNonZero(centre) < .75 * centre.size or cv2.countNonZero(blue) > .55 * blue.size:
+            return False
+        keys = self.text(observation, '^E$', (975, 665, 40, 45))
+        if sum(getattr(item, 'text', '').strip() == 'E' for item in keys) == 1:
+            return True
+        # The key lettering can be washed out at the start of this page.
+        lines = self.text(observation, '.+', (200, 610, 850, 60))
+        line = re.sub(r'[\W_]+', '', ''.join(item.text for item in lines)).upper()
+        if line != 'BAUBAU哈啊好想玩個痛快':
+            return False
+        speakers = self.text(observation, '^Mococo$', (550, 560, 170, 50))
+        return sum(item.text.strip() == 'Mococo' for item in speakers) == 1
+
     def login_bonus_button(self, observation):
         # This observed event login page is not a generic "continue" handler.
         titles = [item for item in self.text(observation, '^萬聖節$', (450, 140, 390, 160))
@@ -463,7 +486,7 @@ class Navigator:
             observation = self.wait_for({'home', 'live_result', 'song_select', 'solo_setup',
                                          'holowork', 'daily_missions', 'achievements',
                                          'event_missions', 'gifts'}, timeout=45)
-        if (self.vision.match(observation.image, 'park_dialogue_next')
+        if (observation.scene == 'park_dialogue' or self.vision.match(observation.image, 'park_dialogue_next')
                 or (observation.scene == 'home' and self.gift_transfer_dialogue(observation))):
             raise NavigationError('角色對話尚未結束，未嘗試其他選單')
         if observation.scene == 'notifications':

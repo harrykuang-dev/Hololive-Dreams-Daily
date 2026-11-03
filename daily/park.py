@@ -55,7 +55,8 @@ class ParkRunner:
         if (place == LOTTERY_PLACE and len(scratch) == 1 and
                 self.nav.vision.match(observation.image, 'lottery_scratch_card')):
             return ParkView('scratch', observation, tuple(scratch[0].box))
-        if self.nav.vision.match(observation.image, 'park_dialogue_next'):
+        if (observation.scene == 'park_dialogue'
+                or self.nav.vision.match(observation.image, 'park_dialogue_next')):
             lines = self.nav.text(observation, '.+', (200, 610, 850, 60))
             speaker = self.nav.text(observation, place.speaker or '.+', (550, 560, 170, 50))
             signature = '|'.join(getattr(item, 'text', '').strip() for item in lines)
@@ -259,7 +260,8 @@ class ParkRunner:
             elif view.kind in ('park', 'entry', 'prompt_loading') and reward_closed:
                 # Lottery keeps its interaction prompt after today's draw.
                 # Gifts can replace their gift label with the character name.
-                # After confirmed GET, only verify return; never press E again.
+                # Only a verified dialogue page can advance after GET. A
+                # free-movement prompt cannot start another interaction.
                 park_since = time.monotonic() if park_since is None else park_since
                 if time.monotonic()-park_since >= .6:
                     return reward

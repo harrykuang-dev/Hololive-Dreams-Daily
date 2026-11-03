@@ -28,6 +28,18 @@ def test_symbol_name_gift_requires_complete_transfer_line_and_dialogue_control(s
     assert view.kind == kind
 
 
+def test_dialogue_footer_recognizes_post_reward_line_without_template():
+    def text(observation, expected, roi):
+        if roi == (200, 610, 850, 60):
+            return [SimpleNamespace(text='BAU BAU——！哈啊～好想玩個痛快～！')]
+        if roi == (550, 560, 170, 50):
+            return [SimpleNamespace(text='Mococo')]
+        return []
+    nav = SimpleNamespace(text=text, vision=SimpleNamespace(match=lambda *args: None))
+    view = ParkRunner(nav).read(SimpleNamespace(image=None, scene='park_dialogue'), GIFT_PLACES[1])
+    assert view.kind == 'dialogue'
+
+
 def runner_for(tmp_path, monkeypatch, kinds):
     elapsed, events = [0.0], []
     monkeypatch.setattr(park.time, 'monotonic', lambda: elapsed[0])
