@@ -73,6 +73,20 @@ def test_cancellation_does_not_click():
     assert not controller.events
 
 
+def test_key_preflight_can_reject_expiry_during_audit_before_any_input():
+    controller = Controller()
+    time_seen = [0]
+    inputs = Inputs(controller, trace=lambda *_args, **_kw: time_seen.append(3))
+
+    def check():
+        if time_seen[-1] > 2:
+            raise InputFailure('expired during audit')
+
+    with pytest.raises(InputFailure, match='expired'):
+        inputs.key(0x45, before_post=check)
+    assert not controller.events and not inputs.held
+
+
 def test_cancellation_while_showing_cursor_releases_alt():
     controller = Controller()
     inputs = Inputs(controller, stopping=lambda: any(e[0] == 'move' for e in controller.events))

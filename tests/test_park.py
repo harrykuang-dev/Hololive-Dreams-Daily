@@ -1,6 +1,8 @@
 from datetime import datetime
+import json
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 from daily import park
@@ -31,10 +33,14 @@ def runner_for(tmp_path, monkeypatch, kinds):
     monkeypatch.setattr(park.time, 'monotonic', lambda: elapsed[0])
     def pause(seconds):
         elapsed[0] += seconds
-    inputs = SimpleNamespace(key=lambda *args: events.append(('key', args)),
+    def key(*args, before_post=None):
+        if before_post is not None:
+            before_post()
+        events.append(('key', args))
+    inputs = SimpleNamespace(key=key,
                              click=lambda *args: events.append(('click', args)), pause=pause)
     observation = SimpleNamespace(scene='home')
-    nav = SimpleNamespace(inputs=inputs, observe=lambda: observation,
+    nav = SimpleNamespace(inputs=inputs, observe=lambda: observation, gift_transfer_dialogue=lambda _: None,
                           save=lambda *args: 'reward.png')
     nav.daily_attempts = DailyAttempts(tmp_path, clock=lambda: datetime.fromisoformat('2026-11-01T05:00:00+08:00'))
     runner = ParkRunner(nav)
@@ -161,6 +167,47 @@ def test_failed_gift_location_is_excluded_while_other_locations_remain_independe
     result = runner.run(TaskConfig.parse({'task': 'park_gifts', 'entry_only': False}))
     assert result.completed_rounds == 1 and result.status == TaskStatus.COMPLETE
     assert consumed == [GIFT_PLACES[1].key] and events == []
+
+
+@pytest.mark.parametrize('change', [None, 'window', 'nameplate', 'second_e'])
+def test_house_handover_resumes_once_only_from_same_recorded_interaction(tmp_path, monkeypatch, change):
+    runner, events = runner_for(tmp_path, monkeypatch, ['reward', 'park'])
+    video = tmp_path / 'previous.avi'
+    video.touch()
+    timeline = tmp_path / 'events.jsonl'
+    ledger = runner.nav.daily_attempts
+    ledger.recording = lambda: {'video': str(video), 'timeline': str(timeline)}
+    original = ledger.reserve(GIFT_PLACES[0].key)
+    original.finish(error='unreadable speaker')
+    press = {'event': 'key_down', 'key': 0x45, 'utc': original.record['started_at']}
+    release = {'event': 'key_up', 'key': 0x45}
+    history = [{'event': 'recording_ready'}, press, release]
+    if change == 'second_e':
+        history += [press, release]
+    history.append({'event': 'recording_stopped', 'frames': 5})
+    timeline.write_text('\n'.join(map(json.dumps, history)), encoding='utf-8')
+    reference = np.zeros((720, 1280, 3), dtype=np.uint8)
+    current = reference.copy()
+    if change == 'nameplate':
+        current[573:594, 612:672] = 100
+    monkeypatch.setattr(park.cv2, 'VideoCapture', lambda _: SimpleNamespace(
+        set=lambda *_: True, read=lambda: (True, reference), get=lambda _: 5, release=lambda: None))
+    runner.nav.vision = SimpleNamespace(normalize=lambda frame: frame)
+    runner.nav.recording = SimpleNamespace(matches_window=lambda _: change != 'window')
+    runner.nav.observe = lambda: SimpleNamespace(scene='home', image=current, captured_at=park.time.monotonic())
+    runner.nav.gift_transfer_dialogue = lambda _: '這是我的一點小心意，收下吧！'
+    runner.entry = lambda *_a, **_kw: pytest.fail('Must not initiate a new gift interaction')
+    config = TaskConfig.parse({'task': 'park_gifts', 'entry_only': False})
+    if change:
+        with pytest.raises(DailyUnavailable):
+            runner.run(config)
+        assert not events and not original.path.with_suffix('.recovery').exists()
+    else:
+        assert runner.run(config).completed_rounds == 1
+        assert events == [('key', (0x45, .12)), ('click', (635, 635))]
+        with pytest.raises(DailyUnavailable):
+            runner.run(config)
+        assert len(events) == 2
 
 
 @pytest.mark.parametrize('count', [0, 2])

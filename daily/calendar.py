@@ -102,40 +102,60 @@ class DailyAttempts:
         directory = self.directory / game_day(self.clock())
         return {path.stem for path in directory.glob('*.json') if path.is_file()}
 
-    def resume_open_dialogue(self, task: str) -> DailyAttempt:
-        # Caller must verify the exact, still-open lottery introduction. This
-        # resumes that interaction; it never authorizes another initial E.
-        if task != 'lottery':
+    def resume_open_dialogue(self, task: str, *, verify_gift=None) -> DailyAttempt:
+        # Lottery callers confirm the introduction. Gift recovery additionally
+        # compares the current handover with the original recording.
+        gift = task == 'park_gift_holo_house' and callable(verify_gift)
+        if task != 'lottery' and not gift:
             raise DailyUnavailable('此每日項目未啟用對話接續')
         self.guard()
         now = self.clock()
         day = game_day(now)
         if self.not_before is not None and now < max(self.not_before, test_window_start(now)):
             raise DailyUnavailable('每日對話接續尚未到實測時間')
-        path = self.directory / day / 'lottery.json'
+        path = self.directory / day / f'{task}.json'
         try:
             record = json.loads(path.read_text(encoding='utf-8'))
             if (record.get('task') != task or record.get('game_day') != day or
                     record.get('state') != 'failed' or record.get('recovered_at')):
                 raise ValueError('Attempt cannot be resumed')
             previous = record['recording']
-            if not Path(previous['video']).is_file():
+            video = Path(previous['video'])
+            if not video.is_file():
                 raise ValueError('Original recording is missing')
             ready = started = closed = False
+            frames = None
+            released = False
             with Path(previous['timeline']).open(encoding='utf-8') as stream:
                 for line in stream:
                     event = json.loads(line)
+                    if gift and started and event.get('event') in {'key_down', 'key_up', 'click', 'mouse_move'}:
+                        if not released and event['event'] == 'key_up' and event.get('key') == 0x45:
+                            released = True
+                        else:
+                            raise ValueError('Original handover contains additional input')
                     if event.get('event') == 'recording_ready':
                         ready = True
                     elif event.get('event') == 'key_down' and event.get('key') == 0x45:
+                        if gift and (not ready or closed or datetime.fromisoformat(event['utc'])
+                                     < datetime.fromisoformat(record['started_at'])):
+                            raise ValueError('Original E does not belong to the reserved attempt')
                         started |= ready
                     elif event.get('event') == 'recording_stopped':
-                        closed |= started
+                        closed |= started and not event.get('capture_error')
+                        frames = event.get('frames')
             if not started or not closed:
                 raise ValueError('Original interaction recording is not finalized')
+            if gift and (not released or type(frames) is not int or frames <= 0):
+                raise ValueError('Original handover lacks verified frame or input evidence')
         except (OSError, ValueError, KeyError, TypeError, AttributeError):
-            raise DailyUnavailable('沒有可接續且已錄影的本日抽獎嘗試，未輸入') from None
+            raise DailyUnavailable('沒有可接續且已錄影的本日嘗試，未輸入') from None
+        if gift and not verify_gift(video, frames):
+            raise DailyUnavailable('禮物對話與原錄影不一致，未輸入')
         self.guard()
+        now = self.clock()
+        if game_day(now) != day:
+            raise DailyUnavailable('遊戲日期已變更，未接續本次互動')
         recovery = {'resumed_at': now.astimezone(timezone.utc).isoformat(),
                     'recording': self.recording()}
         try:
@@ -144,7 +164,7 @@ class DailyAttempts:
                 stream.flush()
                 os.fsync(stream.fileno())
         except FileExistsError:
-            raise DailyUnavailable('本日抽獎對話已接續過，未重試') from None
+            raise DailyUnavailable('本日對話已接續過，未重試') from None
         attempt = DailyAttempt(path, record)
         attempt.replace({**record, 'state': 'pending', 'recovered_at': recovery['resumed_at'],
                          'recovery_recording': recovery['recording'],

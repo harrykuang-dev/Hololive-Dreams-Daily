@@ -38,12 +38,14 @@ class Inputs:
         if hasattr(result, 'succeeded') and not result.succeeded:
             raise InputFailure('Game input failed')
 
-    def down(self, key: int):
+    def down(self, key: int, *, before_post=None):
         self.check()
         self.trace('key_down', key=key)
         # Audit hooks can block while recording, cancellation or supervision
         # changes. Recheck before posting any new system input.
         self.check()
+        if before_post is not None:
+            before_post()
         # Remember it before posting: a failed acknowledgement can still mean key-down happened.
         self.held.add(key)
         self.wait(self.controller.post_key_down(key))
@@ -77,11 +79,11 @@ class Inputs:
                 before_post()
             self.wait(self.controller.post_click(x, y))
 
-    def key(self, key: int, duration: float = 0.05):
+    def key(self, key: int, duration: float = 0.05, *, before_post=None):
         if not 0 < duration <= 0.75:
             raise ValueError('Movement segments must be bounded to 750 ms')
         try:
-            self.down(key)
+            self.down(key, before_post=before_post)
             self.pause(duration)
         finally:
             self.release_all()

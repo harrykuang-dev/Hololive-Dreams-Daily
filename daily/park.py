@@ -6,6 +6,9 @@ from statistics import median
 import re
 import time
 
+import cv2
+
+from .calendar import game_day
 from .contracts import TaskResult, TaskStatus
 from .navigation import EntryUnavailable, NavigationError
 
@@ -203,7 +206,7 @@ class ParkRunner:
             attempt.finish(error=error)
             raise
 
-    def finish_interaction(self, place):
+    def finish_interaction(self, place, *, advance_dialogue=True):
         deadline = time.monotonic()+70
         reward = None
         last_dialogue = None
@@ -224,7 +227,7 @@ class ParkRunner:
                 self.click(view.button)
                 scratch_clicked = True
                 self.nav.inputs.pause(.5)
-            elif view.kind == 'dialogue':
+            elif view.kind == 'dialogue' and advance_dialogue:
                 if view.signature != last_dialogue:
                     last_dialogue, stable_since = view.signature, time.monotonic()
                 elif stable_since is not None and time.monotonic()-stable_since >= .6:
@@ -246,6 +249,61 @@ class ParkRunner:
         self.nav.save(view.observation, place.key + '-stalled')
         raise NavigationError('每日互動未取得明確 GET 與返回樂園結果；保留本日嘗試紀錄')
 
+    def resume_house_gift(self):
+        place = GIFT_PLACES[0]
+        ledger = self.nav.daily_attempts
+        recording = self.nav.recording
+        reference = None
+
+        def matches(observation):
+            if (reference is None or observation.scene != 'home'
+                    or not self.nav.gift_transfer_dialogue(observation)
+                    or observation.image.shape != reference.shape):
+                return False
+            # The emblem/nameplate and two fixed parts of the room distinguish
+            # the original conversation from the same gift line elsewhere.
+            for x, y, w, h in ((612, 573, 60, 21), (320, 75, 165, 80), (840, 125, 140, 105)):
+                difference = cv2.absdiff(reference[y:y+h, x:x+w], observation.image[y:y+h, x:x+w])
+                if max(cv2.mean(difference)[:3]) > 8:
+                    return False
+            return 0 <= time.monotonic() - observation.captured_at <= 2
+
+        def verify(video, frames):
+            nonlocal reference
+            if recording is None or not recording.matches_window(video):
+                return False
+            capture = cv2.VideoCapture(str(video))
+            try:
+                if not capture.set(cv2.CAP_PROP_POS_FRAMES, frames - 1):
+                    return False
+                ok, frame = capture.read()
+                if not ok or capture.get(cv2.CAP_PROP_POS_FRAMES) != frames:
+                    return False
+                reference = self.nav.vision.normalize(frame)
+            finally:
+                capture.release()
+            return matches(self.nav.observe())
+
+        attempt = ledger.resume_open_dialogue(place.key, verify_gift=verify)
+        try:
+            self.progress(TaskResult(TaskStatus.RUNNING, '接續原本的 Holo House 禮物對話', pending_round=True))
+            current = self.nav.observe()
+            if not matches(current):
+                raise NavigationError('禮物對話已改變，未送出接續操作')
+
+            def check_before_e():
+                if (game_day(ledger.clock()) != attempt.record['game_day']
+                        or not 0 <= time.monotonic() - current.captured_at <= 2):
+                    raise NavigationError('禮物對話畫面已過期，未送出接續操作')
+
+            self.nav.inputs.key(0x45, .12, before_post=check_before_e)
+            evidence = self.finish_interaction(place, advance_dialogue=False)
+            attempt.finish(evidence=evidence)
+            return TaskResult(TaskStatus.COMPLETE, '已接續原禮物對話並確認結果', 1, evidence)
+        except Exception as error:
+            attempt.finish(error=error)
+            raise
+
     def click(self, box):
         x, y, w, h = box
         self.nav.inputs.click(int(x+w/2), int(y+h/2))
@@ -265,6 +323,9 @@ class ParkRunner:
                     attempt.finish(error=error)
                     raise
         excluded = set() if config.entry_only else self.nav.daily_attempts.attempted_tasks()
+        if (config.task == 'park_gifts' and GIFT_PLACES[0].key in excluded
+                and self.nav.gift_transfer_dialogue(self.nav.observe())):
+            return self.resume_house_gift()
         completed, evidence = 0, None
         for _ in range(3 if config.task == 'park_gifts' else 1):
             try:

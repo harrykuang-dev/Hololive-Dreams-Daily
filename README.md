@@ -4,7 +4,7 @@ A Windows daily-routine program built with MaaFramework, MFAAvalonia and isolate
 
 Development is in progress. The current source includes the task configuration interface, recording-based recognition, Auto checks, result journals, navigation primitives and isolated worker supervision. Full daily execution and portable packaging are not yet accepted. Only Connect is selected by default.
 
-New-profile configuration disables continuing after a failed task; existing profiles keep their settings. Recorded recovery verified a failed fishing result, two-digit energy editing, event Live result navigation and an expired-item conversion notice. A gift interaction then stopped on a symbolic speaker name. Its complete handover line and fixed E hint now pass offline replay; resuming that uncertain daily attempt remains disabled.
+New-profile configuration disables continuing after a failed task. Existing profiles keep their settings. Recorded recovery verified a failed fishing result, two-digit energy editing, event Live result navigation and an expired-item conversion notice. The Holo House handover with a symbolic speaker name now passes offline replay.
 
 Positive but insufficient energy can use the remaining balance only after reading the explicit shortage rule and confirming the same balance and a valid nominal or effective cost at the start gate. Budget and built-in Auto checks still apply. This partial-balance path has offline validation only; recorded native testing remains pending. No replenishment is performed.
 
@@ -38,7 +38,7 @@ holoWork has passed an uninterrupted recorded collection-to-redispatch test, inc
 
 Park gifts passed one uninterrupted recorded run covering all three GET rewards and return. The route waits through teleport fades and brief marker animation, and supports changing daily characters. Camera corrections calibrate the observed marker response, remain bounded to40pixels per move and12moves, and stop if fresh marker evidence moves in the wrong direction. A fresh-day lottery run also passed uninterrupted recorded entry, dialogue, one scratch, GET confirmation and return to the park.
 
-Once-daily attempts are recorded before the first interaction. A recorded failed lottery attempt can resume its exact still-open introduction once, after verifying the finalized original recording and a new active recording. It does not repeat the initial interaction. Other uncertain attempts remain blocked for that game day, and are excluded when looking for remaining gift locations.
+Once-daily attempts are recorded before the first interaction. A failed lottery attempt can resume its verified, still-open introduction once after checking the finalized original recording and a new active recording. Holo House recovery additionally requires the same game window and matching handover text, nameplate and surroundings. The gift recovery guard has passed offline tests. Attempts with no verified open dialogue stay locked for the game day and are excluded from remaining gift locations.
 
 Reward collection checks daily, weekly and season missions, the pass, achievements, the gift box and the current event's daily and free missions. An uninterrupted recorded run confirmed seven available reward groups, including actual event rewards, and returned to the park. A claim is clicked once and requires a confirmed received or disabled state before proceeding. Empty-page checks are also verified; future event layouts require validation.
 

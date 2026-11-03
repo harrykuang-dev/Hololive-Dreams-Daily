@@ -193,6 +193,13 @@ class GameRecording:
         return {'video': self._capture_paths.get('video'), 'timeline': str(self.timeline),
                 'frame_timeline': self._capture_paths.get('timeline'), 'fps': FrameRecording.FPS}
 
+    def matches_window(self, video: Path) -> bool:
+        try:
+            config = json.loads((video.parent / 'capture.json').read_text(encoding='utf-8'))
+            return config['hwnd'] == self.hwnd
+        except (OSError, ValueError, KeyError, TypeError):
+            return False
+
     def _status(self):
         try:
             status = json.loads(self.status_file.read_text(encoding='utf-8'))
