@@ -477,6 +477,10 @@ class Navigator:
 
     def to_home(self):
         observation = self.observe()
+        if observation.scene is None and (close := self.high_low_idle_table(observation)):
+            x, y, w, h = close.box
+            self.inputs.click(x+w//2, y+h//2)
+            return self.wait_for({'home'})
         deadline = time.monotonic()+3
         while observation.scene is None and time.monotonic() < deadline:
             self.inputs.pause(.2)
@@ -715,6 +719,16 @@ class Navigator:
         self.approach('開始釣魚')
         self.inputs.key(0x45, .12)  # E, from the recorded interaction prompt.
         return self.wait_for({'fishing_setup_second'})
+
+    def high_low_idle_table(self, observation):
+        if observation.image is None:
+            return None
+        close = self.vision.match(observation.image, 'high_low_close')
+        if (close is not None
+                and len(self.text(observation, r'^投[注註]並開始$', (510, 540, 260, 95))) == 1
+                and len(self.text(observation, r'^投[注註]金額為\s*50\s*枚硬幣$', (460, 125, 360, 65))) == 1):
+            return close
+        return None
 
     def to_high_low_entry(self):
         # Teleport only after reading the actual card title. Opening the game

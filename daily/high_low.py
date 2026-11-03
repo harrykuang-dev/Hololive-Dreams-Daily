@@ -14,10 +14,7 @@ class HighLowRunner:
         self.nav, self.root, self.data, self.progress = navigator, root, data, progress
 
     def table(self, observation):
-        if not self.nav.vision.match(observation.image, 'high_low_close'):
-            return False
-        return (len(self.nav.text(observation, '^投注並開始$', (510, 540, 260, 95))) == 1
-                and len(self.nav.text(observation, r'^投[注註]金額為\s*50\s*枚硬幣$', (460, 125, 360, 65))) == 1)
+        return self.nav.high_low_idle_table(observation) is not None
 
     def invitation(self, observation):
         if (observation.scene != 'park_dialogue' and
@@ -32,6 +29,8 @@ class HighLowRunner:
 
     def open_table(self):
         observation = self.nav.observe()
+        if self.table(observation):
+            return
         if observation.scene == 'home' and len(self.nav.text(observation, '^比大小$', (700, 300, 560, 310))) == 1:
             self.nav.inputs.key(0x45, .12)
         elif not self.invitation(observation):
@@ -78,7 +77,8 @@ class HighLowRunner:
         modules = Path(settings.get('module_root', self.root / 'upstream/holodori/upstream'))
         if not python.is_file() or not (modules / 'high_low/auto_bot.py').is_file():
             raise ConfigurationError('比大小獨立模組執行環境尚未準備')
-        if not self.invitation(self.nav.observe()):
+        current = self.nav.observe()
+        if not self.table(current) and not self.invitation(current):
             self.nav.to_high_low_entry()
         attempt = None
         hwnd = self.nav.recording.hwnd
