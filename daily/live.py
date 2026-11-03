@@ -11,7 +11,8 @@ from .contracts import AutoObservation, ResourceObservation, TaskResult, TaskSta
 from .guarded_click import LIVE_START_ROI
 from .inputs import Cancelled, InputFailure
 from .navigation import NavigationError
-from .resources import EnergySettings, ResourceUnavailable, parse_fraction, read_one, read_setup_cost, parse_consumption
+from .resources import (EnergySettings, ResourceUnavailable, parse_fraction, read_one,
+                        read_setup_cost, parse_consumption, record_post_round_energy)
 from .vision import parse_remaining
 from .live_validation import LiveBlocked, LiveState, validate_live_start
 from .auto_deadline import CountdownObservation
@@ -124,7 +125,8 @@ class SoloLiveRunner:
                 pending = False
                 self.progress(TaskResult(TaskStatus.RUNNING, f'已確認 {completed} 局 Auto Live 結果',
                                          completed, evidence))
-                self.finish_result(result)
+                returned = self.finish_result(result)
+                record_post_round_energy(self.nav, returned, task='solo_live', round_number=number)
             return TaskResult(TaskStatus.COMPLETE, f'已完成 {completed} 局遊戲內建 Auto Live', completed, evidence)
         except (LiveBlocked, ResourceUnavailable) as error:
             return TaskResult(TaskStatus.SKIPPED, str(error), completed, evidence)

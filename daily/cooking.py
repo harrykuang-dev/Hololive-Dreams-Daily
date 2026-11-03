@@ -6,7 +6,7 @@ from pathlib import Path
 from .contracts import ConfigurationError, TaskResult, TaskStatus
 from .minigames import MinigameResults, start_minigame
 from .navigation import NavigationError
-from .resources import EnergySettings
+from .resources import EnergySettings, record_post_round_energy
 from .workers import WorkerSupervisor
 
 
@@ -65,5 +65,6 @@ class CookingRunner(MinigameResults):
             evidence = self.nav.save(result, 'cooking-round-result')
             completed += 1
             self.progress(TaskResult(TaskStatus.RUNNING, '已確認料理結果，正在離開結果頁', completed, evidence))
-            self.finish_result()
+            returned = self.finish_result()
+            record_post_round_energy(self.nav, returned, task='cooking', round_number=number)
         return TaskResult(TaskStatus.COMPLETE, f'已確認{completed}局料理結果並離開結果頁', completed, evidence)

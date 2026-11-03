@@ -1,7 +1,7 @@
 """Observe and configure the game's energy widget without replenishment."""
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 import re
 import time
 import cv2
@@ -64,6 +64,23 @@ def read_setup_cost(nav, observation, *, multiplayer=False):
 def read_one(nav, observation, expected, roi):
     items = nav.text(observation, expected, roi)
     return items[0].text if len(items) == 1 else None
+
+
+def record_post_round_energy(nav, observation, *, task, round_number):
+    recording = getattr(nav, 'recording', None)
+    if recording is None or observation is None:
+        return
+    scenes = {'cooking': {'cooking_setup'},
+              'solo_live': {'live_portal', 'song_select', 'solo_setup'}}
+    balance = ResourceObservation(None, None)
+    if observation.scene in scenes[task]:
+        fraction = read_one(nav, observation, '[0-9].*[/／].*[0-9]', (1025, 25, 145, 60))
+        observed = parse_fraction(fraction)
+        if observed.permits(0):
+            balance = observed
+    evidence = nav.save(observation, f'{task}-zero-energy-after-round') if balance.available == 0 else None
+    recording.mark('energy_balance_after_round', task=task, round=round_number,
+                   scene=observation.scene, resource=asdict(balance), evidence=evidence)
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from daily.contracts import ResourceObservation
-from daily.resources import EnergySelection, EnergySettings, ResourceUnavailable, parse_fraction
+from daily.resources import EnergySelection, EnergySettings, ResourceUnavailable, parse_fraction, record_post_round_energy
 from daily.navigation import NavigationError, Observation
 import numpy as np
 
@@ -14,6 +14,20 @@ import numpy as np
     ('', None, None)])
 def test_resource_fraction_keeps_numbers_and_rejects_ambiguous_ocr(text, available, capacity):
     assert parse_fraction(text) == ResourceObservation(available, capacity)
+
+
+@pytest.mark.parametrize('scene,text,available', [
+    ('cooking_setup', '0/100', 0), ('cooking_setup', '3/100', 3),
+    ('cooking_setup', '0/1O', None), ('home', '0/100', None),
+])
+def test_post_round_energy_records_observed_balance_and_saves_zero_only(scene, text, available):
+    events = []
+    nav = SimpleNamespace(text=lambda *args: [SimpleNamespace(text=text)], save=lambda *args: 'zero.png',
+                          recording=SimpleNamespace(mark=lambda event, **data: events.append((event, data))))
+    record_post_round_energy(nav, Observation(None, scene, 0), task='cooking', round_number=2)
+    assert events[0][0] == 'energy_balance_after_round'
+    assert events[0][1]['resource']['available'] == available
+    assert events[0][1]['evidence'] == ('zero.png' if available == 0 else None)
 
 
 def test_insufficient_budget_cancels_energy_settings_without_confirming():
