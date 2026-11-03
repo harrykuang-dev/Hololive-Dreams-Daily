@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from threading import Event
 from types import SimpleNamespace
 
 import pytest
@@ -71,6 +72,7 @@ def harness(tmp_path, mode='normal'):
         return process
     manager = AutoSupervisor(tmp_path, tmp_path/'python.exe', tmp_path/'sessions', 42,
         game_factory=lambda hwnd: game, launcher=launch, creation_time=lambda: 12345,
+        recovery_factory=lambda *a, **k: SimpleNamespace(armed=Event(), input_possible=Event(), finish=lambda: None),
         clock=lambda: now[0], pause=lambda delay: now.__setitem__(0, now[0]+delay))
     return manager, events, processes
 
@@ -104,6 +106,7 @@ def test_matching_click_requires_arm_and_cancel_closes_exact_game_first(tmp_path
     manager.prepare()
     manager.match(500, 400, captured_at=100)
     assert processes[0].state == 'armed' and events == ['match']
+    assert manager.recovery.armed.is_set() and manager.recovery.input_possible.is_set()
     manager.close()
     assert events == ['match', 'stop_game', 'watchdog_cleanup', 'release_game_handle']
 

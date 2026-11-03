@@ -168,10 +168,14 @@ class ParentProcess:
             self.handle = None
 
 
-def current_creation_time():
+def process_creation_time(pid):
     backend = WindowsProcessBackend()
-    handle = backend.open_signal_process(os.getpid())
+    handle = backend.open_signal_process(pid)
     try:
         return backend.creation_time(handle)
     finally:
         backend.close_handle(handle)
+
+
+def current_creation_time():
+    return process_creation_time(os.getpid())

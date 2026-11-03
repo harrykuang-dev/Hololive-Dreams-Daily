@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from daily.auto_watch import watch
 from daily.processes import publish_status
-from daily.game_process import ParentProcess
+from daily.game_process import ParentProcess, process_creation_time
 from daily.input_lane import InputLane
 from daily.watch_mailbox import WatchMailbox
 
@@ -34,8 +34,12 @@ def main():
             keys = ('job_id', 'hwnd', 'game_pid', 'game_image')
             return InputLane(ROOT, Path(sys.executable), directory/'input',
                              {key: identity[key] for key in keys}, exclusive_input=True)
+        def worker_identity(lane):
+            return {'input_worker_pid': lane.process.pid,
+                    'input_worker_creation': process_creation_time(lane.process.pid)}
         return watch(config, channel, alive=parent.alive,
-                     lane_factory=make_lane if config.get('input_protocol') == 1 else None)
+                     lane_factory=make_lane if config.get('input_protocol') == 1 else None,
+                     input_worker_identity=worker_identity)
     except Exception as error:
         publish('failed', error=f'{type(error).__name__}: {error}')
         return 1

@@ -13,7 +13,7 @@ def fresh(message, now):
 
 
 def watch(config, channel, *, game_factory=GameProcess,
-          lane_factory=None, alive, clock=time.monotonic, pause=time.sleep):
+          lane_factory=None, input_worker_identity=None, alive, clock=time.monotonic, pause=time.sleep):
     game = lane = None
     armed = safe = shutting_down = False
     publish = channel.publish
@@ -50,14 +50,17 @@ def watch(config, channel, *, game_factory=GameProcess,
         # handle is never passed across processes or assumed to be inherited.
         game = game_factory(config['hwnd'], expected_pid=config['game_pid'],
                             expected_image=config['game_image'])
+        input_identity = {}
         if lane_factory is not None:
             lane = lane_factory(config)
             lane.prepare()
+            if input_worker_identity is not None:
+                input_identity = input_worker_identity(lane)
         ready_at = clock()
         if not finite_number(ready_at):
             raise ValueError('Invalid watchdog clock')
         publish('ready', game_pid=game.pid, game_image=game.image, ready_at=ready_at,
-                input_protocol=1 if lane is not None else None)
+                input_protocol=1 if lane is not None else None, **input_identity)
         ready_deadline = ready_at+10
         while True:
             now = clock()

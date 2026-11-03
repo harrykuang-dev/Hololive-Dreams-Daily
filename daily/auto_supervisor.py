@@ -12,6 +12,7 @@ import time
 import uuid
 
 from .auto_deadline import CountdownObservation, finite_number
+from .auto_recovery import WatchdogRecovery
 from .game_process import GameProcess, current_creation_time
 from .guarded_click import ClickRequest
 from .inputs import Cancelled
@@ -34,12 +35,14 @@ class AutoSupervisor:
     def __init__(self, root: Path, python: Path, sessions: Path, hwnd: int, *,
                  guard=lambda: None, stopping=lambda: False, trace=lambda *args, **kwargs: None,
                  game_factory=GameProcess, launcher=subprocess.Popen,
+                 recovery_factory=WatchdogRecovery,
                  creation_time=current_creation_time, clock=time.monotonic, pause=time.sleep):
         self.root, self.python, self.sessions, self.hwnd = root, python, sessions, hwnd
         self.guard, self.stopping, self.trace = guard, stopping, trace
         self.game_factory, self.launcher, self.creation_time = game_factory, launcher, creation_time
+        self.recovery_factory = recovery_factory
         self.clock, self.pause = clock, pause
-        self.process = self.game = self.log = None
+        self.process = self.game = self.log = self.recovery = None
         self.directory = None
         self.phase = 'new'
         self.job_id = uuid.uuid4().hex
@@ -123,6 +126,9 @@ class AutoSupervisor:
                     raise AutoGuardError('Watchdog bound a different game process')
                 if ready.get('input_protocol') != 1:
                     raise AutoGuardError('Watchdog lacks the guarded input worker')
+                self.recovery = self.recovery_factory(self.process, self.hwnd, game_pid=self.game.pid,
+                    game_image=self.game.image, worker_pid=ready.get('input_worker_pid'),
+                    worker_creation=ready.get('input_worker_creation'))
                 self.phase = 'prepared'
                 self.trace('multi_watchdog_ready', job_id=self.job_id, game_pid=self.game.pid)
             except BaseException:
@@ -137,6 +143,7 @@ class AutoSupervisor:
                 raise AutoGuardError('Matching requires a fresh prepared watchdog')
             try:
                 self._armed = True  # Treat even an uncertain arm-file write as armed.
+                self.recovery.armed.set()
                 publish_status(self.directory/'arm.json', {'job_id': self.job_id,
                     'decision': 'arm', 'captured_at': self.clock()})
                 status = self._wait({'armed'}, 3)
@@ -183,6 +190,7 @@ class AutoSupervisor:
         if before_post is not None:
             before_post()
         request.check_fresh(self.clock())
+        self.recovery.input_possible.set()
         publish_status(self.directory/'click.json', {'job_id': self.job_id,
             'purpose': purpose, 'request': asdict(request)})
         self._wait({'armed'}, 2, accept=lambda state: type(state.get('input_ack')) is int
@@ -289,6 +297,8 @@ class AutoSupervisor:
                     # The watchdog owns the input worker. Let it observe the
                     # closed game and clean up before removing any handles.
                     self.process.wait(timeout=10)
+                if self.recovery is not None:
+                    self.recovery.finish()
             finally:
                 if self.game is not None:
                     self.game.close()
