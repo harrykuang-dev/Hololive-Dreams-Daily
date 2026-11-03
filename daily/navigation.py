@@ -125,13 +125,16 @@ class Navigator:
 
     @staticmethod
     def park_teleport_loading(frame):
-        # Harmony Garden changes maps with a green card and a white castle.
-        field = frame[30:165, 100:650]
+        # Harmony Garden shows a green field, a sliding white castle, and
+        # a peach chevron. Keep the logo search wide enough for its motion.
+        field = frame[160:580, 135:415]
         green = cv2.inRange(field, (95, 108, 42), (120, 137, 65))
-        if cv2.countNonZero(green) >= green.size * .94:
-            logo = frame[175:380, 550:730]
+        if cv2.countNonZero(green) >= green.size * .98:
+            logo = frame[160:452, 545:970]
             white = cv2.inRange(logo, (235, 235, 235), (255, 255, 255))
-            if .15 <= cv2.countNonZero(white) / white.size <= .65:
+            chevron = cv2.inRange(frame[:, 900:1270], (148, 172, 218), (187, 205, 250))
+            if (.08 <= cv2.countNonZero(white) / white.size <= .20
+                    and cv2.countNonZero(chevron) >= chevron.size * .36):
                 return True
         # The door animation can cover the centre and the upper band can be
         # entirely pale. Both borders keep the same blue and pale palette.

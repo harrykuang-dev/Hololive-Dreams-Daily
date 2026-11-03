@@ -240,9 +240,11 @@ def test_park_loading_requires_both_borders_and_blue_pixels(blue):
 def test_harmony_garden_loading_requires_green_field_and_white_logo():
     frame = np.full((720, 1280, 3), (107, 122, 52), dtype=np.uint8)
     assert not Navigator.park_teleport_loading(frame)
-    frame[205:365, 590:685] = 255
+    frame[205:365, 710:840] = 255
+    assert not Navigator.park_teleport_loading(frame)
+    frame[:, 1080:] = (169, 189, 234)
     assert Navigator.park_teleport_loading(frame)
-    frame[:175] = 0
+    frame[:, :400] = 0
     assert not Navigator.park_teleport_loading(frame)
 
 
