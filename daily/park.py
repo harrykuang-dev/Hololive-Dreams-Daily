@@ -276,7 +276,7 @@ class ParkRunner:
         reference = None
 
         def matches(observation):
-            if (reference is None or observation.scene != 'home'
+            if (reference is None or observation.scene not in {'home', 'park_dialogue'}
                     or not self.nav.gift_transfer_dialogue(observation)
                     or observation.image.shape != reference.shape):
                 return False

@@ -206,7 +206,7 @@ def test_house_handover_resumes_once_only_from_same_recorded_interaction(tmp_pat
         set=lambda *_: True, read=lambda: (True, reference), get=lambda _: 5, release=lambda: None))
     runner.nav.vision = SimpleNamespace(normalize=lambda frame: frame)
     runner.nav.recording = SimpleNamespace(matches_window=lambda _: change != 'window')
-    runner.nav.observe = lambda: SimpleNamespace(scene='home', image=current, captured_at=park.time.monotonic())
+    runner.nav.observe = lambda: SimpleNamespace(scene='park_dialogue', image=current, captured_at=park.time.monotonic())
     runner.nav.gift_transfer_dialogue = lambda _: '這是我的一點小心意，收下吧！'
     runner.entry = lambda *_a, **_kw: pytest.fail('Must not initiate a new gift interaction')
     config = TaskConfig.parse({'task': 'park_gifts', 'entry_only': False})
