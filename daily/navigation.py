@@ -69,12 +69,15 @@ class Navigator:
             if not any('汽水泡泡灣' in getattr(item, 'text', '') for item in area):
                 scene = 'park_map'
         if scene is None:
-            # The park backdrop and notification badges change. Require three
-            # independently read toolbar labels instead of weakening a template.
+            # The park backdrop and notification badges can obscure labels.
+            # The gamepad icon can stand in for its own unreadable label.
             toolbar = self.text(observation, r'^(遊戲|Live|任務|成就)$', (700, 15, 480, 100))
-            words = {getattr(item, 'text', '').strip() for item in toolbar}
-            if len(words.intersection({'遊戲', 'Live', '任務', '成就'})) >= 3:
+            words = {getattr(item, 'text', '').strip() for item in toolbar} & {'遊戲', 'Live', '任務', '成就'}
+            if len(words) >= 3:
                 scene = 'home'
+            elif (len(words) == 2 and '遊戲' not in words
+                    and self.vision.match(frame, 'home_games_button')):
+                scene = 'park_dialogue' if self.vision.match(frame, 'park_dialogue_next') else 'home'
             else:
                 if self.fishing_failure_controls(observation):
                     return Observation(frame, 'fishing_failure', captured)

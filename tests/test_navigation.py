@@ -52,6 +52,21 @@ def test_changing_park_backdrop_requires_multiple_toolbar_labels(tmp_path):
     assert context.recognition_calls[0][1]['DailyOCR']['roi'] == [700, 15, 480, 100]
 
 
+@pytest.mark.parametrize('labels,icon,dialogue,scene', [
+    (['任務', '成就'], True, False, 'home'),
+    (['任務', '成就'], False, False, None),
+    (['遊戲', '任務'], True, False, None),
+    (['任務', '成就'], True, True, 'park_dialogue'),
+])
+def test_home_gamepad_substitutes_only_for_its_own_missing_label(tmp_path, labels, icon, dialogue, scene):
+    root = Path(__file__).resolve().parents[1]
+    navigator = Navigator(Context(labels), root / 'resource', tmp_path)
+    navigator.vision.scene = lambda _: None
+    navigator.vision.match = lambda _, name: (icon if name == 'home_games_button'
+                                              else dialogue if name == 'park_dialogue_next' else None)
+    assert navigator.observe().scene == scene
+
+
 @pytest.mark.parametrize('missing', [None, 'Live', '活動排名', '兌換所', '活動加成'])
 def test_event_home_uses_independent_labels_with_dynamic_badge(missing):
     nav = Navigator.__new__(Navigator)
