@@ -36,11 +36,15 @@ def runner(tmp_path, monkeypatch, *, verified=True):
         if expected=='^遊玩$':return [SimpleNamespace(box=(1000,620,200,60))]
         if expected=='.*':return [SimpleNamespace(text='×30',box=(850,590,65,30))]
         return [SimpleNamespace(text='100/100')]
+    def click(*args, before_post=None):
+        if before_post is not None:
+            before_post()
+        clicks.append(args)
     nav=SimpleNamespace(observe=lambda:SimpleNamespace(scene='cooking_setup',captured_at=time.monotonic()),
         text=text,to_minigame_setup=lambda task:None,recording=None,
         save=lambda *args:'result.png',context=SimpleNamespace(tasker=SimpleNamespace(stopping=False)),
         controller=SimpleNamespace(post_touch_up=lambda contact:None),
-        inputs=SimpleNamespace(check=lambda:None,wait=lambda job:None,click=lambda *args:clicks.append(args)))
+        inputs=SimpleNamespace(check=lambda:None, wait=lambda job:None, click=click))
     result=CookingRunner(nav,tmp_path,tmp_path/'data',supervisor=Worker)
     result.result_page=lambda:(object(),None)
     result.finish_result=lambda:None

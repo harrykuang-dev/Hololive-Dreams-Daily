@@ -20,8 +20,12 @@ def preflight(tmp_path, *, balance=30, capacity=100, cost=3, age=0, scene='jump_
         if expected == '.*':
             return [SimpleNamespace(text=f'×{cost}', box=(850, 590, 60, 30))]
         return [SimpleNamespace(text=f'{balance}/{capacity}')]
+    def click(*args, before_post=None):
+        if before_post is not None:
+            before_post()
+        events.append('click')
     nav = SimpleNamespace(observe=lambda: observation, text=text,
-        inputs=SimpleNamespace(click=lambda *a: events.append('click')),
+        inputs=SimpleNamespace(click=click),
         recording=SimpleNamespace(mark=lambda *a, **k: events.append('audit')))
     runner = JumpRunner(nav, tmp_path, tmp_path)
     energy = EnergySelection(1, 3, ResourceObservation(30, 100))
@@ -57,6 +61,19 @@ def test_jump_audits_fresh_cost_before_pending_progress_and_only_start_click(tmp
                                   lambda: events.append('pending'))
     assert events == ['audit', 'pending', 'click']
     assert metadata['cost'] == 3 and metadata['resource']['available'] == 30
+
+
+def test_minigame_click_rechecks_freshness_after_pending_progress(tmp_path, monkeypatch):
+    now = [100.0]
+    monkeypatch.setattr(time, 'monotonic', lambda: now[0])
+    runner, energy, events = preflight(tmp_path)
+
+    def delayed_progress():
+        now[0] += 3
+
+    with pytest.raises(NavigationError, match='資源畫面已過期'):
+        runner.start_round({'phase': 'capture_ready'}, energy, 3, delayed_progress)
+    assert events == ['audit']
 
 
 @pytest.mark.parametrize('balance,allowed', [(0,True), (1,False)])

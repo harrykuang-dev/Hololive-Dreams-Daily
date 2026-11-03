@@ -25,8 +25,11 @@ def start_minigame(nav, task, status, energy, budget, before_input=lambda: None)
     if (cost is None or cost != energy.effective_cost or not resource.permits(cost, budget)
             or (cost == 0 and resource.available != 0 and not explicit_free)):
         raise ResourceUnavailable('小遊戲實際消耗或本次資源上限不符，未開始遊玩')
-    if not 0 <= time.monotonic()-observation.captured_at <= 2:
-        raise NavigationError('小遊戲開始前的資源畫面已過期')
+    def check_fresh():
+        if not 0 <= time.monotonic()-observation.captured_at <= 2:
+            raise NavigationError('小遊戲開始前的資源畫面已過期')
+
+    check_fresh()
     metadata = {'task': task, 'cost': cost, 'displayed_cost': displayed_cost,
                 'nominal_cost': energy.cost, 'partial_energy_policy_verified': energy.partial_energy_play,
                 'resource': asdict(resource), 'budget_remaining': budget}
@@ -34,7 +37,7 @@ def start_minigame(nav, task, status, energy, budget, before_input=lambda: None)
         nav.recording.mark('minigame_start_verified', **metadata)
     before_input()
     x, y, w, h = buttons[0].box
-    nav.inputs.click(int(x+w/2), int(y+h/2))
+    nav.inputs.click(int(x+w/2), int(y+h/2), before_post=check_fresh)
     return metadata
 
 
