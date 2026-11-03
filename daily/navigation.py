@@ -610,16 +610,26 @@ class Navigator:
         if self.observe().scene == 'notifications':
             return self.wait_for({'notifications'}, timeout=5)
         self.to_home()
-        self.wait_for({'home'}, timeout=5)
-        self.inputs.click(260, 45)
-        return self.wait_for({'notifications'})
+        observation = self.wait_for({'home'}, timeout=5)
+        for _ in range(2):
+            if observation.scene != 'home':
+                break
+            self.inputs.click(260, 54)  # Centre of the park's speaker control.
+            deadline = time.monotonic() + 3
+            while True:
+                observation = self.observe()
+                if observation.scene == 'notifications':
+                    return self.wait_for({'notifications'}, timeout=5)
+                if observation.scene not in ('home', None) or time.monotonic() >= deadline:
+                    break
+                self.inputs.pause(.2)
+        self.save(observation, 'notifications-not-opened')
+        raise NavigationError('未確認通知面板已開啟')
 
     def to_holowork(self):
         if self.observe().scene in {'holowork', 'holowork_get', 'holowork_started'}:
             return self.wait_for({'holowork', 'holowork_get', 'holowork_started'})
-        self.to_home()
-        self.inputs.click(260, 45)  # Recorded notification speaker shortcut.
-        self.wait_for({'notifications'}, timeout=8)
+        self.open_notifications()
         deadline = time.monotonic()+8
         while True:
             menu = self.observe()

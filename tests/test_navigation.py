@@ -343,8 +343,7 @@ def test_no_completed_work_notification_skips_without_guessing_another_route(tmp
     navigator = Navigator(Context([]), root / 'resource', tmp_path)
     frames = iter([Observation(None, 'home', 0), Observation(None, 'notifications', 0)])
     navigator.observe = lambda: next(frames)
-    navigator.to_home = lambda: None
-    navigator.wait_for = lambda *args, **kwargs: None
+    navigator.open_notifications = lambda: None
     navigator.text = lambda *args, **kwargs: []
     navigator.save = lambda *args: 'notification.png'
     clicks = []
@@ -353,4 +352,28 @@ def test_no_completed_work_notification_skips_without_guessing_another_route(tmp
     monkeypatch.setattr(navigation.time, 'monotonic', lambda: next(times))
     with pytest.raises(EntryUnavailable):
         navigator.to_holowork()
-    assert clicks == [(260, 45)]
+    assert clicks == []
+
+
+@pytest.mark.parametrize('after_first,expected_clicks', [('home', 2), ('main_menu', 1)])
+def test_notifications_retry_only_from_observed_home(tmp_path, monkeypatch, after_first, expected_clicks):
+    root = Path(__file__).resolve().parents[1]
+    navigator = Navigator(Context([]), root / 'resource', tmp_path)
+    now = [0.0]
+    clicks = []
+    home = Observation(None, 'home', 0)
+    notifications = Observation(None, 'notifications', 0)
+    navigator.to_home = lambda: home
+    navigator.wait_for = lambda scenes, **kwargs: home if scenes == {'home'} else notifications
+    navigator.observe = lambda: home if not clicks else (
+        Observation(None, after_first, now[0]) if len(clicks) == 1 else notifications)
+    navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args),
+                                      pause=lambda seconds: now.__setitem__(0, now[0]+seconds))
+    navigator.save = lambda *args: 'notification.png'
+    monkeypatch.setattr(navigation.time, 'monotonic', lambda: now[0])
+    if after_first == 'home':
+        assert navigator.open_notifications() is notifications
+    else:
+        with pytest.raises(NavigationError, match='未確認通知面板'):
+            navigator.open_notifications()
+    assert clicks == [(260, 54)] * expected_clicks
