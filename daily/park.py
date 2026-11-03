@@ -176,7 +176,7 @@ class ParkRunner:
         saw_loading = False
         home_since = None
         while True:
-            observation = self.nav.observe()
+            observation = self.nav.observe(park_loading_only=not saw_loading)
             if time.monotonic() >= deadline:
                 self.nav.save(observation, f'{place.key}-arrival-unverified')
                 raise NavigationError('未確認樂園傳送完成，停止接近')
@@ -189,7 +189,7 @@ class ParkRunner:
                     return
             else:
                 home_since = None
-            self.nav.inputs.pause(.2)
+            self.nav.inputs.pause(.2 if saw_loading else .1)
 
     def house_gift_offset(self, view):
         markers = self.nav.vision.find_all(view.observation.image, 'park_character_gift_marker',

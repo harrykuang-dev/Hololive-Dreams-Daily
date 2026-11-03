@@ -39,22 +39,24 @@ class Navigator:
         self.evidence = evidence
         evidence.mkdir(parents=True, exist_ok=True)
 
-    def observe(self) -> Observation:
+    def observe(self, *, park_loading_only=False) -> Observation:
         self.inputs.check()
         job = self.controller.post_screencap().wait()
         if not job.succeeded:
             raise NavigationError('無法擷取遊戲畫面')
         captured = time.monotonic()
-        observation = self.interpret(job.get(), captured_at=captured)
+        observation = self.interpret(job.get(), captured_at=captured, park_loading_only=park_loading_only)
         if self.recording:
             self.recording.mark('observation', scene=observation.scene)
         return observation
 
-    def interpret(self, image, *, captured_at=None):
+    def interpret(self, image, *, captured_at=None, park_loading_only=False):
         captured = time.monotonic() if captured_at is None else captured_at
         frame = self.vision.normalize(image)
         if self.park_teleport_loading(frame):
             return Observation(frame, 'park_teleport_loading', captured)
+        if park_loading_only:
+            return Observation(frame, None, captured)
         scene = self.vision.scene(frame)
         observation = Observation(frame, scene, captured)
         if scene == 'song_select' and self.multiplayer_ready_controls(observation):
@@ -123,6 +125,14 @@ class Navigator:
 
     @staticmethod
     def park_teleport_loading(frame):
+        # Harmony Garden changes maps with a green card and a white castle.
+        field = frame[30:165, 100:650]
+        green = cv2.inRange(field, (95, 108, 42), (120, 137, 65))
+        if cv2.countNonZero(green) >= green.size * .94:
+            logo = frame[175:380, 550:730]
+            white = cv2.inRange(logo, (235, 235, 235), (255, 255, 255))
+            if .15 <= cv2.countNonZero(white) / white.size <= .65:
+                return True
         # The door animation can cover the centre and the upper band can be
         # entirely pale. Both borders keep the same blue and pale palette.
         blue_pixels = 0

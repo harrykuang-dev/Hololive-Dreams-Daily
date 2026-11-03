@@ -237,12 +237,22 @@ def test_park_loading_requires_both_borders_and_blue_pixels(blue):
     assert not Navigator.park_teleport_loading(frame)
 
 
+def test_harmony_garden_loading_requires_green_field_and_white_logo():
+    frame = np.full((720, 1280, 3), (107, 122, 52), dtype=np.uint8)
+    assert not Navigator.park_teleport_loading(frame)
+    frame[205:365, 590:685] = 255
+    assert Navigator.park_teleport_loading(frame)
+    frame[:175] = 0
+    assert not Navigator.park_teleport_loading(frame)
+
+
 def test_park_arrival_ignores_old_home_and_requires_stable_home_after_loading(tmp_path, monkeypatch):
     runner, events = runner_for(tmp_path, monkeypatch, [])
     scenes = ['home'] * 4 + ['park_teleport_loading'] + ['home', None] + ['home'] * 3
     captured = []
 
-    def observe():
+    def observe(*, park_loading_only):
+        assert park_loading_only == ('park_teleport_loading' not in captured)
         scene = scenes[len(captured)]
         captured.append(scene)
         return SimpleNamespace(scene=scene, captured_at=park.time.monotonic())
@@ -255,7 +265,7 @@ def test_park_arrival_ignores_old_home_and_requires_stable_home_after_loading(tm
 
 def test_park_arrival_never_accepts_home_without_loading(tmp_path, monkeypatch):
     runner, events = runner_for(tmp_path, monkeypatch, [])
-    runner.nav.observe = lambda: SimpleNamespace(scene='home', captured_at=park.time.monotonic())
+    runner.nav.observe = lambda **kwargs: SimpleNamespace(scene='home', captured_at=park.time.monotonic())
     with pytest.raises(NavigationError, match='未確認樂園傳送完成'):
         runner.wait_for_arrival(GIFT_PLACES[1])
     assert not events
