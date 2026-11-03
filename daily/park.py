@@ -105,7 +105,7 @@ class ParkRunner:
         place, item = matches[0]
         x, y, w, h = item.box
         self.nav.inputs.click(int(x+w/2), int(y+h/2))
-        self.nav.wait_for({'home'}, timeout=45)
+        self.wait_for_arrival(place)
         forward_steps = camera_steps = 0
         previous_offset = None
         previous_dx = None
@@ -114,8 +114,6 @@ class ParkRunner:
             view = self.read(self.nav.observe(), place)
             deadline = time.monotonic()+5
             while view.kind == 'unknown' and time.monotonic() < deadline:
-                # A teleport can briefly expose the old park before its fade.
-                # Wait without input until the new park is actually readable.
                 self.nav.inputs.pause(.2)
                 view = self.read(self.nav.observe(), place)
             if view.kind == 'entry':
@@ -172,6 +170,26 @@ class ParkRunner:
                 break
         self.nav.save(view.observation, place.key + '-not-reached')
         raise NavigationError('未在有限移動距離內找到禮物／刮刮樂互動提示')
+
+    def wait_for_arrival(self, place):
+        deadline = time.monotonic() + 45
+        saw_loading = False
+        home_since = None
+        while True:
+            observation = self.nav.observe()
+            if time.monotonic() >= deadline:
+                self.nav.save(observation, f'{place.key}-arrival-unverified')
+                raise NavigationError('未確認樂園傳送完成，停止接近')
+            if observation.scene == 'park_teleport_loading':
+                saw_loading = True
+            if saw_loading and observation.scene == 'home':
+                if home_since is None:
+                    home_since = observation.captured_at
+                elif observation.captured_at - home_since >= .35:
+                    return
+            else:
+                home_since = None
+            self.nav.inputs.pause(.2)
 
     def house_gift_offset(self, view):
         markers = self.nav.vision.find_all(view.observation.image, 'park_character_gift_marker',

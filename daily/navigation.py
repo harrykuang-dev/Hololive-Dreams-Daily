@@ -53,6 +53,8 @@ class Navigator:
     def interpret(self, image, *, captured_at=None):
         captured = time.monotonic() if captured_at is None else captured_at
         frame = self.vision.normalize(image)
+        if self.park_teleport_loading(frame):
+            return Observation(frame, 'park_teleport_loading', captured)
         scene = self.vision.scene(frame)
         observation = Observation(frame, scene, captured)
         if scene == 'song_select' and self.multiplayer_ready_controls(observation):
@@ -118,6 +120,19 @@ class Navigator:
                     scene = 'fishing_map_second' if any('汽水泡泡灣' in getattr(item, 'text', '')
                                                        for item in area) else 'park_map'
         return Observation(frame, scene, captured)
+
+    @staticmethod
+    def park_teleport_loading(frame):
+        # The door animation can cover the centre and the upper band can be
+        # entirely pale. Both borders keep the same blue and pale palette.
+        blue_pixels = 0
+        for band in (frame[15:75, 40:1240], frame[645:705, 40:1240]):
+            blue = cv2.inRange(band, (235, 140, 24), (255, 204, 61))
+            pale = cv2.inRange(band, (236, 229, 157), (255, 255, 255))
+            if cv2.countNonZero(cv2.bitwise_or(blue, pale)) < blue.size * .88:
+                return False
+            blue_pixels += cv2.countNonZero(blue)
+        return blue_pixels >= blue.size * .48
 
     def multiplayer_ready_controls(self, observation):
         heading = r'^(?:∴\s*)?難易度選擇中$'

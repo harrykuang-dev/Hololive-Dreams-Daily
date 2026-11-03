@@ -8,7 +8,7 @@ import pytest
 from daily import park
 from daily.calendar import DailyAttempts, DailyUnavailable
 from daily.contracts import TaskConfig, TaskStatus
-from daily.navigation import NavigationError
+from daily.navigation import NavigationError, Navigator
 from daily.park import GIFT_PLACES, LOTTERY_PLACE, ParkRunner, ParkView
 
 
@@ -222,7 +222,43 @@ def test_ambiguous_floating_gift_markers_stop_before_camera_or_walking_input(tmp
 def prepare_house_entry(runner):
     runner.nav.open_notifications = lambda: object()
     runner.nav.text = lambda *a, **k: [SimpleNamespace(box=(100, 190, 180, 30))] if a[1] == GIFT_PLACES[0].notice else []
-    runner.nav.wait_for = lambda *a, **k: object()
+    runner.wait_for_arrival = lambda place: None
+
+
+@pytest.mark.parametrize('blue', [(254, 194, 38), (254, 151, 46)])
+def test_park_loading_requires_both_borders_and_blue_pixels(blue):
+    frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+    frame[:75] = (251, 248, 228)
+    frame[645:] = (251, 248, 228)
+    assert not Navigator.park_teleport_loading(frame)
+    frame[645:, :900] = blue
+    assert Navigator.park_teleport_loading(frame)
+    frame[:75, :640] = 0
+    assert not Navigator.park_teleport_loading(frame)
+
+
+def test_park_arrival_ignores_old_home_and_requires_stable_home_after_loading(tmp_path, monkeypatch):
+    runner, events = runner_for(tmp_path, monkeypatch, [])
+    scenes = ['home'] * 4 + ['park_teleport_loading'] + ['home', None] + ['home'] * 3
+    captured = []
+
+    def observe():
+        scene = scenes[len(captured)]
+        captured.append(scene)
+        return SimpleNamespace(scene=scene, captured_at=park.time.monotonic())
+
+    runner.nav.observe = observe
+    runner.wait_for_arrival(GIFT_PLACES[1])
+    assert captured == scenes
+    assert not events
+
+
+def test_park_arrival_never_accepts_home_without_loading(tmp_path, monkeypatch):
+    runner, events = runner_for(tmp_path, monkeypatch, [])
+    runner.nav.observe = lambda: SimpleNamespace(scene='home', captured_at=park.time.monotonic())
+    with pytest.raises(NavigationError, match='未確認樂園傳送完成'):
+        runner.wait_for_arrival(GIFT_PLACES[1])
+    assert not events
 
 
 def test_gift_camera_stops_if_fresh_marker_moves_further_from_center(tmp_path, monkeypatch):
