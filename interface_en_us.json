@@ -23,7 +23,7 @@
   "solo_live_song": "Song (blank: keep)",
   "invalid_song": "Enter a valid value",
   "task_high_low": "High & Low",
-  "high_low_target": "Profit target (blank: game cap)",
+  "high_low_target": "Settled coin goal (blank: daily limit)",
   "invalid_target": "Enter a valid value",
   "task_jump_rope": "Jump Rope",
   "jump_rope_rounds": "Rounds (required)",

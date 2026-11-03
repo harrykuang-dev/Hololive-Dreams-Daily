@@ -33,6 +33,7 @@ SAMPLES = [
     ('arena_map', '13.51.56.03', 254),
     ('arena_popup', '13.51.56.03', 256),
     ('high_low_entry', '13.51.56.03', 260),
+    ('high_low_table', '13.51.56.03', 264),
     ('fishing_map_popup', '13.51.56.03', 1910.6),
     ('fishing_setup_second', '13.51.56.03', 1918),
     ('fishing_result', '13.51.56.03', 1945),

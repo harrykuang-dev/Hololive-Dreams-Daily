@@ -184,8 +184,53 @@ def main():
             publish('complete', completed=1, result=reading,
                     diagnostic_directory=str(directory))
         else:
-            # High & Low requires a native configurable cap before integration.
-            raise RuntimeError('Module integration is not enabled yet')
+            import ctypes
+            from ctypes import wintypes
+            import auto_bot as bot
+            from daily.game_process import GameProcess
+            from daily.high_low_worker import play, wait_for_table
+
+            def cancelled():
+                return stopped.is_set() or args.stop.exists() or not parent_alive(args.parent_pid)
+
+            window = bot.find_game_window()
+            if window is None or window.isMinimized:
+                raise RuntimeError('High & Low game window is unavailable')
+            hwnd = window._hWnd
+            game = GameProcess(hwnd)
+            try:
+                foreground = ctypes.windll.user32.GetForegroundWindow
+                foreground.restype = wintypes.HWND
+
+                def verify_window():
+                    if (game.backend.pid_for_window(hwnd) != game.pid
+                            or not game.backend.is_running(game.handle) or foreground() != hwnd):
+                        raise RuntimeError('High & Low lost its original foreground game window')
+
+                find_window = bot.find_game_window
+
+                def find_verified_window():
+                    if cancelled():
+                        raise InterruptedError('High & Low cancelled')
+                    verify_window()
+                    current = find_window()
+                    if current is None or current.isMinimized or current._hWnd != hwnd:
+                        raise RuntimeError('High & Low capture window changed')
+                    return current
+
+                bot.find_game_window = find_verified_window
+                publish('ready', phase='window_ready', hwnd=hwnd)
+                decision = wait_for_start(args.status.parent / 'start.json', args.job_id, cancelled)
+                if decision.get('metadata', {}).get('hwnd') != hwnd:
+                    raise RuntimeError('High & Low recording window does not match worker window')
+                publish('running', phase='authorized')
+                wait_for_table(bot, cancelled)
+                bot.DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+                result = play(bot, config.target, cancelled=cancelled, publish=publish,
+                              verify_window=verify_window)
+                publish('complete', completed=1, result=result)
+            finally:
+                game.close()
         return 0
     except Exception as error:
         publish('failed', error=f'{type(error).__name__}: {error}')

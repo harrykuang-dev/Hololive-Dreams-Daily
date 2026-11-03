@@ -22,6 +22,7 @@ from .recording import GameRecording, recording_directory
 from .calendar import DailyAttempts, DailyUnavailable
 from .park import ParkRunner
 from .fishing import FishingRunner
+from .high_low import HighLowRunner
 from .jump import JumpRunner
 from .cooking import CookingRunner
 from .rewards import RewardsRunner
@@ -106,6 +107,9 @@ class RunDailyTask(CustomAction):
                                  TaskStatus.NAVIGATION_VERIFIED, TaskStatus.SKIPPED)
 
     def execute(self, navigator: Navigator, config: TaskConfig, *, progress=lambda result: None) -> TaskResult:
+        if config.task == 'high_low' and not config.entry_only:
+            data = Path(os.environ.get('PI_USER_DATA_DIR', ROOT / 'userdata')) / 'daily'
+            return HighLowRunner(navigator, ROOT, data, progress).run(config)
         if config.task in ('park_gifts', 'lottery'):
             return ParkRunner(navigator, progress).run(config)
         if config.task == 'connect':

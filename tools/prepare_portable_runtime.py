@@ -130,7 +130,7 @@ def verify(output, group=None):
         if not path.is_relative_to(output.resolve()) or digest(path) != sha:
             raise ValueError(f'Runtime file verification failed: {relative}')
     imports = ('import maa,cv2,numpy,PIL' if group == 'agent' else
-               'import cv2,numpy,PIL,win32gui,win32process,dxcam,onnxruntime,scipy,moderngl')
+               'import cv2,numpy,PIL,win32gui,win32process,dxcam,onnxruntime,scipy,moderngl,ddddocr,numba,mss,pygetwindow,pydirectinput')
     code = ("import sys,json,pathlib,site,importlib.util;"+imports+";"
             "root=pathlib.Path(sys.executable).resolve().parent;"
             "assert sys.flags.isolated and not site.ENABLE_USER_SITE;"
