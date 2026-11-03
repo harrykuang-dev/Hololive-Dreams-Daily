@@ -40,6 +40,22 @@ def test_dialogue_footer_recognizes_post_reward_line_without_template():
     assert view.kind == 'dialogue'
 
 
+@pytest.mark.parametrize('body,speaker,kind', [
+    ('洽馬的刮刮樂～，快來試試手氣吧～', [], 'dialogue'),
+    ('洽馬的刮刮樂～快來試試手氣吧～', ['蘿蔔子'], 'dialogue'),
+    ('洽馬的刮刮樂～快來試試手氣吧～', ['蘿蔔子', '其他'], 'unknown'),
+    ('洽馬的刮刮樂～下次來試試手氣吧～', [], 'unknown'),
+])
+def test_recorded_lottery_intro_survives_speaker_and_punctuation_variation(body, speaker, kind):
+    texts = {(200, 610, 850, 60): [body], (550, 560, 170, 50): speaker}
+    nav = SimpleNamespace(text=lambda _, pattern, roi: [SimpleNamespace(text=value) for value in texts.get(roi, [])])
+    observation = SimpleNamespace(image=None, scene='park_dialogue')
+    view = ParkRunner(nav).read(observation, LOTTERY_PLACE)
+    assert view.kind == kind
+    if kind == 'dialogue':
+        assert view.signature == '洽馬的刮刮樂快來試試手氣吧'
+
+
 def runner_for(tmp_path, monkeypatch, kinds):
     elapsed, events = [0.0], []
     monkeypatch.setattr(park.time, 'monotonic', lambda: elapsed[0])

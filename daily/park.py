@@ -60,6 +60,10 @@ class ParkRunner:
             lines = self.nav.text(observation, '.+', (200, 610, 850, 60))
             speaker = self.nav.text(observation, place.speaker or '.+', (550, 560, 170, 50))
             signature = '|'.join(getattr(item, 'text', '').strip() for item in lines)
+            if place == LOTTERY_PLACE and len(lines) == 1:
+                intro = re.sub(r'[\s，,～~♪！!]+', '', signature)
+                if intro == '洽馬的刮刮樂快來試試手氣吧' and len(speaker) <= 1:
+                    return ParkView('dialogue', observation, signature=intro)
             # Some names are symbols, not OCR-readable words. The exact gift
             # handover line plus the observed dialogue-next control is enough
             # for this one continuation, never a new initial interaction.
