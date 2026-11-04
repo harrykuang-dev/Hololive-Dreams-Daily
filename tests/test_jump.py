@@ -11,6 +11,22 @@ from daily.contracts import ResourceObservation
 from daily.minigames import start_minigame
 
 
+@pytest.mark.parametrize('has_next', [True, False])
+def test_jump_result_can_read_heading_in_tighter_crop(has_next):
+    observation = SimpleNamespace(scene='jump_result')
+    box = (1056, 639, 70, 25)
+    responses = {(755, 185, 280, 65): [SimpleNamespace(text='SCOREATTACK')],
+                 (980, 610, 260, 90): [SimpleNamespace(box=box)] if has_next else []}
+    nav = SimpleNamespace(observe=lambda: observation, text=lambda _, _pattern, roi: responses.get(roi, []),
+                          save=lambda *args: None)
+    runner = JumpRunner(nav)
+    if has_next:
+        assert runner.result_page(timeout=0) == (observation, box)
+    else:
+        with pytest.raises(NavigationError, match='未確認分數結果頁'):
+            runner.result_page(timeout=0)
+
+
 def preflight(tmp_path, *, balance=30, capacity=100, cost=3, age=0, scene='jump_setup'):
     events = []
     observation = SimpleNamespace(scene=scene, captured_at=time.monotonic()-age)

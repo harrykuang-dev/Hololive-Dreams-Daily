@@ -54,7 +54,10 @@ class MinigameResults:
         while True:
             observation = self.nav.observe()
             if observation.scene == self.scene:
-                title = self.nav.text(observation, r'^SCORE\s*ATTACK$', (600, 130, 600, 200))
+                heading = r'^SCORE\s*ATTACK$'
+                title = self.nav.text(observation, heading, (600, 130, 600, 200))
+                if not title and self.prefix == 'jump':
+                    title = self.nav.text(observation, heading, (755, 185, 280, 65))
                 buttons = self.nav.text(observation, '下一步$', (980, 610, 260, 90))
                 if len(title) == len(buttons) == 1:
                     return observation, buttons[0].box
