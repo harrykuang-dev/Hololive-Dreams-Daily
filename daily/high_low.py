@@ -47,8 +47,18 @@ class HighLowRunner:
         self.nav.save(observation, 'high-low-table-unconfirmed')
         raise NavigationError('未確認比大小牌桌，未授權投注')
 
+    def finished_button(self, observation):
+        if not self.nav.vision.match(observation.image, 'high_low_close'):
+            return None
+        message = r'^已達最高獲得金額[，, ]*遊戲結束$'
+        if len(self.nav.text(observation, message, (465, 610, 460, 65))) != 1:
+            return None
+        ends = self.nav.text(observation, '^結束$', (930, 610, 300, 75))
+        return ends[0].box if len(ends) == 1 else None
+
     def leave_table(self):
         deadline = time.monotonic()+15
+        finished_closed = False
         while time.monotonic() < deadline:
             observation = self.nav.observe()
             if observation.scene == 'home':
@@ -58,18 +68,21 @@ class HighLowRunner:
                 x, y, w, h = close.box
                 self.nav.inputs.click(x+w//2, y+h//2)
                 return self.nav.wait_for({'home'}, timeout=20)
-            if close is not None and self.nav.text(observation, '已達最高獲得金額', (320, 80, 670, 290)):
-                ends = self.nav.text(observation, '^結束$', (930, 610, 300, 75))
-                if len(ends) == 1:
-                    x, y, w, h = ends[0].box
-                    self.nav.inputs.click(x+w//2, y+h//2)
-                    return self.nav.wait_for({'home'}, timeout=20)
+            if not finished_closed and (button := self.finished_button(observation)):
+                x, y, w, h = button
+                self.nav.inputs.click(x+w//2, y+h//2)
+                finished_closed = True
+                deadline = time.monotonic()+20
             self.nav.inputs.pause(.2)
         self.nav.save(observation, 'high-low-exit-unconfirmed')
         raise NavigationError('比大小已停止，未確認安全的離開牌桌按鈕')
 
     def run(self, config):
         if 'high_low' in self.nav.daily_attempts.attempted_tasks():
+            if self.finished_button(self.nav.observe()):
+                returned = self.leave_table()
+                evidence = self.nav.save(returned, 'high-low-returned-home')
+                return TaskResult(TaskStatus.COMPLETE, '已關閉原有比大小結算並返回樂園', evidence=evidence)
             raise DailyUnavailable('比大小本遊戲日已有嘗試紀錄')
         path = self.root / 'config/modules.json'
         settings = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}

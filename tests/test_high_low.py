@@ -5,6 +5,8 @@ import pytest
 
 from daily.high_low_worker import play
 from daily.high_low import HighLowRunner
+from daily.calendar import DailyUnavailable
+from daily.contracts import TaskConfig, TaskStatus
 
 
 @pytest.mark.parametrize('strategy,mode,opening,reason', [
@@ -84,3 +86,21 @@ def test_high_low_advances_the_already_open_shiori_invitation_once():
     runner.table = lambda observation: observation is table
     runner.open_table()
     assert events == [0x45]
+
+
+@pytest.mark.parametrize('final_screen', [True, False])
+def test_already_attempted_high_low_can_only_close_verified_result(final_screen):
+    nav = SimpleNamespace(daily_attempts=SimpleNamespace(attempted_tasks=lambda: {'high_low'}),
+                          observe=lambda: object(), save=lambda *args: 'home.png')
+    runner = HighLowRunner(nav, None, None)
+    runner.finished_button = lambda _: (930, 610, 300, 75) if final_screen else None
+    events = []
+    runner.leave_table = lambda: events.append('close_only')
+    if final_screen:
+        result = runner.run(TaskConfig('high_low'))
+        assert result.status == TaskStatus.COMPLETE and result.completed_rounds == 0
+        assert events == ['close_only']
+    else:
+        with pytest.raises(DailyUnavailable):
+            runner.run(TaskConfig('high_low'))
+        assert not events
