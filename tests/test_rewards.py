@@ -58,3 +58,12 @@ def test_direct_mission_points_confirmation_without_get_popup(monkeypatch):
     runner, clicks, _ = make_runner(monkeypatch, [view()]*4 + [view(state='empty')]*8)
     runner.collect('daily')
     assert clicks == [(1075, 635)] and runner.claimed == 1
+
+
+def test_delayed_get_interrupts_transient_empty_claim_page(monkeypatch):
+    runner, clicks, progress = make_runner(monkeypatch, [view('achievements')]*4
+        + [view('achievements', 'empty'), view(None, 'get')]
+        + [view('achievements', 'empty')]*8)
+    runner.collect('achievements')
+    assert clicks == [(1075, 635), (650, 665)]
+    assert runner.claimed == 1 and not progress[-1].pending_round

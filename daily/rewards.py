@@ -123,6 +123,7 @@ class RewardsRunner:
         x, y, w, h = view.button
         self.nav.inputs.click(int(x+w/2), int(y+h/2))  # Never retry a claim.
         deadline, closed = time.monotonic()+25, False
+        empty_since = None
         while True:
             view = self.read()
             if view.state == 'get' and not closed:
@@ -132,14 +133,18 @@ class RewardsRunner:
                     x, y, w, h = close[0].box
                     self.nav.inputs.click(int(x+w/2), int(y+h/2))
                     closed = True
-            if view.page == page and view.state == 'empty':
-                view = self.stable(page, states=('empty',))
+            now = time.monotonic()
+            if view.page != page or view.state != 'empty':
+                empty_since = None
+            elif empty_since is None:
+                empty_since = now
+            elif now-empty_since >= .5:
                 self.claimed += 1
                 evidence = self.nav.save(view.observation, page+'-claimed')
                 self.progress(TaskResult(TaskStatus.RUNNING, f'已確認 {page} 領取完成',
                                          self.claimed, evidence))
                 return
-            if time.monotonic() >= deadline:
+            if now >= deadline:
                 self.nav.save(view.observation, page+'-claim-unconfirmed')
                 raise NavigationError(f'{page} 領取尚未確認，未再次點擊')
             self.nav.inputs.pause(.15)
