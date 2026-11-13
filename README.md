@@ -12,7 +12,7 @@ Cooking and Jump Rope are connected to their isolated gameplay modules. Turn off
 
 Login rewards can be dismissed through their login-reward heading and footer continuation/blank-area instruction, independent of character artwork, event illustrations or UI colours. After verified login or date reset, a clear continuation footer also handles new illustrations with unreadable headings; this fallback does not apply to arbitrary unknown game scenes. Different reward pages of the same layout are distinguished by their text; an unchanged page is not clicked again, and recovery stops after12 pages. The new generic recognition passed offline tests; native startup across different login layouts remains for user testing.
 
-Cooking, solo Live and multiplayer Live each require a user-entered round count. Fishing uses the second location shown in the reference recording. Once-daily features can be validated at their interaction entry without consuming a play.
+Cooking, solo Live and multiplayer Live each require a user-entered round count. Fishing is an optional task and uses the second location shown in the reference recording. Once-daily features can be validated at their interaction entry without consuming a play.
 
 Game-window recordings and time-aligned step logs are required for live task execution. Recording failure stops further actions while still releasing held keys. Recordings remain local; development staging places them beside the staged application under `recordings`. Once-daily full tests use fresh attempts after04:05 UTC+8; the game day resets at04:00.
 
@@ -40,7 +40,7 @@ Park gifts passed one uninterrupted recorded run covering all three GET rewards 
 
 Once-daily attempts are recorded before the first interaction. A failed lottery attempt can resume its verified, still-open introduction once after checking the finalized original recording and a new active recording. Holo House recovery additionally requires the same game window and matching handover text, nameplate and surroundings. The gift recovery guard has passed offline tests. Attempts with no verified open dialogue stay locked for the game day and are excluded from remaining gift locations.
 
-Reward collection checks daily, weekly and season missions, the pass, achievements, the gift box and the current event's daily and free missions. An uninterrupted recorded run confirmed seven available reward groups, including actual event rewards, and returned to the park. A claim is clicked once and requires a confirmed received or disabled state before proceeding. Empty-page checks are also verified; future event layouts require validation.
+Reward collection checks daily, weekly and season missions, the pass, achievements and the gift box. Event missions are left for manual collection. The program clicks each claim once and checks that the reward was received or the button was disabled before continuing.
 
 Development and test copies can share daily-attempt records by setting the same absolute `attempt_directory` in their local `config/recording.json`. Preserve and merge existing records before enabling this setting. `tools/stage_dev.py` uses a shared ledger for copies under the same working directory. Without the setting, the original per-application data directory remains in use; records are not moved automatically.
 
