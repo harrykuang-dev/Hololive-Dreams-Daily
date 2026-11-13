@@ -69,8 +69,15 @@ class HoloWorkRunner:
                 return WorkView(observation, 'assignment', buttons, tuple(scores), tuple(empty))
         if '一鍵設定' in buttons and any('選擇holo成員' in word for word in words):
             return WorkView(observation, 'available', buttons)
-        timers = tuple(word for word in words if re.fullmatch(r'[0-9]{1,2}:[0-5][0-9]:[0-5][0-9]', word))
+        timer_pattern = r'^[0-9]{1,2}:[0-5][0-9]:[0-5][0-9]$'
+        timers = tuple(word for word in words if re.fullmatch(timer_pattern, word))
         stops = sum('停止' in word for word in words)
+        if stops >= 3 and len(timers) < 3:
+            # Card artwork can cause wide OCR to split or truncate the digits.
+            tallies = [self.nav.text(observation, timer_pattern, (x, 365, 225, 44), only_rec=True)
+                       for x in (104, 488, 872)]
+            if all(len(matches) == 1 for matches in tallies):
+                timers = tuple(matches[0].text.strip() for matches in tallies)
         if len(timers) >= 3 and stops >= 3:
             return WorkView(observation, 'working', buttons, timers=timers)
         return WorkView(observation, 'unknown', buttons)
