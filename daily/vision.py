@@ -41,7 +41,8 @@ class Vision:
     def match(self, frame, name: str) -> Match | None:
         entry = self.anchors[name]
         x, y, w, h = entry['roi']
-        margin = 8
+        # At ×10 the longer cost label shifts the Solo boost control left.
+        margin = 16 if name == 'solo_boost_button' else 8
         x0, y0 = max(0, x-margin), max(0, y-margin)
         search = frame[y0:min(720, y+h+margin), x0:min(1280, x+w+margin)]
         template = self.images[name]

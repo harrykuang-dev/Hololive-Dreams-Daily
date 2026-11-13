@@ -20,11 +20,15 @@ class HighLowRunner:
         if (observation.scene != 'park_dialogue' and
                 not self.nav.vision.match(observation.image, 'park_dialogue_next')):
             return False
-        names = self.nav.text(observation, r'^(Shiori|佩克拉)$', (550, 560, 170, 50))
+        lines = {'Shiori': r'^若想抓住機會[，, ]*那就全力以赴吧[。.]?$',
+                 '佩克拉': r'想玩嗎\s*PEKO',
+                 'Kiara': r'^喂喂[，, ]*來玩一下嘛[～~]*[！! ]*拜託[～~]*[！!]?$'}
+        names = self.nav.text(observation, r'^(Shiori|佩克拉|Kiara)$', (550, 560, 170, 50))
         if len(names) != 1:
             return False
-        expected = (r'^若想抓住機會[，, ]*那就全力以赴吧[。.]?$' if names[0].text.strip() == 'Shiori'
-                    else r'想玩嗎\s*PEKO')
+        expected = lines.get(names[0].text.strip())
+        if expected is None:
+            return False
         return len(self.nav.text(observation, expected, (200, 610, 850, 60))) == 1
 
     def open_table(self):

@@ -68,9 +68,12 @@ def test_high_low_guard_blocks_click_on_window_change_even_if_upstream_swallows_
     assert not bot.bot_running and bot.safe_click is original
 
 
-def test_high_low_advances_the_already_open_shiori_invitation_once():
-    text_by_roi = {(550, 560, 170, 50): 'Shiori',
-                   (200, 610, 850, 60): '若想抓住機會，那就全力以赴吧。'}
+@pytest.mark.parametrize(('speaker', 'line'), [
+    ('Shiori', '若想抓住機會，那就全力以赴吧。'),
+    ('Kiara', '喂喂，來玩一下嘛～！拜託～～！'),
+])
+def test_high_low_advances_a_verified_open_invitation_once(speaker, line):
+    text_by_roi = {(550, 560, 170, 50): speaker, (200, 610, 850, 60): line}
     dialogue = SimpleNamespace(scene='park_dialogue', image=None)
     table = SimpleNamespace(scene=None, image=None)
     observations = iter((dialogue, dialogue, table))
