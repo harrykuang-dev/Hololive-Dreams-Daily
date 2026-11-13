@@ -41,10 +41,10 @@ class Vision:
     def match(self, frame, name: str) -> Match | None:
         entry = self.anchors[name]
         x, y, w, h = entry['roi']
-        # At ×10 the longer cost label shifts the Solo boost control left.
-        margin = 16 if name == 'solo_boost_button' else 8
-        x0, y0 = max(0, x-margin), max(0, y-margin)
-        search = frame[y0:min(720, y+h+margin), x0:min(1280, x+w+margin)]
+        # Solo layouts shift the boost and Auto controls horizontally.
+        horizontal = {'solo_boost_button': 16, 'solo_auto_on': 26}.get(name, 8)
+        x0, y0 = max(0, x-horizontal), max(0, y-8)
+        search = frame[y0:min(720, y+h+8), x0:min(1280, x+w+horizontal)]
         template = self.images[name]
         scores = cv2.matchTemplate(search, template, cv2.TM_CCOEFF_NORMED)
         _, score, _, location = cv2.minMaxLoc(scores)
