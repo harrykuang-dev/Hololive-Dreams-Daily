@@ -55,6 +55,15 @@
       ]
     },
     {
+      "name": "daily_routine",
+      "label": "$task_daily_routine",
+      "entry": "Daily_daily_routine",
+      "default_check": false,
+      "option": [
+        "daily_routine_strategy"
+      ]
+    },
+    {
       "name": "holowork",
       "label": "$task_holowork",
       "entry": "Daily_holowork",
@@ -187,6 +196,35 @@
             "DailyConfig_connect_entry_only": {
               "custom_action_param": {
                 "entry_only": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "daily_routine_strategy": {
+      "type": "select",
+      "label": "$daily_routine_strategy",
+      "default_case": "Conservative",
+      "cases": [
+        {
+          "name": "Conservative",
+          "label": "$high_low_conservative",
+          "pipeline_override": {
+            "DailyConfig_daily_routine_strategy": {
+              "custom_action_param": {
+                "strategy": "conservative"
+              }
+            }
+          }
+        },
+        {
+          "name": "Aggressive",
+          "label": "$high_low_aggressive",
+          "pipeline_override": {
+            "DailyConfig_daily_routine_strategy": {
+              "custom_action_param": {
+                "strategy": "aggressive"
               }
             }
           }

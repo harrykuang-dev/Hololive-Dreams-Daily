@@ -142,6 +142,18 @@ def test_recovery_requires_original_first_e_and_live_recording_guard(tmp_path):
         ledger.resume_open_dialogue('lottery')
 
 
+def test_shared_routine_recording_does_not_use_an_earlier_tasks_e(tmp_path):
+    ledger, original, timeline = recorded_attempt(tmp_path)
+    original.finish(error='no verified scratch result')
+    timeline.write_text('\n'.join(json.dumps(row) for row in (
+        {'event': 'recording_ready'},
+        {'event': 'key_down', 'key': 0x45, 'utc': '2026-11-01T04:59:00+08:00'},
+        {'event': 'recording_stopped'}))+'\n')
+    with pytest.raises(DailyUnavailable):
+        ledger.resume_open_dialogue('lottery')
+    assert not original.path.with_suffix('.recovery').exists()
+
+
 def test_recovery_does_not_compete_with_a_pending_or_unfinalized_original_run(tmp_path):
     ledger, original, timeline = recorded_attempt(tmp_path)
     with pytest.raises(DailyUnavailable):

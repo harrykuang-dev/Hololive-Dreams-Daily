@@ -66,6 +66,11 @@ def read_one(nav, observation, expected, roi):
     return items[0].text if len(items) == 1 else None
 
 
+def read_energy_balance(nav, observation):
+    fraction = read_one(nav, observation, '[0-9].*[/／].*[0-9]', (1025, 25, 145, 60))
+    return parse_fraction(fraction)
+
+
 def record_post_round_energy(nav, observation, *, task, round_number):
     recording = getattr(nav, 'recording', None)
     if recording is None or observation is None:
@@ -74,8 +79,7 @@ def record_post_round_energy(nav, observation, *, task, round_number):
               'solo_live': {'live_portal', 'song_select', 'solo_setup'}}
     balance = ResourceObservation(None, None)
     if observation.scene in scenes[task]:
-        fraction = read_one(nav, observation, '[0-9].*[/／].*[0-9]', (1025, 25, 145, 60))
-        observed = parse_fraction(fraction)
+        observed = read_energy_balance(nav, observation)
         if observed.permits(0):
             balance = observed
     evidence = nav.save(observation, f'{task}-zero-energy-after-round') if balance.available == 0 else None
@@ -152,7 +156,7 @@ class EnergySettings:
             partial_energy_play = policy and resource.available > 0
         return EnergySelection(multiplier, cost, resource, empty_energy_play, partial_energy_play)
 
-    def configure(self, task, multiplier, budget_remaining=None):
+    def configure(self, task, multiplier, budget_remaining=None, *, required_cost=None):
         observation = self.nav.open_energy_settings(task)
         observation, selection = self.wait_read(observation)
         for _ in range(100):
@@ -174,6 +178,9 @@ class EnergySettings:
             selection = updated
         else:
             raise NavigationError('能量倍率調整次數已達上限')
+        if required_cost is not None and (selection.cost != required_cost or selection.effective_cost != required_cost):
+            self.nav.cancel_energy_settings()
+            raise ResourceUnavailable(f'本局須消耗 {required_cost} 點能量，畫面顯示 {selection.effective_cost}，未開局')
         if recording := getattr(self.nav, 'recording', None):
             recording.mark('energy_selection_verified', task=task, multiplier=selection.multiplier,
                            nominal_cost=selection.cost, effective_cost=selection.effective_cost,

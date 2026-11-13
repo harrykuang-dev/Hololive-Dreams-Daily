@@ -22,7 +22,7 @@ def runner(tmp_path, monkeypatch, *, verified=True):
     budgets,rounds,clicks=[],[],[]
     class Energy:
         def __init__(self,nav):pass
-        def configure(self,task,multiplier,budget):
+        def configure(self,task,multiplier,budget,**options):
             budgets.append(budget)
             return EnergySelection(1,30,ResourceObservation(100,100))
     monkeypatch.setattr(cooking,'EnergySettings',Energy)
@@ -63,3 +63,17 @@ def test_unverified_worker_result_never_counts_a_cooking_round(tmp_path,monkeypa
     program.result_page=lambda:pytest.fail('Unverified module result must stop before result navigation')
     with pytest.raises(NavigationError,match='分數'):
         program.run(TaskConfig('cooking',rounds=1,resource_budget=30))
+
+
+def test_daily_cooking_resumes_only_the_missing_rounds(tmp_path, monkeypatch):
+    from daily.calendar import DailyAttempts
+
+    program, budgets, rounds, clicks = runner(tmp_path, monkeypatch)
+    ledger = DailyAttempts(tmp_path/'attempts')
+    ledger.reserve('routine_cooking_1').finish(evidence='first.png')
+    config = TaskConfig('cooking', rounds=3, resource_budget=90)
+
+    result = program.run(config, required_cost=30, daily_ledger=ledger)
+    assert result.completed_rounds == 3
+    assert budgets == [60, 30] and rounds == [1, 1] and len(clicks) == 2
+    assert set(ledger.completed_tasks()) == {f'routine_cooking_{i}' for i in (1, 2, 3)}

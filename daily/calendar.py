@@ -102,6 +102,17 @@ class DailyAttempts:
         directory = self.directory / game_day(self.clock())
         return {path.stem for path in directory.glob('*.json') if path.is_file()}
 
+    def completed_tasks(self):
+        day = game_day(self.clock())
+        for path in (self.directory / day).glob('*.json'):
+            try:
+                record = json.loads(path.read_text(encoding='utf-8'))
+                if (record.get('task') == path.stem and record.get('game_day') == day
+                        and record.get('state') == 'complete'):
+                    yield path.stem
+            except (OSError, ValueError, AttributeError):
+                continue
+
     def resume_open_dialogue(self, task: str, *, verify_gift=None) -> DailyAttempt:
         # Lottery callers confirm the introduction. Gift recovery additionally
         # compares the current handover with the original recording.
@@ -126,6 +137,7 @@ class DailyAttempts:
             ready = started = closed = False
             frames = None
             released = False
+            started_at = datetime.fromisoformat(record['started_at'])
             with Path(previous['timeline']).open(encoding='utf-8') as stream:
                 for line in stream:
                     event = json.loads(line)
@@ -137,8 +149,12 @@ class DailyAttempts:
                     if event.get('event') == 'recording_ready':
                         ready = True
                     elif event.get('event') == 'key_down' and event.get('key') == 0x45:
-                        if gift and (not ready or closed or datetime.fromisoformat(event['utc'])
-                                     < datetime.fromisoformat(record['started_at'])):
+                        stamp = event.get('utc')
+                        if gift and not stamp:
+                            raise ValueError('Original E is missing its timestamp')
+                        if stamp and datetime.fromisoformat(stamp) < started_at:
+                            continue
+                        if gift and (not ready or closed):
                             raise ValueError('Original E does not belong to the reserved attempt')
                         started |= ready
                     elif event.get('event') == 'recording_stopped':

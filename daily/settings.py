@@ -5,6 +5,8 @@ from .contracts import ConfigurationError, TASKS, USER_ENTERED_ROUNDS
 
 
 def defaults(task):
+    if task == 'daily_routine':
+        return {'strategy': 'conservative'}
     values = {'entry_only': False}
     if task in USER_ENTERED_ROUNDS or task == 'jump_rope':
         values['rounds'] = '' if task in USER_ENTERED_ROUNDS else '1'

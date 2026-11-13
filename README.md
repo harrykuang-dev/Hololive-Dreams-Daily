@@ -4,6 +4,8 @@ A Windows daily-routine program built with MaaFramework, MFAAvalonia and isolate
 
 Development is in progress. The current source includes the task configuration interface, recording-based recognition, Auto checks, result journals, navigation primitives and isolated worker supervision. Full daily execution and portable packaging are not yet accepted. Only Connect is selected by default.
 
+Select **Daily routine** to collect and dispatch holoWork, collect park character gifts, play the scratch card and High & Low, complete three Cooking rounds at 30 energy each, and drain up to 10 available Solo Live energy using the game's Auto. The program verifies a zero balance from the Live setup screen after settlement. Its day records prevent repeating completed or unconfirmed daily-limited attempts and Cooking rounds. Fishing, Jump Rope and reward collection are separate tasks.
+
 New-profile configuration disables continuing after a failed task. Existing profiles keep their settings. Recorded recovery verified a failed fishing result, two-digit energy editing, event Live result navigation and an expired-item conversion notice. The Holo House handover with a symbolic speaker name now passes offline replay.
 
 Positive but insufficient energy can use the remaining balance only after reading the explicit shortage rule and confirming the same balance and a valid nominal or effective cost at the start gate. Budget and built-in Auto checks still apply. This partial-balance path has offline validation only; recorded native testing remains pending. No replenishment is performed.
@@ -28,7 +30,7 @@ Minigame navigation can verify the park's gamepad icon when its small text label
 
 Cooking and Jump Rope accept an explicit zero-energy setting. The actual widget and setup cost must both read zero, and the remaining resource balance must still be valid. Cooking's recorded two-round run used a zero resource budget with nonzero energy remaining. This option is separate from Live's positive consumption multiplier.
 
-High & Low verifies the table and its 50-coin wager before handing play to the pinned module in a separate process. Conservative uses the module's original strategy. Aggressive uses its three-stage strategy. A recorded Aggressive run confirmed three settlements totaling 32,000 coins. A separate recorded recovery closed the final result and returned to the park without starting another round. Conservative gameplay and an uninterrupted return after settlement remain to be verified.
+High & Low verifies the table and its 50-coin wager before handing play to the pinned module in a separate process. Conservative uses the module's original strategy. Aggressive uses its three-stage strategy. An Aggressive run confirmed three settlements totaling 31,200 coins and returned to the park. Conservative gameplay remains to be verified.
 
 Solo Live has passed recorded single-round foreground tests with one-energy, nine-energy and zero-energy consumption, plus an uninterrupted two-round test with separate Auto, resource and remaining-budget checks before each song. A zero resource budget permits play only when the observed effective cost is zero; it does not replenish energy or waive Auto-use checks. The game's consumption multiplier remains positive. The current song, difficulty and team must be retained. Multiplayer has passed recorded navigation from the park to its mode-selection page. Matchmaking, the ready/start entry and multiplayer play remain unverified and disabled.
 

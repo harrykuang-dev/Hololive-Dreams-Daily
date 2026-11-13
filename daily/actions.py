@@ -15,12 +15,12 @@ from .inputs import Cancelled
 from .journal import Journal
 from .navigation import EntryUnavailable, NavigationError, Navigator
 from .settings import read_settings
-from .resources import EnergySettings, ResourceUnavailable
+from .resources import ResourceUnavailable
 from .live import SoloLiveRunner
 from .holowork import HoloWorkRunner
 from .recording import GameRecording, recording_directory
-from .calendar import DailyAttempts, DailyUnavailable
-from .park import ParkRunner
+from .calendar import DailyAttempts, DailyUnavailable, game_day
+from .park import GIFT_PLACES, ParkRunner
 from .fishing import FishingRunner
 from .high_low import HighLowRunner
 from .jump import JumpRunner
@@ -28,6 +28,14 @@ from .cooking import CookingRunner
 from .rewards import RewardsRunner
 
 ROOT = Path(__file__).resolve().parents[1]
+DAILY_STEPS = (
+    ('holowork', 'holoWork', ('holowork',)),
+    ('park_gifts', '角色禮物', tuple(place.key for place in GIFT_PLACES)),
+    ('lottery', '刮刮樂', ('lottery',)),
+    ('high_low', '比大小', ('high_low',)),
+    ('cooking', '料理', ()),
+    ('solo_live', '單人 Auto Live', ()),
+)
 
 
 class RunDailyTask(CustomAction):
@@ -107,6 +115,8 @@ class RunDailyTask(CustomAction):
                                  TaskStatus.NAVIGATION_VERIFIED, TaskStatus.SKIPPED)
 
     def execute(self, navigator: Navigator, config: TaskConfig, *, progress=lambda result: None) -> TaskResult:
+        if config.task == 'daily_routine':
+            return self.run_routine(navigator, config, progress)
         if config.task == 'high_low' and not config.entry_only:
             data = Path(os.environ.get('PI_USER_DATA_DIR', ROOT / 'userdata')) / 'daily'
             return HighLowRunner(navigator, ROOT, data, progress).run(config)
@@ -139,7 +149,7 @@ class RunDailyTask(CustomAction):
         if config.task == 'solo_live':
             return SoloLiveRunner(navigator, progress).run(config)
         if config.task == 'holowork':
-            return HoloWorkRunner(navigator, progress).run()
+            return self.run_holowork(navigator, progress)
         if config.task == 'rewards':
             return RewardsRunner(navigator, progress).run()
         if config.task == 'fishing':
@@ -152,3 +162,109 @@ class RunDailyTask(CustomAction):
             data = Path(os.environ.get('PI_USER_DATA_DIR', ROOT / 'userdata')) / 'daily'
             return CookingRunner(navigator, ROOT, data, progress).run(config)
         raise NavigationError('已到達導航入口；完整任務執行尚未啟用')
+
+    def run_holowork(self, navigator, progress):
+        ledger = navigator.daily_attempts
+        attempt = None
+
+        def reserve():
+            nonlocal attempt
+            if attempt is None:
+                attempt = ledger.reserve('holowork')
+
+        try:
+            result = HoloWorkRunner(navigator, progress).run(before_change=reserve)
+        except Exception as error:
+            if attempt is not None:
+                attempt.finish(error=error)
+            raise
+        if attempt is not None:
+            attempt.finish(evidence=result.evidence)
+        return result
+
+    def run_routine(self, navigator, config, progress):
+        ledger = navigator.daily_attempts
+        day = game_day(ledger.clock())
+        guard = ledger.guard
+
+        def same_day():
+            guard()
+            if game_day(ledger.clock()) != day:
+                raise Cancelled('遊戲已換日，已停止本輪日常')
+
+        # Keep all daily reservations in the game day this run started in.
+        ledger.guard = same_day
+        try:
+            return self.run_routine_steps(navigator, config, progress, same_day)
+        finally:
+            ledger.guard = guard
+
+    def run_routine_steps(self, navigator, config, progress, same_day):
+        ledger = navigator.daily_attempts
+        data = Path(os.environ.get('PI_USER_DATA_DIR', ROOT / 'userdata')) / 'daily'
+        outcomes, completed, evidence = [], 0, None
+        pending = False
+        for task, label, keys in DAILY_STEPS:
+            same_day()
+            navigator.inputs.check()
+            verified = set(ledger.completed_tasks()) if keys else set()
+            if keys and verified.issuperset(keys):
+                completed += 1
+                outcomes.append(f'{label}：今日已完成')
+                continue
+            options = TaskConfig(task, strategy=config.strategy)
+
+            def update(value):
+                nonlocal pending, evidence
+                pending = value.pending_round
+                evidence = value.evidence or evidence
+                progress(TaskResult(TaskStatus.RUNNING, f'{label}：{value.reason}', completed,
+                                    evidence, pending_round=pending))
+
+            try:
+                if task == 'cooking':
+                    result = CookingRunner(navigator, ROOT, data, update).run(
+                        TaskConfig(task, rounds=3, resource_budget=90), required_cost=30, daily_ledger=ledger)
+                elif task == 'solo_live':
+                    result = SoloLiveRunner(navigator, update).run(
+                        TaskConfig(task, rounds=10, resource_budget=10), drain=True)
+                else:
+                    if task == 'high_low' and task not in ledger.attempted_tasks():
+                        current = navigator.observe()
+                        # Preserve recovery from a table or open dialogue.
+                        if current.scene == 'home':
+                            navigator.open_notifications()
+                    result = self.execute(navigator, options, progress=update)
+            except (ResourceUnavailable, DailyUnavailable, EntryUnavailable) as error:
+                result = TaskResult(TaskStatus.SKIPPED, str(error), pending_round=pending)
+            except NavigationError as error:
+                result = TaskResult(TaskStatus.FAILED, str(error), pending_round=pending)
+            if result.status == TaskStatus.CANCELLED:
+                raise Cancelled(result.reason)
+            evidence = result.evidence or evidence
+            pending = result.pending_round
+            verified = set(ledger.completed_tasks()) if keys else set()
+            # holoWork already running can be verified without claiming or dispatching.
+            done = (result.status == TaskStatus.COMPLETE and not pending
+                    and (task == 'holowork' or not keys or verified.issuperset(keys)))
+            if done:
+                completed += 1
+            reason = result.reason
+            if not done and result.status == TaskStatus.COMPLETE:
+                reason += '，仍有每日項目未確認'
+            outcomes.append(f'{label}：{reason}')
+            if navigator.recording:
+                navigator.recording.mark('routine_step', task=task, verified=done, **result.to_dict())
+            progress(TaskResult(TaskStatus.RUNNING, '｜'.join(outcomes), completed, evidence,
+                                pending_round=pending))
+            if pending:
+                break
+        if not pending:
+            same_day()
+            try:
+                navigator.to_home()
+            except (EntryUnavailable, NavigationError) as error:
+                outcomes.append(f'返回樂園：{error}')
+                return TaskResult(TaskStatus.FAILED, '｜'.join(outcomes), completed, evidence)
+        status = TaskStatus.COMPLETE if completed == len(DAILY_STEPS) else TaskStatus.FAILED
+        return TaskResult(status, '｜'.join(outcomes), completed, evidence, pending_round=pending)

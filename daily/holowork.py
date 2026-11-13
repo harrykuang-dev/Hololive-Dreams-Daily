@@ -119,7 +119,7 @@ class HoloWorkRunner:
             self.nav.inputs.pause(.2)
             view = self.read()
 
-    def run(self):
+    def run(self, *, before_change=lambda: None):
         view = self.wait({'completed', 'summary', 'get', 'available', 'assignment', 'working'})
         collected = False
         if view.kind == 'working':
@@ -127,9 +127,11 @@ class HoloWorkRunner:
             return TaskResult(TaskStatus.COMPLETE, '已確認 holoWork 正在執行', evidence=evidence)
         if view.kind == 'completed':
             self.progress(TaskResult(TaskStatus.RUNNING, '收取已完成的 holoWork'))
+            before_change()
             self.click(view, '全部領取')
             view = self.wait({'summary'})
         if view.kind == 'summary':
+            before_change()
             self.click(view, '領取')
             view = self.wait({'get'})
         if view.kind == 'get':
@@ -153,6 +155,7 @@ class HoloWorkRunner:
         view = self.stable_assignment(view)
         self.progress(TaskResult(TaskStatus.RUNNING, '已確認隊伍穩定，準備派遣 holoWork'))
         self.nav.save(view.observation, 'holowork-ready-to-dispatch')
+        before_change()
         self.click(view, '決定')  # Never retry a dispatch input.
         view = self.wait({'started', 'working'})
         if view.kind == 'started':

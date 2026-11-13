@@ -32,6 +32,31 @@
       "entry_only": false
     }
   },
+  "Daily_daily_routine": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "task": "daily_routine",
+      "rounds": "1",
+      "entry_only": false,
+      "multiplier": "1",
+      "resource_budget": ""
+    },
+    "focus": {
+      "Node.Action.Starting": "$starting",
+      "Node.Action.Succeeded": "$finished",
+      "Node.Action.Failed": "$failed"
+    }
+  },
+  "DailyConfig_daily_routine_strategy": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "RunDailyTask",
+    "custom_action_param": {
+      "strategy": "conservative"
+    }
+  },
   "Daily_holowork": {
     "recognition": "DirectHit",
     "action": "Custom",

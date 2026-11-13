@@ -12,6 +12,7 @@ from daily.settings import defaults, setting_node
 
 LABELS = {
     'connect': ('連接遊戲', 'Connect game'),
+    'daily_routine': ('一鍵日常', 'Daily routine'),
     'holowork': ('holoWork 收取與派遣', 'Collect and dispatch holoWork'),
     'park_gifts': ('樂園角色禮物', 'Park character gifts'),
     'lottery': ('樂園抽獎', 'Park lottery'),
@@ -107,16 +108,16 @@ def generate():
                 '空白時以現有資源餘量為限；0 表示不消耗資源，不會自動補充。')
         if task == 'fishing':
             add_input('target', '目標釣獲數', 'Target catches', default='3', verify=r'^$|^[1-9][0-9]{0,8}$')
-        if task == 'high_low':
-            option_name = 'high_low_strategy'
+        if task in ('high_low', 'daily_routine'):
+            option_name = task + '_strategy'
             interface['option'][option_name] = {
                 'type': 'select', 'label': '$' + option_name, 'default_case': 'Conservative',
                 'cases': [{'name': name, 'label': '$high_low_' + name.lower(), 'pipeline_override': {
                     setting_node(task, 'strategy'): {'custom_action_param': {'strategy': name.lower()}}}}
                     for name in ('Conservative', 'Aggressive')]}
             row['option'].append(option_name)
-            translations['zh_tw'].update(high_low_strategy='策略', high_low_conservative='保守', high_low_aggressive='激進')
-            translations['en_us'].update(high_low_strategy='Strategy', high_low_conservative='Conservative', high_low_aggressive='Aggressive')
+            translations['zh_tw'].update({option_name: '比大小策略', 'high_low_conservative': '保守', 'high_low_aggressive': '激進'})
+            translations['en_us'].update({option_name: 'High & Low strategy', 'high_low_conservative': 'Conservative', 'high_low_aggressive': 'Aggressive'})
         if task == 'jump_rope':
             add_input('score_limit', '跳繩停止分數（可空白）', 'Jump Rope stop score (optional)',
                       default='', verify=r'^$|^[1-9][0-9]{0,2}$')
@@ -125,6 +126,9 @@ def generate():
                       default='current', verify=r'^current$|^[1-9][0-9]?$')
         if task == 'solo_live':
             add_input('song', '歌曲（空白為沿用）', 'Song (blank: keep)', default='', verify=r'^.*$')
+        if task == 'daily_routine':
+            interface['task'].append(row)
+            continue
         option_name = task + '_entry_only'
         interface['option'][option_name] = {
             'type': 'switch', 'label': '$entry_only', 'default_case': 'No',

@@ -151,3 +151,15 @@ def test_partial_energy_confirmation_keeps_the_observed_balance_and_accepts_only
     else:
         with pytest.raises(NavigationError): settings.configure('solo_live', 5, 2)
     assert calls == ['confirm']  # This only changes settings, never starts a song.
+
+
+def test_daily_cooking_rejects_partial_energy_before_confirmation():
+    actions = []
+    nav = SimpleNamespace(open_energy_settings=lambda task: object(),
+                          cancel_energy_settings=lambda: actions.append('cancel'))
+    settings = EnergySettings(nav)
+    settings.wait_read = lambda ob: (
+        ob, EnergySelection(1, 30, ResourceObservation(17, 100), partial_energy_play=True))
+    with pytest.raises(ResourceUnavailable, match='30'):
+        settings.configure('cooking', 1, 90, required_cost=30)
+    assert actions == ['cancel']

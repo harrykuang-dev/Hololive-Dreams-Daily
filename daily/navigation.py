@@ -587,10 +587,13 @@ class Navigator:
         return self.wait_for({'minigame_portal'})
 
     def to_solo_setup(self):
-        if self.observe().scene == 'solo_setup':
+        scene = self.observe().scene
+        if scene == 'solo_setup':
             return self.wait_for({'solo_setup'})
-        self.to_live_portal()
-        self.click_text('live_portal', '^SOLO$', 'song_select', roi=(630, 140, 250, 340))
+        if scene != 'song_select':
+            if scene != 'live_portal':
+                self.to_live_portal()
+            self.click_text('live_portal', '^SOLO$', 'song_select', roi=(630, 140, 250, 340))
         return self.click_text('song_select', '^決定$', 'solo_setup', roi=(1060, 575, 185, 110))
 
     def to_minigame_setup(self, game):
@@ -666,14 +669,14 @@ class Navigator:
             menu = self.observe()
             if menu.scene != 'notifications':
                 raise NavigationError('holoWork 通知頁已變更，未嘗試其他入口')
-            buttons = self.text(menu, '[已巳]完成.*[Hh]olo[Ww]ork', (20, 90, 470, 480))
+            buttons = self.text(menu, r'^(?:有)?[已巳]完成.*[Hh]olo\s*[Ww]ork', (20, 90, 500, 545))
             if len(buttons) == 1:
                 x, y, w, h = buttons[0].box
                 self.inputs.click(int(x+w/2), int(y+h/2))
                 return self.wait_for({'holowork'}, timeout=30)
             if time.monotonic() >= deadline:
                 self.save(menu, 'holowork-notification-not-found')
-                raise EntryUnavailable('沒有可唯一確認的已完成 holoWork 通知，略過本次收取')
+                raise EntryUnavailable('通知中沒有可唯一確認的 holoWork 收取入口')
             self.inputs.pause(.2)
 
     def to_fishing_second(self):
@@ -731,8 +734,20 @@ class Navigator:
         return None
 
     def to_high_low_entry(self):
-        # Teleport only after reading the actual card title. Opening the game
-        # with E is a separate once-daily boundary and is not enabled here.
+        # Prefer the daily notification when the game shows it. The map is a
+        # verified fallback, and both routes stop at the exact interaction.
+        current = self.observe()
+        matches = self.text(current, r'^(?:可遊玩|可挑戰)?比大小[！!]?$',
+                            (20, 90, 490, 545)) if current.scene == 'notifications' else []
+        if len(matches) > 1:
+            raise NavigationError('比大小通知不唯一，未進行傳送')
+        if matches:
+            x, y, w, h = matches[0].box
+            self.inputs.click(int(x+w/2), int(y+h/2))
+            # Avoid accepting the old park during a teleport fade.
+            from .park import ParkPlace, ParkRunner
+            ParkRunner(self).wait_for_arrival(ParkPlace('high_low', '', '^比大小$'))
+            return self.approach('^比大小$')
         self.to_home()
         for index in range(4):
             if index:

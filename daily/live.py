@@ -11,8 +11,8 @@ from .contracts import AutoObservation, ResourceObservation, TaskResult, TaskSta
 from .guarded_click import LIVE_START_ROI
 from .inputs import Cancelled, InputFailure
 from .navigation import NavigationError
-from .resources import (EnergySettings, ResourceUnavailable, parse_fraction, read_one,
-                        read_setup_cost, parse_consumption, record_post_round_energy)
+from .resources import (EnergySettings, ResourceUnavailable, parse_consumption, read_one, read_setup_cost,
+                        read_energy_balance, record_post_round_energy)
 from .vision import parse_remaining
 from .live_validation import LiveBlocked, LiveState, validate_live_start
 from .auto_deadline import CountdownObservation
@@ -34,9 +34,9 @@ class LiveControls:
             remaining = read_one(self.nav, observation, '^[0-9]+(?:[.][0-9]+)?[KkMm萬]?$', roi)
         auto = self.nav.vision.auto(observation.image, observation.scene, remaining,
                                     captured_at=observation.captured_at)
-        fraction = read_one(self.nav, observation, '[0-9].*[/／].*[0-9]', (1025, 25, 145, 60))
+        balance = read_energy_balance(self.nav, observation)
         cost = read_setup_cost(self.nav, observation, multiplayer=not solo)
-        return LiveState(auto, parse_fraction(fraction), cost)
+        return LiveState(auto, balance, cost)
 
     def read_countdown(self, observation):
         """Preparation evidence only; never authorizes release of protection."""
@@ -103,18 +103,29 @@ class SoloLiveRunner:
                        if getattr(item, 'text', '').strip() == '下一步']
         return buttons
 
-    def run(self, config):
+    def run(self, config, *, drain=False):
         completed, spent, pending, evidence = 0, 0, False, None
         try:
             if config.team != 'current' or config.song or config.difficulty != 'current':
                 raise LiveBlocked('目前單人 Live 僅支援沿用歌曲、難度與隊伍設定')
             for number in range(1, config.rounds+1):
-                self.nav.to_solo_setup()
+                setup = self.nav.to_solo_setup()
                 budget = None if config.resource_budget is None else config.resource_budget-spent
-                energy = EnergySettings(self.nav).configure('solo_live', config.multiplier, budget)
-                pending = True
+                if drain:
+                    setup, balance = self.stable_balance(setup)
+                    if balance.available == 0:
+                        evidence = self.nav.save(setup, 'solo-live-drained')
+                        return TaskResult(TaskStatus.COMPLETE, '已確認單人 Live 體力為 0', completed, evidence)
+                    if budget is None or not 0 < balance.available <= budget:
+                        raise ResourceUnavailable(f'單人 Live 尚有 {balance.available}/{balance.capacity}，本輪剩餘上限 {budget}')
+                    # Five is already verified in gameplay. Re-read the
+                    # balance and spend the remainder after the first song.
+                    config = replace(config, multiplier=min(5, balance.available))
+                options = {} if not drain else {'required_cost': config.multiplier}
+                energy = EnergySettings(self.nav).configure('solo_live', config.multiplier, budget, **options)
                 self.progress(TaskResult(TaskStatus.RUNNING, f'準備開始第 {number} 局 Auto Live',
                                          completed, evidence, pending_round=True))
+                pending = True
                 state = self.controls.start(config, budget, energy=energy)
                 spent += state.effective_cost
                 self.progress(TaskResult(TaskStatus.RUNNING, f'第 {number} 局由遊戲內建 Auto 遊玩中',
@@ -126,7 +137,20 @@ class SoloLiveRunner:
                 self.progress(TaskResult(TaskStatus.RUNNING, f'已確認 {completed} 局 Auto Live 結果',
                                          completed, evidence))
                 returned = self.finish_result(result)
-                record_post_round_energy(self.nav, returned, task='solo_live', round_number=number)
+                if drain:
+                    setup = self.nav.to_solo_setup()
+                    setup, after = self.stable_balance(setup)
+                    record_post_round_energy(self.nav, setup, task='solo_live', round_number=number)
+                    if (after.capacity != state.resource.capacity
+                            or after.available >= state.resource.available):
+                        raise ResourceUnavailable(f'結算後體力為 {after.available}/{after.capacity}，未確認體力下降')
+                    if after.available == 0:
+                        evidence = self.nav.save(setup, 'solo-live-drained')
+                        return TaskResult(TaskStatus.COMPLETE, '已確認單人 Live 體力為 0', completed, evidence)
+                else:
+                    record_post_round_energy(self.nav, returned, task='solo_live', round_number=number)
+            if drain:
+                raise ResourceUnavailable('已達本輪局數上限，單人 Live 體力仍未歸零')
             return TaskResult(TaskStatus.COMPLETE, f'已完成 {completed} 局遊戲內建 Auto Live', completed, evidence)
         except (LiveBlocked, ResourceUnavailable) as error:
             return TaskResult(TaskStatus.SKIPPED, str(error), completed, evidence)
@@ -136,6 +160,24 @@ class SoloLiveRunner:
         except (NavigationError, InputFailure) as error:
             reason = str(error)+('；已送出開始操作，本局結果尚未確認' if pending else '')
             return TaskResult(TaskStatus.FAILED, reason, completed, evidence, pending_round=pending)
+
+    def stable_balance(self, observation):
+        previous = None
+        deadline = time.monotonic()+5
+        while observation.scene == 'solo_setup':
+            balance = read_energy_balance(self.nav, observation)
+            if balance.permits(0):
+                if balance == previous:
+                    return observation, balance
+                previous = balance
+            else:
+                previous = None
+            if time.monotonic() >= deadline:
+                break
+            self.nav.inputs.pause(.2)
+            observation = self.nav.observe()
+        self.nav.save(observation, 'solo-live-energy-unconfirmed')
+        raise ResourceUnavailable('無法確認單人 Live 體力，已停止開歌')
 
     def wait_auto_result(self, timeout=600):
         deadline = time.monotonic()+timeout

@@ -22,7 +22,7 @@ class TaskStatus(StrEnum):
     NAVIGATION_VERIFIED = 'navigation_verified'
 
 
-TASKS = ('connect', 'holowork', 'park_gifts', 'lottery', 'cooking',
+TASKS = ('connect', 'daily_routine', 'holowork', 'park_gifts', 'lottery', 'cooking',
          'solo_live', 'high_low', 'jump_rope', 'multi_live', 'fishing', 'rewards')
 USER_ENTERED_ROUNDS = frozenset(('cooking', 'solo_live', 'multi_live'))
 
