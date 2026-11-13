@@ -79,6 +79,8 @@ class Navigator:
                     and self.vision.match(frame, 'home_games_button')):
                 scene = 'home'
             else:
+                if self.game_update_button(observation):
+                    return Observation(frame, 'game_update', captured)
                 if self.fishing_failure_controls(observation):
                     return Observation(frame, 'fishing_failure', captured)
                 if self.multiplayer_ready_controls(observation):
@@ -206,6 +208,7 @@ class Navigator:
         notice_closed = False
         achievement_closed = False
         game_entered = set()
+        update_confirmed = False
         while True:
             observation = self.observe()
             recovery = None
@@ -241,6 +244,8 @@ class Navigator:
                     recovery = self.game_title_button
                 elif observation.scene == 'game_title_ready' and observation.scene not in game_entered:
                     recovery = self.game_title_ready_button
+                elif observation.scene == 'game_update' and not update_confirmed:
+                    recovery = self.game_update_button
             if recovery is not None:
                 if bonus_key is not None and bonus_clicks >= 12:
                     raise NavigationError('登入獎勵頁數已達上限，請檢查錄影')
@@ -264,7 +269,10 @@ class Navigator:
                     reward_closed = False
                 elif observation.scene in {'game_title', 'game_title_ready'}:
                     game_entered.add(observation.scene)
-                deadline = time.monotonic() + timeout
+                elif observation.scene == 'game_update':
+                    update_confirmed = True
+                    game_entered.discard('game_title')
+                deadline = time.monotonic() + (900 if observation.scene == 'game_update' else timeout)
                 stable_since = last_scene = None
                 continue
             if observation.scene in scenes:
@@ -436,6 +444,21 @@ class Navigator:
             return None
         return (1015, 70, 60, 60)
 
+    def game_update_button(self, observation):
+        checks = (
+            (r'^將下載新增檔案$', (500, 312, 280, 57)),
+            (r'^下載[:：]$', (535, 362, 210, 44)),
+            (r'^[0-9]+(?:[.][0-9]+)?\s*[KkMmGg][Bb]$', (535, 362, 210, 44)),
+            (r'^[×xX✕]?\s*取消$', (795, 630, 160, 58)),
+            (r'^[✓✔√]?\s*OK$', (1035, 630, 147, 58)),
+        )
+        for pattern, roi in checks:
+            hits = [item for item in self.text(observation, pattern, roi)
+                    if re.fullmatch(pattern, getattr(item, 'text', '').strip())]
+            if len(hits) != 1:
+                return None
+        return tuple(hits[0].box)
+
     def game_title_button(self, observation, *, ready=False):
         # Ordinary entry to the already-open Steam game, never a credentials or
         # account-selection dialog. Background animation is not an anchor.
@@ -485,7 +508,7 @@ class Navigator:
         while observation.scene is None and time.monotonic() < deadline:
             self.inputs.pause(.2)
             observation = self.observe()
-        if observation.scene in {'game_title', 'game_title_ready'}:
+        if observation.scene in {'game_title', 'game_title_ready', 'game_update'}:
             return self.wait_for({'home'}, timeout=120)
         if observation.scene in {'date_changed', 'login_bonus', 'login_bonus_standard', 'login_reward', 'expired_conversion',
                                  'login_notice'}:
