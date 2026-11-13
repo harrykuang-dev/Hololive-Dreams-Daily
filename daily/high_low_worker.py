@@ -55,6 +55,8 @@ def play(bot, strategy, *, cancelled, publish, verify_window):
             if coins >= DAILY_COIN_CAP:
                 reason = 'cap'
                 bot.bot_running = False
+        elif kind == 'failed':
+            publish('running', phase='round_failed', credited=credited, wins=wins)
 
     try:
         bot.safe_click = guarded_click

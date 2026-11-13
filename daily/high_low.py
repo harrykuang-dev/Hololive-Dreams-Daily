@@ -114,6 +114,9 @@ class HighLowRunner:
             if record.get('phase') == 'settled':
                 self.progress(TaskResult(TaskStatus.RUNNING, f"已確認入帳 {record['credited']} 枚硬幣",
                                          record['wins'], pending_round=True))
+            elif record.get('phase') == 'round_failed':
+                self.progress(TaskResult(TaskStatus.RUNNING, f"比大小仍在進行，已入帳 {record['credited']} 枚硬幣",
+                                         record['wins'], pending_round=True))
 
         worker = WorkerSupervisor(self.root, python, self.data / 'workers', module_root=modules,
             stopping=lambda: self.nav.context.tasker.stopping, guard=self.nav.inputs.check,
