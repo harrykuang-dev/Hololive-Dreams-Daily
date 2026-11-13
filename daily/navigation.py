@@ -441,7 +441,13 @@ class Navigator:
         words = [re.sub(r'\s+', '', getattr(item, 'text', '')).casefold() for item in self.text(
             observation, r'^(HI-SCORE|最大[Cc]ombo|[Ff]ull\s*[Cc]ombo)$', (240, 180, 760, 340))]
         if len(words) != 3 or set(words) != {'hi-score', '最大combo', 'fullcombo'}:
-            return None
+            labels = (
+                (r'^HI-SCORE$', (267, 207, 145, 50)),
+                (r'^最大[Cc]ombo$', (690, 204, 160, 51)),
+                (r'^[Ff]ull\s*[Cc]ombo$', (693, 429, 158, 51)),
+            )
+            if any(len(self.text(observation, pattern, roi)) != 1 for pattern, roi in labels):
+                return None
         return (1015, 70, 60, 60)
 
     def game_update_button(self, observation):
@@ -513,7 +519,10 @@ class Navigator:
         if observation.scene in {'date_changed', 'login_bonus', 'login_bonus_standard', 'login_reward', 'expired_conversion',
                                  'login_notice'}:
             return self.wait_for({'home'}, timeout=45)
-        if observation.scene in {'holowork_get', 'live_achievement'}:
+        if observation.scene == 'live_achievement':
+            from .live import SoloLiveRunner
+            observation = SoloLiveRunner(self).finish_result(observation)
+        if observation.scene == 'holowork_get':
             observation = self.wait_for({'home', 'live_result', 'song_select', 'solo_setup',
                                          'holowork', 'daily_missions', 'achievements',
                                          'event_missions', 'gifts'}, timeout=45)
