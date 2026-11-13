@@ -202,7 +202,7 @@ class SoloLiveRunner:
         for _ in range(8):
             if observation.scene in {'live_portal', 'song_select', 'solo_setup'}:
                 return observation
-            if observation.scene not in {'live_result', 'holowork_get', 'live_achievement', None}:
+            if observation.scene not in {'live_result', 'holowork_get', 'live_achievement', 'live_rank_up', None}:
                 raise NavigationError('Live 結果畫面不符')
             observation, buttons = self.wait_next_button(observation)
             if not buttons:
@@ -215,7 +215,7 @@ class SoloLiveRunner:
             self.nav.inputs.pause(.5)
             while True:
                 updated = self.nav.observe()
-                if updated.scene in {'holowork_get', 'live_achievement', None}:
+                if updated.scene in {'holowork_get', 'live_achievement', 'live_rank_up', None}:
                     updated, _ = self.wait_next_button(updated)
                 if updated.scene in {'live_portal', 'song_select', 'solo_setup'}:
                     return updated
@@ -245,17 +245,22 @@ class SoloLiveRunner:
         not_before, stable_since, previous = time.monotonic()+1.5, None, None
         reward_closed = False
         achievement_closed = False
+        rank_up_closed = False
         while True:
             if observation.scene in {'live_portal', 'song_select', 'solo_setup'}:
                 return observation, []
             reward = self.nav.received_reward_button(observation)
             achievement = self.nav.live_achievement_button(observation) if reward is None else None
-            close = reward if reward is not None and not reward_closed else (
-                achievement if achievement is not None and not achievement_closed else None)
+            rank_up = self.nav.live_rank_up_button(observation) if observation.scene == 'live_rank_up' else None
+            close = (rank_up if rank_up and not rank_up_closed else
+                     reward if reward is not None and not reward_closed else
+                     achievement if achievement is not None and not achievement_closed else None)
             if close is not None:
                 x, y, w, h = close
                 self.nav.inputs.click(int(x+w/2), int(y+h/2))
-                if reward is not None:
+                if rank_up:
+                    rank_up_closed = True
+                elif reward is not None:
                     reward_closed = True
                 else:
                     achievement_closed = True
@@ -275,7 +280,7 @@ class SoloLiveRunner:
                 if (len(buttons) == 1 and stable_since is not None and
                         time.monotonic()-stable_since >= .8 and time.monotonic() >= not_before):
                     return observation, buttons
-            elif observation.scene not in {'holowork_get', 'live_achievement', None, 'live_result'}:
+            elif observation.scene not in {'holowork_get', 'live_achievement', 'live_rank_up', None, 'live_result'}:
                 raise NavigationError('等待 Live 下一步時畫面已改變')
             else:
                 stable_since = previous = None

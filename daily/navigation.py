@@ -99,6 +99,8 @@ class Navigator:
                     return Observation(frame, 'login_reward', captured)
                 if self.login_notice_button(observation):
                     return Observation(frame, 'login_notice', captured)
+                if self.live_rank_up_button(observation):
+                    return Observation(frame, 'live_rank_up', captured)
                 if self.live_achievement_button(observation):
                     return Observation(frame, 'live_achievement', captured)
                 if self.game_title_button(observation):
@@ -433,6 +435,20 @@ class Navigator:
                 return None
         return (1060, 85, 60, 60)
 
+    def live_rank_up_button(self, observation):
+        for pattern, roi in (
+            (r'^RANK$', (370, 67, 290, 108)),
+            (r'^UP$', (665, 67, 155, 108)),
+            (r'^夢幻\s*Rank$', (545, 182, 190, 47)),
+        ):
+            hits = [item for item in self.text(observation, pattern, roi)
+                    if re.fullmatch(pattern, getattr(item, 'text', '').strip())]
+            if len(hits) != 1:
+                return None
+        buttons = [item for item in self.text(observation, '^點擊繼續$', (555, 630, 168, 55))
+                   if getattr(item, 'text', '').strip() == '點擊繼續']
+        return tuple(buttons[0].box) if len(buttons) == 1 else None
+
     def live_achievement_button(self, observation):
         titles = [item for item in self.text(observation, '^達成獎勵$', (500, 90, 280, 90))
                   if getattr(item, 'text', '').strip() == '達成獎勵']
@@ -519,7 +535,7 @@ class Navigator:
         if observation.scene in {'date_changed', 'login_bonus', 'login_bonus_standard', 'login_reward', 'expired_conversion',
                                  'login_notice'}:
             return self.wait_for({'home'}, timeout=45)
-        if observation.scene == 'live_achievement':
+        if observation.scene in {'live_achievement', 'live_rank_up'}:
             from .live import SoloLiveRunner
             observation = SoloLiveRunner(self).finish_result(observation)
         if observation.scene == 'holowork_get':
