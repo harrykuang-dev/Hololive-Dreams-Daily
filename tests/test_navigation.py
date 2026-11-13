@@ -170,7 +170,7 @@ def test_date_recovery_requires_exact_notice_and_unique_ok(labels, button_count,
     assert (navigator.date_change_button(None) is not None) == accepted
 
 
-@pytest.mark.parametrize('scene', ['date_changed', 'login_bonus', 'login_bonus_standard', 'login_reward', 'expired_conversion', 'holowork_get', 'login_notice', 'game_title', 'game_title_ready'])
+@pytest.mark.parametrize('scene', ['date_changed', 'login_bonus', 'login_bonus_standard', 'login_reward', 'expired_conversion', 'holowork_get', 'login_notice', 'game_title', 'game_title_ready', 'game_update'])
 def test_unchanged_recovery_notice_is_acknowledged_once_then_times_out(monkeypatch, scene):
     navigator = Navigator.__new__(Navigator)
     now, clicks = [0.], []
@@ -189,11 +189,29 @@ def test_unchanged_recovery_notice_is_acknowledged_once_then_times_out(monkeypat
     navigator.login_notice_button = navigator.date_change_button
     navigator.game_title_button = navigator.date_change_button
     navigator.game_title_ready_button = navigator.date_change_button
+    navigator.game_update_button = navigator.date_change_button
     navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args))
     navigator.save = lambda *args: 'date-stalled.png'
     with pytest.raises(NavigationError, match='逾時'):
         navigator.wait_for({'home'}, timeout=3)
     assert clicks == [(1116, 657)]
+
+
+@pytest.mark.parametrize('heading,size,confirmation,accepted', [
+    ('將下載新增檔案', '229.9MB', ['OK'], True),
+    ('將下載新增檔案', '', ['OK'], False),
+    ('將下載新增檔案', '229.9MB', ['OK', 'OK'], False),
+    ('購買項目', '229.9MB', ['OK'], False),
+])
+def test_content_download_requires_heading_size_and_unique_confirmation(heading, size, confirmation, accepted):
+    navigator = Navigator.__new__(Navigator)
+
+    def text(observation, expected, roi):
+        labels = {500: [heading], 535: ['下載：', size], 795: ['×取消'], 1035: confirmation}
+        return [SimpleNamespace(text=word, box=(1100, 649, 33, 16)) for word in labels[roi[0]]]
+
+    navigator.text = text
+    assert (navigator.game_update_button(None) is not None) == accepted
 
 
 @pytest.mark.parametrize('title,hint,accepted', [
