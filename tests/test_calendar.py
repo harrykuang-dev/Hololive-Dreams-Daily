@@ -128,6 +128,15 @@ def test_recorded_open_dialogue_can_resume_once_without_a_new_daily_reservation(
         ledger.reserve('lottery')
 
 
+def test_log_only_run_cannot_resume_previously_recorded_dialogue(tmp_path):
+    ledger, original, _ = recorded_attempt(tmp_path)
+    original.finish(error='unknown speaker')
+    ledger.allow_dialogue_recovery = False
+    with pytest.raises(DailyUnavailable, match='未啟用錄影'):
+        ledger.resume_open_dialogue('lottery')
+    assert not original.path.with_suffix('.recovery').exists()
+
+
 def test_recovery_requires_original_first_e_and_live_recording_guard(tmp_path):
     ledger, original, timeline = recorded_attempt(tmp_path)
     original.finish(error='unknown speaker')

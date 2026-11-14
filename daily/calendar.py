@@ -52,8 +52,10 @@ class DailyAttempt:
 
 class DailyAttempts:
     def __init__(self, directory: Path, *, not_before=None, guard=lambda: None,
-                 recording=lambda: None, clock=lambda: datetime.now(timezone.utc)):
+                 recording=lambda: None, clock=lambda: datetime.now(timezone.utc),
+                 allow_dialogue_recovery=True):
         self.directory, self.guard, self.recording, self.clock = directory, guard, recording, clock
+        self.allow_dialogue_recovery = allow_dialogue_recovery
         self.not_before = datetime.fromisoformat(not_before) if isinstance(not_before, str) else not_before
         if self.not_before is not None and self.not_before.tzinfo is None:
             raise ValueError('Daily test restriction requires a timezone')
@@ -69,7 +71,8 @@ class DailyAttempts:
                 raise ValueError('Daily attempt directory must be an absolute path')
             directory = Path(value)
         return cls(directory, not_before=settings.get('daily_test_not_before'),
-                   guard=recording.check, recording=recording.paths)
+                   guard=recording.check, recording=recording.paths,
+                   allow_dialogue_recovery=bool(recording.paths().get('video')))
 
     def reserve(self, task: str) -> DailyAttempt:
         if not re.fullmatch('[a-z][a-z0-9_-]{0,79}', task):
@@ -124,6 +127,8 @@ class DailyAttempts:
         day = game_day(now)
         if self.not_before is not None and now < max(self.not_before, test_window_start(now)):
             raise DailyUnavailable('每日對話接續尚未到實測時間')
+        if not self.allow_dialogue_recovery:
+            raise DailyUnavailable('目前未啟用錄影，本日對話保留原嘗試紀錄')
         path = self.directory / day / f'{task}.json'
         try:
             record = json.loads(path.read_text(encoding='utf-8'))

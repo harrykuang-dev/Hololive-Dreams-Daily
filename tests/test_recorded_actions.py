@@ -37,6 +37,7 @@ def recorded_action(monkeypatch, tmp_path):
             self.inputs = SimpleNamespace(release_all=lambda: events.append('release'))
 
     monkeypatch.setenv('PI_USER_DATA_DIR', str(tmp_path))
+    monkeypatch.setattr(actions, 'ROOT', tmp_path)
     monkeypatch.setattr(actions, 'GameRecording', Recording)
     monkeypatch.setattr(actions, 'Navigator', Navigator)
     monkeypatch.setattr(actions, 'read_settings', lambda *args: {'task': 'connect'})
@@ -78,6 +79,32 @@ def test_release_and_recording_finish_follow_task_result(recorded_action, monkey
     assert test.events.index('start') < test.events.index('navigator')
     assert test.events.index('release') < test.events.index('task_end') < test.events.index('stop')
     assert test.result()['recording']['video'] == 'test.avi'
+
+
+def test_video_disabled_retains_local_audit_and_daily_reservations(recorded_action, monkeypatch, tmp_path):
+    test = recorded_action
+    (tmp_path / 'config').mkdir()
+    shared = tmp_path / 'attempts'
+    (tmp_path / 'config/recording.json').write_text(
+        json.dumps({'video': False, 'attempt_directory': str(shared)}), encoding='utf-8')
+    test.context.tasker.controller = SimpleNamespace(info={'type': 'win32', 'hwnd': 123})
+
+    def execute(navigator, config, *, progress):
+        ledger = navigator.daily_attempts
+        attempt = ledger.reserve('lottery')
+        attempt.finish(evidence='confirmed.png')
+        assert set(ledger.completed_tasks()) == {'lottery'}
+        return TaskResult(TaskStatus.COMPLETE, 'done')
+
+    monkeypatch.setattr(test.action, 'execute', execute)
+    assert test.action.run(test.context, test.args)
+    assert test.events == ['navigator', 'release']
+    audit = test.result()['recording']
+    assert set(audit) == {'timeline'}
+    timeline = next(tmp_path.glob('daily/audit/*/events.jsonl'))
+    events = [json.loads(line)['event'] for line in timeline.read_text(encoding='utf-8').splitlines()]
+    assert events == ['audit_started', 'task_result', 'task_result', 'task_end', 'audit_stopped']
+    assert not list(tmp_path.rglob('*.avi'))
 
 
 def test_runtime_error_preserves_known_round_and_pending_round(recorded_action, monkeypatch):

@@ -152,6 +152,15 @@ class FrameRecording:
             raise RecordingError(f'錄影中斷：{self._error}') from self._error
 
 
+def video_enabled(root: Path) -> bool:
+    settings = root / 'config' / 'recording.json'
+    config = json.loads(settings.read_text(encoding='utf-8')) if settings.exists() else {}
+    enabled = config.get('video', True)
+    if type(enabled) is not bool:
+        raise RecordingError('video 錄影設定必須為布林值')
+    return enabled
+
+
 def recording_directory(root: Path, data: Path) -> Path:
     settings = root / 'config' / 'recording.json'
     if not settings.exists():
@@ -163,24 +172,20 @@ def recording_directory(root: Path, data: Path) -> Path:
     return Path(path)
 
 
-class GameRecording:
-    """Independent capture process; never share the agent's IPC across threads."""
+class GameAudit:
+    """Timestamped game-window actions without a video capture process."""
+
     def __init__(self, controller, directory: Path, label: str):
         info = controller.info
         if info.get('type') != 'win32' or type(info.get('hwnd')) is not int or info['hwnd'] <= 0:
-            raise RecordingError('錄影僅支援已確認的 Windows 遊戲視窗')
+            raise RecordingError('僅支援已確認的 Windows 遊戲視窗')
         self.hwnd = info['hwnd']
         self.job_id = uuid.uuid4().hex
         self.directory = directory / f'{label}-{self.job_id[:8]}'
         self.directory.mkdir(parents=True, exist_ok=False)
         self.timeline = self.directory / 'events.jsonl'
-        self.status_file = self.directory / 'status.json'
-        self.stop_file = self.directory / 'stop'
-        self._process = None
-        self._log = None
-        self._capture_paths = {}
-        self._last_status = None
         self._started = time.monotonic()
+        self._active = False
 
     def mark(self, event, **details):
         with self.timeline.open('a', encoding='utf-8') as stream:
@@ -189,8 +194,39 @@ class GameRecording:
                                     'event': event, **details}, ensure_ascii=False) + '\n')
             stream.flush()
 
+    def start(self):
+        self.mark('audit_started')
+        self._active = True
+
+    def check(self):
+        if not self._active:
+            raise RecordingError('操作日誌尚未啟用')
+
+    def stop(self):
+        self._active = False
+        self.mark('audit_stopped')
+
     def paths(self):
-        return {'video': self._capture_paths.get('video'), 'timeline': str(self.timeline),
+        return {'timeline': str(self.timeline)}
+
+    def matches_window(self, video: Path) -> bool:
+        return False
+
+
+class GameRecording(GameAudit):
+    """Independent capture process; never share the agent's IPC across threads."""
+
+    def __init__(self, controller, directory: Path, label: str):
+        super().__init__(controller, directory, label)
+        self.status_file = self.directory / 'status.json'
+        self.stop_file = self.directory / 'stop'
+        self._process = None
+        self._log = None
+        self._capture_paths = {}
+        self._last_status = None
+
+    def paths(self):
+        return {**super().paths(), 'video': self._capture_paths.get('video'),
                 'frame_timeline': self._capture_paths.get('timeline'), 'fps': FrameRecording.FPS}
 
     def matches_window(self, video: Path) -> bool:

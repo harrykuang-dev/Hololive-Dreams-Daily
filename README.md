@@ -16,7 +16,7 @@ Login rewards can be dismissed through their login-reward heading and footer con
 
 Cooking, solo Live and multiplayer Live each require a user-entered round count. Fishing is an optional task and uses the second location shown in the reference recording. Once-daily features can be validated at their interaction entry without consuming a play.
 
-Game-window recordings and time-aligned step logs are required for live task execution. Recording failure stops further actions while still releasing held keys. Recordings remain local; development staging places them beside the staged application under `recordings`. Once-daily full tests use fresh attempts after04:05 UTC+8; the game day resets at04:00.
+Record the game window while validating changed code in the live game. For routine runs, set `"video": false` in local `config/recording.json` to retain timestamped action logs and result evidence without encoding video. Set `"video": true` for recorded validation. Video remains enabled when the setting is absent. A capture failure in recorded mode stops further actions and releases held keys. Video and logs stay local. Once-daily full tests use fresh attempts from 04:05 UTC+8 after the 04:00 game-day reset.
 
 Recorded recovery checks have verified the date-change notice, Halloween and standard login bonuses, received-reward pages and the November membership announcement. Each recognized page is confirmed once before waiting for its next state. These checks used separate recovery runs; an uninterrupted reset sequence remains pending. Other announcement layouts stop for validation.
 

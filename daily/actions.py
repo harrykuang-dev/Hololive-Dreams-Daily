@@ -18,7 +18,7 @@ from .settings import read_settings
 from .resources import ResourceUnavailable
 from .live import SoloLiveRunner
 from .holowork import HoloWorkRunner
-from .recording import GameRecording, recording_directory
+from .recording import GameAudit, GameRecording, recording_directory, video_enabled
 from .calendar import DailyAttempts, DailyUnavailable, game_day
 from .park import GIFT_PLACES, ParkRunner
 from .fishing import FishingRunner
@@ -71,8 +71,11 @@ class RunDailyTask(CustomAction):
             config = TaskConfig.parse(raw)
             data = Path(os.environ.get('PI_USER_DATA_DIR', ROOT / 'userdata')) / 'daily'
             journal = Journal(data / 'results')
-            recording = GameRecording(context.tasker.controller, recording_directory(ROOT, data),
-                                      f'{self.session}-{config.task}')
+            label = f'{self.session}-{config.task}'
+            if video_enabled(ROOT):
+                recording = GameRecording(context.tasker.controller, recording_directory(ROOT, data), label)
+            else:
+                recording = GameAudit(context.tasker.controller, data / 'audit', label)
             recording.start()
             navigator = Navigator(context, ROOT / 'resource', data / 'evidence' / self.session,
                                   recording=recording)
@@ -100,7 +103,7 @@ class RunDailyTask(CustomAction):
                         finally:
                             recording.stop()
                 except Exception as error:
-                    result = stopped(TaskStatus.FAILED, f'{result.reason}；錄影未完整驗證：{error}')
+                    result = stopped(TaskStatus.FAILED, f'{result.reason}；執行紀錄未完整保存：{error}')
                 if journal is not None and config is not None:
                     journal.record(config, result, session=self.session,
                                    recording=recording.paths() if recording else None)
