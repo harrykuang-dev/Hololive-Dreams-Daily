@@ -26,6 +26,32 @@ class Context:
         return SimpleNamespace(hit=True, filtered_results=[SimpleNamespace(text=w, box=(1, 2, 3, 4)) for w in self.words])
 
 
+@pytest.mark.parametrize(('labels', 'matches'), [
+    (['已於其他裝置登入，即將返回標題畫面'], True),
+    (['已於其他裝置登入，', '即將返回標題畫面'], True),
+    (['即將返回標題畫面'], False),
+    (['已於其他裝置登入'], False),
+    (['每日已更新，即將返回標題畫面'], False),
+])
+def test_session_displaced_requires_the_full_notice(labels, matches):
+    navigator = Navigator.__new__(Navigator)
+    navigator.text = lambda *args: [
+        SimpleNamespace(text=text, box=(index, 0, 1, 1)) for index, text in enumerate(labels)]
+    assert navigator.session_displaced_notice(None) is matches
+
+
+def test_displaced_session_preserves_screen_and_raises_before_navigation():
+    navigator = Navigator.__new__(Navigator)
+    navigator.inputs = SimpleNamespace(check=lambda: None)
+    navigator.controller = Context([]).tasker.controller
+    navigator.recording = None
+    navigator.interpret = lambda *args, **kwargs: Observation(None, 'session_displaced', 0)
+    navigator.save = lambda observation, name: name+'.png'
+    with pytest.raises(navigation.SessionDisplaced) as failure:
+        navigator.to_home()
+    assert failure.value.evidence == 'session-displaced.png'
+
+
 @pytest.mark.parametrize('labels,icon,accepted', [(0, True, True), (0, False, False),
                                                 (1, False, True), (2, True, False)])
 def test_games_navigation_requires_home_and_positive_label_or_gamepad(labels, icon, accepted):

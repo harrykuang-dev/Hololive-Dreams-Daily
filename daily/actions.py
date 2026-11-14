@@ -13,7 +13,7 @@ from maa.custom_action import CustomAction
 from .contracts import ConfigurationError, TaskConfig, TaskResult, TaskStatus
 from .inputs import Cancelled
 from .journal import Journal
-from .navigation import EntryUnavailable, NavigationError, Navigator
+from .navigation import EntryUnavailable, NavigationError, Navigator, SessionDisplaced
 from .settings import read_settings
 from .resources import ResourceUnavailable
 from .live import SoloLiveRunner
@@ -86,6 +86,9 @@ class RunDailyTask(CustomAction):
             result = stopped(TaskStatus.SKIPPED, str(error))
         except Cancelled:
             result = stopped(TaskStatus.CANCELLED, '已停止')
+        except SessionDisplaced as error:
+            result = TaskResult(TaskStatus.FAILED, str(error), result.completed_rounds if result else 0,
+                                error.evidence, pending_round=result.pending_round if result else False)
         except Exception as error:
             print(f'執行錯誤：{type(error).__name__}: {error}', flush=True)
             result = stopped(TaskStatus.FAILED, str(error))

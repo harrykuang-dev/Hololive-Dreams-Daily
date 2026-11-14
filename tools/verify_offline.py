@@ -84,6 +84,8 @@ class InspectRecordings(CustomAction):
                         'live_result_event': 'live_result'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
+            if path.stem == 'session_displaced' and scene != 'session_displaced':
+                raise ValueError('Concurrent device login notice was not recognized')
             if path.stem == 'expired_conversion':
                 if scene != 'expired_conversion' or navigator.expired_conversion_button(
                         Observation(frame, scene, time.monotonic())) is None:

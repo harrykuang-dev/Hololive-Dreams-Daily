@@ -21,6 +21,12 @@ class EntryUnavailable(NavigationError):
     pass
 
 
+class SessionDisplaced(RuntimeError):
+    def __init__(self, evidence: str):
+        super().__init__('遊戲帳號已在其他裝置登入，本輪已停止')
+        self.evidence = evidence
+
+
 @dataclass(frozen=True)
 class Observation:
     image: object
@@ -48,6 +54,8 @@ class Navigator:
         observation = self.interpret(job.get(), captured_at=captured, park_loading_only=park_loading_only)
         if self.recording:
             self.recording.mark('observation', scene=observation.scene)
+        if observation.scene == 'session_displaced':
+            raise SessionDisplaced(self.save(observation, 'session-displaced'))
         return observation
 
     def interpret(self, image, *, captured_at=None, park_loading_only=False):
@@ -79,6 +87,8 @@ class Navigator:
                     and self.vision.match(frame, 'home_games_button')):
                 scene = 'home'
             else:
+                if self.session_displaced_notice(observation):
+                    return Observation(frame, 'session_displaced', captured)
                 if self.game_update_button(observation):
                     return Observation(frame, 'game_update', captured)
                 if self.fishing_failure_controls(observation):
@@ -132,6 +142,12 @@ class Navigator:
                                 or self.park_dialogue_footer(observation)):
             scene = 'park_dialogue'
         return Observation(frame, scene, captured)
+
+    def session_displaced_notice(self, observation):
+        expected = r'^已[於于]其他裝置登入[，,]?即將返回標題畫面[。]?$'
+        labels = self.text(observation, '.+', (390, 333, 500, 58))
+        line = ''.join(item.text for item in sorted(labels, key=lambda item: item.box[0]))
+        return bool(re.fullmatch(expected, re.sub(r'\s+', '', line)))
 
     @staticmethod
     def park_teleport_loading(frame):

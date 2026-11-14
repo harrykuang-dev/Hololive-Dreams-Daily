@@ -122,6 +122,27 @@ def test_runtime_error_preserves_known_round_and_pending_round(recorded_action, 
     assert 'release' in test.events and 'stop' in test.events
 
 
+def test_account_displacement_stops_remaining_routine_steps(recorded_action, monkeypatch):
+    test = recorded_action
+    monkeypatch.setattr(actions, 'read_settings', lambda *args: {'task': 'daily_routine'})
+    attempted = []
+
+    def displaced(navigator, options, *, progress):
+        if options.task == 'daily_routine':
+            navigator.inputs.check = lambda: None
+            return test.action.run_routine(navigator, options, progress)
+        attempted.append(options.task)
+        raise actions.SessionDisplaced('other-device.png')
+
+    monkeypatch.setattr(test.action, 'execute', displaced)
+    assert not test.action.run(test.context, test.args)
+    assert attempted == ['holowork']
+    result = test.result()['result']
+    assert result['status'] == 'failed' and result['evidence'] == 'other-device.png'
+    assert '其他裝置登入' in result['reason']
+    assert 'release' in test.events and 'stop' in test.events
+
+
 def test_unverified_recording_cannot_report_complete(recorded_action, monkeypatch):
     test = recorded_action
     monkeypatch.setattr(test.action, 'execute', lambda *args, **kwargs:
