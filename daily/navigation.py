@@ -574,12 +574,22 @@ class Navigator:
             if destination is None:
                 break
             destinations = {destination}
-            if observation.scene in {'cooking_setup', 'jump_setup'}:
-                # Minigames can return directly to the park after a round.
-                # The portal is not their only observed parent destination.
+            if observation.scene in {'cooking_setup', 'jump_setup', 'gifts'}:
+                # These pages can also close directly to the park.
                 destinations.add('home')
             self.inputs.click(1223, 55)
-            observation = self.wait_for(destinations)
+            if observation.scene == 'gifts':
+                try:
+                    observation = self.wait_for(destinations, timeout=5)
+                except NavigationError:
+                    # The claim animation can swallow the first close. Retry
+                    # only if a fresh observation still shows the gift box.
+                    if self.observe().scene != 'gifts':
+                        raise
+                    self.inputs.click(1223, 55)
+                    observation = self.wait_for(destinations)
+            else:
+                observation = self.wait_for(destinations)
         if observation.scene == 'home':
             return observation
         if observation.scene in {'park_map', 'fishing_map_second'}:

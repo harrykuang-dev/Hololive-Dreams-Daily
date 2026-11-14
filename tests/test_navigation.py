@@ -327,7 +327,7 @@ def test_main_menu_requires_multiple_distinct_menu_labels(tmp_path):
 
 
 @pytest.mark.parametrize('scene,expected', [
-    ('gifts', [{'main_menu'}, {'home'}]),
+    ('gifts', [{'main_menu', 'home'}, {'home'}]),
     ('multi_portal', [{'live_portal'}, {'home'}]),
     ('event_missions', [{'event_home'}, {'event_list'}, {'home'}])])
 def test_nested_reward_pages_return_through_observed_parents(scene, expected):
@@ -336,13 +336,32 @@ def test_nested_reward_pages_return_through_observed_parents(scene, expected):
     navigator.vision = SimpleNamespace(match=lambda *args: None)
     clicks, destinations = [], []
     navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args))
-    def wait(scenes):
+    def wait(scenes, **kwargs):
         destinations.append(scenes)
-        return Observation(None, next(iter(scenes)), 0)
+        scene = next(iter(scenes - {'home'} or scenes))
+        return Observation(None, scene, 0)
     navigator.wait_for = wait
     assert navigator.to_home().scene == 'home'
     assert destinations == expected
     assert clicks == [(1223, 55)]*len(expected)
+
+
+def test_gift_close_retries_once_only_if_still_on_the_gift_page():
+    navigator = Navigator.__new__(Navigator)
+    navigator.observe = lambda: Observation(None, 'gifts', 0)
+    navigator.vision = SimpleNamespace(match=lambda *args: None)
+    clicks = []
+    navigator.inputs = SimpleNamespace(click=lambda *args: clicks.append(args))
+
+    def wait(scenes, **kwargs):
+        assert scenes == {'main_menu', 'home'}
+        if len(clicks) == 1:
+            raise NavigationError('first close did not register')
+        return Observation(None, 'home', 0)
+
+    navigator.wait_for = wait
+    assert navigator.to_home().scene == 'home'
+    assert clicks == [(1223, 55), (1223, 55)]
 
 
 @pytest.mark.parametrize('scene', ['jump_setup', 'cooking_setup'])
