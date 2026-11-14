@@ -159,22 +159,24 @@ class RewardsRunner:
             self.nav.click_text('daily_missions', '^'+label+'$', 'daily_missions', roi=(90, 230, 200, 240))
         self.stable(page)
 
-    def run(self):
-        if self.read().page == 'pass':
+    def run(self, *, missions_and_gifts_only=False):
+        if not missions_and_gifts_only and self.read().page == 'pass':
             self.collect('pass')
         for page in ('daily', 'weekly', 'season'):
             self.select_missions(page)
             self.collect(page)
-        self.nav.click_text('daily_missions', '^通行證$', 'daily_missions', roi=(100, 125, 150, 65))
-        self.collect('pass')  # Mission points can unlock another pass reward.
-        self.nav.to_home()
-        self.nav.click_text('home', '^成就$', 'achievements', roi=(800, 10, 380, 110))
-        self.collect('achievements')
+        if not missions_and_gifts_only:
+            self.nav.click_text('daily_missions', '^通行證$', 'daily_missions', roi=(100, 125, 150, 65))
+            self.collect('pass')  # Mission points can unlock another pass reward.
+            self.nav.to_home()
+            self.nav.click_text('home', '^成就$', 'achievements', roi=(800, 10, 380, 110))
+            self.collect('achievements')
         self.nav.to_home()
         self.nav.inputs.click(1213, 55)
         self.nav.wait_for({'main_menu'})
         self.nav.click_text('main_menu', '^禮物$', 'gifts', roi=(20, 170, 170, 300))
         self.collect('gifts')
         evidence = self.nav.save(self.nav.to_home(), 'rewards-returned-home')
-        return TaskResult(TaskStatus.COMPLETE, '已檢查任務、通行證、成就及禮物箱獎勵',
-                          self.claimed, evidence)
+        reason = ('已檢查任務獎勵與選單禮物箱' if missions_and_gifts_only
+                  else '已檢查任務、通行證、成就及禮物箱獎勵')
+        return TaskResult(TaskStatus.COMPLETE, reason, self.claimed, evidence)

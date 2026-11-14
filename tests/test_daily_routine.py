@@ -14,6 +14,7 @@ def test_routine_handles_only_the_requested_tasks(tmp_path, monkeypatch):
     nav = SimpleNamespace(daily_attempts=ledger, recording=None,
                           observe=lambda: SimpleNamespace(scene='notifications'),
                           inputs=SimpleNamespace(check=lambda: None),
+                          to_daily_missions=lambda: tasks.append('missions'),
                           to_home=lambda: tasks.append('home'))
     action = actions.RunDailyTask()
 
@@ -44,12 +45,22 @@ def test_routine_handles_only_the_requested_tasks(tmp_path, monkeypatch):
             tasks.append('solo_live')
             return TaskResult(TaskStatus.COMPLETE, 'done', 1)
 
+    class Rewards:
+        def __init__(self, *args):
+            pass
+
+        def run(self, *, missions_and_gifts_only):
+            assert missions_and_gifts_only
+            tasks.append('rewards')
+            return TaskResult(TaskStatus.COMPLETE, 'done', 1)
+
     monkeypatch.setattr(action, 'execute', execute)
     monkeypatch.setattr(actions, 'CookingRunner', Cooking)
     monkeypatch.setattr(actions, 'SoloLiveRunner', Live)
+    monkeypatch.setattr(actions, 'RewardsRunner', Rewards)
     result = action.run_routine(nav, TaskConfig('daily_routine', strategy='aggressive'), lambda _: None)
-    assert result.status == TaskStatus.COMPLETE and result.completed_rounds == 6
-    assert tasks == ['holowork', 'park_gifts', 'high_low', 'cooking', 'solo_live', 'home']
+    assert result.status == TaskStatus.COMPLETE and result.completed_rounds == 7
+    assert tasks == ['holowork', 'park_gifts', 'high_low', 'cooking', 'solo_live', 'missions', 'rewards', 'home']
 
 
 @pytest.mark.parametrize(('observed', 'expected_multipliers', 'status'), [

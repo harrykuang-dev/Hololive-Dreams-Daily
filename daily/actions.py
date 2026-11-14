@@ -35,6 +35,7 @@ DAILY_STEPS = (
     ('high_low', '比大小', ('high_low',)),
     ('cooking', '料理', ()),
     ('solo_live', '單人 Auto Live', ()),
+    ('rewards', '任務獎勵與禮物箱', ()),
 )
 
 
@@ -228,6 +229,9 @@ class RunDailyTask(CustomAction):
                 elif task == 'solo_live':
                     result = SoloLiveRunner(navigator, update).run(
                         TaskConfig(task, rounds=10, resource_budget=10), drain=True)
+                elif task == 'rewards':
+                    navigator.to_daily_missions()
+                    result = RewardsRunner(navigator, update).run(missions_and_gifts_only=True)
                 else:
                     if task == 'high_low' and task not in ledger.attempted_tasks():
                         current = navigator.observe()
