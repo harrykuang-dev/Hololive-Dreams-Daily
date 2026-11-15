@@ -95,6 +95,8 @@ class Navigator:
                     return Observation(frame, 'fishing_failure', captured)
                 if self.multiplayer_ready_controls(observation):
                     return Observation(frame, 'multi_ready', captured)
+                if self.song_select_controls(observation):
+                    return Observation(frame, 'song_select', captured)
                 if self.event_home_controls(observation):
                     return Observation(frame, 'event_home', captured)
                 if self.expired_conversion_button(observation):
@@ -148,6 +150,16 @@ class Navigator:
         labels = self.text(observation, '.+', (390, 333, 500, 58))
         line = ''.join(item.text for item in sorted(labels, key=lambda item: item.box[0]))
         return bool(re.fullmatch(expected, re.sub(r'\s+', '', line)))
+
+    def song_select_controls(self, observation):
+        # The selected difficulty and the rating can change the old template.
+        controls = (('搜尋', (648, 31, 111, 49)), ('譜面資訊', (979, 529, 116, 33)),
+                    ('決定', (1060, 575, 185, 110)))
+        for name, roi in controls:
+            labels = self.text(observation, f'^{name}$', roi)
+            if len(labels) != 1 or labels[0].text.strip() != name:
+                return False
+        return True
 
     @staticmethod
     def park_teleport_loading(frame):

@@ -52,6 +52,14 @@ def test_displaced_session_preserves_screen_and_raises_before_navigation():
     assert failure.value.evidence == 'session-displaced.png'
 
 
+@pytest.mark.parametrize('missing', [None, '^搜尋$', '^譜面資訊$', '^決定$'])
+def test_song_selection_fallback_requires_all_three_fixed_controls(missing):
+    navigator = Navigator.__new__(Navigator)
+    navigator.text = lambda observation, expected, roi: (
+        [] if expected == missing else [SimpleNamespace(text=expected[1:-1])])
+    assert navigator.song_select_controls(None) == (missing is None)
+
+
 @pytest.mark.parametrize('labels,icon,accepted', [(0, True, True), (0, False, False),
                                                 (1, False, True), (2, True, False)])
 def test_games_navigation_requires_home_and_positive_label_or_gamepad(labels, icon, accepted):
