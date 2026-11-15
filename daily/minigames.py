@@ -113,6 +113,11 @@ class MinigameResults:
         labels = self.nav.text(observation, '^(活動加成|已持有的活動加成指定成員|已解鎖全部劇情)$',
                                (650, 220, 550, 400))
         words = {item.text.strip() for item in labels}
+        if len(words) < 2 and '活動加成' not in words:
+            # The chevrons to the left can be joined to the heading by OCR.
+            heading = self.nav.text(observation, '^活動加成$', (696, 266, 130, 33))
+            if len(heading) == 1 and heading[0].text.strip() == '活動加成':
+                words.add('活動加成')
         if len(words.intersection({'活動加成', '已持有的活動加成指定成員', '已解鎖全部劇情'})) < 2:
             return None
         buttons = self.nav.text(observation, '下一步$', (980, 610, 260, 90))

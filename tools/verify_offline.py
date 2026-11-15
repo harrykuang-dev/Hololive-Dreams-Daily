@@ -76,7 +76,7 @@ class InspectRecordings(CustomAction):
                         'energy_zero_nominal': 'energy_settings', 'solo_setup_zero': 'solo_setup',
                         'jump_rewards': 'jump_result', 'jump_rewards_native': 'jump_result',
                         'jump_event_native': 'jump_result',
-                        'cooking_rewards': 'cooking_result',
+                        'cooking_rewards': 'cooking_result', 'cooking_event': 'cooking_result',
                         'gift_house_high_marker_native': 'home', 'home_games_native': 'home',
                         'energy_minigame_zero': 'energy_settings',
                         'cooking_setup_free': 'cooking_setup',
@@ -111,6 +111,11 @@ class InspectRecordings(CustomAction):
                 from daily.jump import JumpRunner
                 if JumpRunner(navigator).event_button(Observation(frame, scene, time.monotonic())) is None:
                     raise ValueError('Native Jump event result Next was not uniquely confirmed')
+            if path.stem == 'cooking_event':
+                from daily.minigames import MinigameResults
+                if MinigameResults(navigator, 'cooking').event_button(
+                        Observation(frame, scene, time.monotonic())) is None:
+                    raise ValueError('Cooking settlement Next was not uniquely confirmed')
             if path.stem in {'cooking_result', 'cooking_rewards', 'cooking_rewards_free_native'}:
                 from daily.minigames import MinigameResults
                 observation = Observation(frame, scene, time.monotonic())
