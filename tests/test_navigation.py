@@ -224,16 +224,17 @@ def test_unchanged_recovery_notice_is_acknowledged_once_then_times_out(monkeypat
 
 
 @pytest.mark.parametrize('heading,size,confirmation,accepted', [
-    ('將下載新增檔案', '229.9MB', ['OK'], True),
-    ('將下載新增檔案', '', ['OK'], False),
-    ('將下載新增檔案', '229.9MB', ['OK', 'OK'], False),
-    ('購買項目', '229.9MB', ['OK'], False),
+    ('將下載新增檔案', ['下載：', '229.9MB'], ['OK'], True),
+    ('將下載新增檔案', ['下載：16.0MB'], ['OK'], True),
+    ('將下載新增檔案', ['下載：'], ['OK'], False),
+    ('將下載新增檔案', ['下載：229.9MB'], ['OK', 'OK'], False),
+    ('購買項目', ['下載：229.9MB'], ['OK'], False),
 ])
 def test_content_download_requires_heading_size_and_unique_confirmation(heading, size, confirmation, accepted):
     navigator = Navigator.__new__(Navigator)
 
     def text(observation, expected, roi):
-        labels = {500: [heading], 535: ['下載：', size], 795: ['×取消'], 1035: confirmation}
+        labels = {500: [heading], 535: size, 795: ['×取消'], 1035: confirmation}
         return [SimpleNamespace(text=word, box=(1100, 649, 33, 16)) for word in labels[roi[0]]]
 
     navigator.text = text
@@ -276,6 +277,22 @@ def test_generic_login_reward_uses_semantics_instead_of_illustration(title, hint
     navigator.text = lambda observation, expected, roi, **kwargs: [SimpleNamespace(
         text=hint if roi[1] >= 550 else title, box=(560, 625, 180, 50))]
     assert (navigator.login_reward_button(None) is not None) == accepted
+
+
+@pytest.mark.parametrize(('deadline', 'footer', 'accepted'), [
+    ('●2026/11/16 22:59', '點擊繼續', True),
+    ('14:39', '點擊繼續', False),
+    ('2026/11/16 22:59', '購買', False),
+])
+def test_illustrated_login_reward_uses_deadline_and_fixed_continue_footer(deadline, footer, accepted):
+    navigator = Navigator.__new__(Navigator)
+
+    def text(observation, expected, roi, **kwargs):
+        labels = {60: 'Illustrated greeting', 970: deadline, 589: footer}
+        return [SimpleNamespace(text=labels[roi[0]])]
+
+    navigator.text = text
+    assert (navigator.login_reward_button(Observation(None, None, 0)) is not None) == accepted
 
 
 def test_consecutive_different_login_rewards_of_same_layout_are_dismissed(monkeypatch):

@@ -401,8 +401,19 @@ class Navigator:
         words = ' '.join(getattr(item, 'text', '').strip() for item in titles)
         if not (re.search(r'LOGIN', words, re.I) and re.search(r'BONUS', words, re.I)
                 or re.search(r'登[入錄]\s*(獎勵|禮)', words)):
-            return None
+            if observation is None or not self.login_reward_deadline(observation):
+                return None
+            # Some rewards have only illustrated lettering. The countdown in
+            # the upper-right corner and the exact centered footer still agree.
+            footer = (589, 627, 103, 30)
+            hints = self.text(observation, '^點擊繼續$', footer, only_rec=True)
+            return footer if len(hints) == 1 and hints[0].text.strip() == '點擊繼續' else None
         return self.login_continuation_button(observation)
+
+    def login_reward_deadline(self, observation):
+        expected = r'^[●◷Q]?\s*\d{4}/\d{1,2}/\d{1,2}\s*\d{1,2}:\d{2}$'
+        labels = self.text(observation, expected, (970, 20, 292, 53))
+        return len(labels) == 1 and bool(re.fullmatch(expected, labels[0].text.strip()))
 
     def login_continuation_button(self, observation):
         expected = r'^(?:點擊(?:繼續|空白處|空白區域|任意位置|畫面)(?:繼續|領取)?|TAP\s+TO\s+CONTINUE)$'
@@ -483,10 +494,14 @@ class Navigator:
         return (1015, 70, 60, 60)
 
     def game_update_button(self, observation):
+        amount = r'[0-9]+(?:[.][0-9]+)?\s*[KkMmGg][Bb]'
+        download = r'下[載载]\s*[:：]\s*'
+        labels = self.text(observation, '.+', (535, 362, 210, 44))
+        line = ''.join(item.text.strip() for item in sorted(labels, key=lambda item: item.box[0]))
+        if not re.fullmatch(download + amount, line):
+            return None
         checks = (
             (r'^將下載新增檔案$', (500, 312, 280, 57)),
-            (r'^下載[:：]$', (535, 362, 210, 44)),
-            (r'^[0-9]+(?:[.][0-9]+)?\s*[KkMmGg][Bb]$', (535, 362, 210, 44)),
             (r'^[×xX✕]?\s*取消$', (795, 630, 160, 58)),
             (r'^[✓✔√]?\s*OK$', (1035, 630, 147, 58)),
         )
@@ -542,7 +557,9 @@ class Navigator:
             x, y, w, h = close.box
             self.inputs.click(x+w//2, y+h//2)
             return self.wait_for({'home'})
-        deadline = time.monotonic()+3
+        # The continuation footer on dated login rewards pulses in opacity.
+        timeout = 12 if observation.scene is None and self.login_reward_deadline(observation) else 3
+        deadline = time.monotonic()+timeout
         while observation.scene is None and time.monotonic() < deadline:
             self.inputs.pause(.2)
             observation = self.observe()

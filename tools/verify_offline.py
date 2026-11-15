@@ -81,11 +81,14 @@ class InspectRecordings(CustomAction):
                         'energy_minigame_zero': 'energy_settings',
                         'cooking_setup_free': 'cooking_setup',
                         'cooking_rewards_free_native': 'cooking_result',
-                        'live_result_event': 'live_result'}.get(path.stem, expected)
+                        'live_result_event': 'live_result',
+                        'login_bonus_dated': 'login_reward'}.get(path.stem, expected)
             result = {'sample': path.stem, 'scene': scene,
                       'expected_scene': expected, 'matching_scene': scene == expected}
             if path.stem == 'session_displaced' and scene != 'session_displaced':
                 raise ValueError('Concurrent device login notice was not recognized')
+            if path.stem in {'game_update', 'login_bonus_dated'} and scene != expected:
+                raise ValueError(f'{path.stem}: expected {expected}, got {scene}')
             if path.stem == 'expired_conversion':
                 if scene != 'expired_conversion' or navigator.expired_conversion_button(
                         Observation(frame, scene, time.monotonic())) is None:
