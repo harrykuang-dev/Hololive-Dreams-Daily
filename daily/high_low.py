@@ -20,13 +20,13 @@ class HighLowRunner:
         if (observation.scene != 'park_dialogue' and
                 not self.nav.vision.match(observation.image, 'park_dialogue_next')):
             return False
-        lines = {'Shiori': r'^若想抓住機會[，, ]*那就全力以赴吧[。.]?$',
+        lines = {'shiori': r'^若想抓住機會[，, ]*那就全力以赴吧[。.]?$',
                  '佩克拉': r'想玩嗎\s*PEKO',
-                 'Kiara': r'^喂喂[，, ]*來玩一下嘛[～~]*[！! ]*拜託[～~]*[！!]?$'}
-        names = self.nav.text(observation, r'^(Shiori|佩克拉|Kiara)$', (550, 560, 170, 50))
+                 'kiara': r'^喂喂[，, ]*來玩一下嘛[～~]*[！! ]*拜託[～~]*[！!]?$'}
+        names = self.nav.text(observation, r'^([Ss]hiori|佩克拉|[Kk]iara)$', (550, 560, 170, 50))
         if len(names) != 1:
             return False
-        expected = lines.get(names[0].text.strip())
+        expected = lines.get(names[0].text.strip().casefold())
         if expected is None:
             return False
         return len(self.nav.text(observation, expected, (200, 610, 850, 60))) == 1
