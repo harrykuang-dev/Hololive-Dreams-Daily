@@ -41,7 +41,7 @@ def generate():
         'controller': [{'name': 'SteamWin32', 'label': '$controller', 'type': 'Win32',
                         'display_short_side': 720,
                         'win32': {'class_regex': '^UnityWndClass$',
-                                  'window_regex': '^hololive-Dreams$', 'screencap': 'FramePool',
+                                  'window_regex': '^hololive-Dreams$', 'screencap': 'Foreground',
                                   'mouse': 'Seize', 'keyboard': 'Seize'}}],
         'resource': [{'name': 'TraditionalChinese', 'label': '$resource', 'path': ['./resource']}],
         'agent': {'child_exec': './runtime/python/python.exe',

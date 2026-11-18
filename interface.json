@@ -19,7 +19,7 @@
       "win32": {
         "class_regex": "^UnityWndClass$",
         "window_regex": "^hololive-Dreams$",
-        "screencap": "FramePool",
+        "screencap": "Foreground",
         "mouse": "Seize",
         "keyboard": "Seize"
       }

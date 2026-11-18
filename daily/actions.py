@@ -26,6 +26,7 @@ from .high_low import HighLowRunner
 from .jump import JumpRunner
 from .cooking import CookingRunner
 from .rewards import RewardsRunner
+from .window_capture import game_in_foreground
 
 ROOT = Path(__file__).resolve().parents[1]
 DAILY_STEPS = (
@@ -76,6 +77,12 @@ class RunDailyTask(CustomAction):
                 recording = GameRecording(context.tasker.controller, recording_directory(ROOT, data), label)
             else:
                 recording = GameAudit(context.tasker.controller, data / 'audit', label)
+            if not game_in_foreground(recording.hwnd):
+                # Clicking Start in the launcher takes focus. Allow the SDK's
+                # foreground capture to acquire it once before recording/input.
+                acquired = context.tasker.controller.post_screencap().wait()
+                if not acquired.succeeded or not game_in_foreground(recording.hwnd):
+                    raise NavigationError('請先還原遊戲視窗並切到前景')
             recording.start()
             navigator = Navigator(context, ROOT / 'resource', data / 'evidence' / self.session,
                                   recording=recording)

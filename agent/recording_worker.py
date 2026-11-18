@@ -15,6 +15,7 @@ from maa.controller import Win32Controller
 from maa.define import MaaWin32InputMethodEnum, MaaWin32ScreencapMethodEnum
 from daily.recording import FrameRecording, RecordingError
 from daily.processes import parent_alive, publish_status
+from daily.window_capture import game_in_foreground
 
 
 def run(config_path):
@@ -28,12 +29,17 @@ def run(config_path):
                               'updated_monotonic': time.monotonic(), **details})
 
     try:
+        def check_window():
+            if not game_in_foreground(config['hwnd']):
+                raise RecordingError('遊戲視窗不在前景，停止錄影')
+
+        check_window()
         # Null input methods make this controller incapable of issuing game input.
-        capture = Win32Controller(config['hwnd'], MaaWin32ScreencapMethodEnum.FramePool,
+        capture = Win32Controller(config['hwnd'], MaaWin32ScreencapMethodEnum.Foreground,
                                   MaaWin32InputMethodEnum.Null, MaaWin32InputMethodEnum.Null)
         if not capture.post_connection().wait().succeeded:
             raise RecordingError('無法連接遊戲視窗錄影')
-        recording = FrameRecording(capture, directory, 'game')
+        recording = FrameRecording(capture, directory, 'game', check_window=check_window)
         recording.start()
         deadline = time.monotonic() + 7200
         while not (directory / 'stop').exists():

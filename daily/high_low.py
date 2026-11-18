@@ -1,6 +1,7 @@
 """Recorded entry, isolated gameplay and verified exit for High & Low."""
 import json
 from pathlib import Path
+import re
 import time
 
 from .calendar import DailyUnavailable
@@ -10,26 +11,41 @@ from .workers import WorkerSupervisor
 
 
 class HighLowRunner:
+    INVITATIONS = {
+        'shiori': r'^若想抓住機會[，, ]*那就全力以赴吧[。.]?$',
+        '佩克拉': r'想玩嗎\s*PEKO',
+        'kiara': r'^喂喂[，, ]*來玩一下嘛[～~]*[！! ]*拜託[～~]*[！!]?$'
+    }
+
     def __init__(self, navigator, root, data, progress=lambda result: None):
         self.nav, self.root, self.data, self.progress = navigator, root, data, progress
 
     def table(self, observation):
         return self.nav.high_low_idle_table(observation) is not None
 
-    def invitation(self, observation):
-        if (observation.scene != 'park_dialogue' and
-                not self.nav.vision.match(observation.image, 'park_dialogue_next')):
-            return False
-        lines = {'shiori': r'^若想抓住機會[，, ]*那就全力以赴吧[。.]?$',
-                 '佩克拉': r'想玩嗎\s*PEKO',
-                 'kiara': r'^喂喂[，, ]*來玩一下嘛[～~]*[！! ]*拜託[～~]*[！!]?$'}
+    def dialogue(self, observation):
+        footer = self.nav.vision.match(observation.image, 'park_dialogue_next')
+        if footer is None and (observation.scene != 'park_dialogue' or
+                               not self.nav.park_dialogue_footer(observation)):
+            return None
         names = self.nav.text(observation, r'^([Ss]hiori|佩克拉|[Kk]iara)$', (550, 560, 170, 50))
         if len(names) != 1:
-            return False
-        expected = lines.get(names[0].text.strip().casefold())
-        if expected is None:
-            return False
-        return len(self.nav.text(observation, expected, (200, 610, 850, 60))) == 1
+            return None
+        speaker = names[0].text.strip().casefold()
+        if speaker not in self.INVITATIONS:
+            return None
+        lines = self.nav.text(observation, '.+', (200, 610, 850, 60))
+        line = ' '.join(item.text.strip() for item in lines)
+        signature = re.sub(r'[\W_]+', '', line.casefold())
+        if len(signature) < 4:
+            return None
+        return speaker, line, signature, footer
+
+    def is_invitation(self, dialogue):
+        return dialogue is not None and bool(re.search(self.INVITATIONS[dialogue[0]], dialogue[1]))
+
+    def invitation(self, observation):
+        return self.is_invitation(self.dialogue(observation))
 
     def open_table(self):
         observation = self.nav.observe()
@@ -37,16 +53,38 @@ class HighLowRunner:
             return
         if observation.scene == 'home' and len(self.nav.text(observation, '^比大小$', (700, 300, 560, 310))) == 1:
             self.nav.inputs.key(0x45, .12)
+            self.nav.inputs.pause(2.5)
         elif not self.invitation(observation):
             raise NavigationError('未確認比大小互動入口')
-        deadline, dialogue_advanced = time.monotonic()+18, False
+        deadline = time.monotonic()+18
+        first, followup, dismissed = None, None, False
         while time.monotonic() < deadline:
             observation = self.nav.observe()
             if self.table(observation):
                 return
-            if not dialogue_advanced and self.invitation(observation):
+            dialogue = self.dialogue(observation) if not dismissed else None
+            if first is None and self.is_invitation(dialogue):
+                first = (dialogue[0], dialogue[2])
                 self.nav.inputs.key(0x45, .12)
-                dialogue_advanced = True
+                self.nav.inputs.pause(2.5)
+                continue
+            if first and dialogue:
+                speaker, _, signature, footer = dialogue
+                if (speaker == first[0] and not self.is_invitation(dialogue)
+                        and signature not in first[1] and not signature.startswith(first[1])):
+                    if signature == followup:
+                        # The second page is stable and still displays the continue control.
+                        if footer is not None:
+                            x, y, w, h = footer.box
+                            self.nav.inputs.click(x + w//2, y + h//2)
+                        else:
+                            self.nav.inputs.key(0x45, .12)
+                        dismissed = True
+                    followup = signature
+                else:
+                    followup = None
+            else:
+                followup = None
             self.nav.inputs.pause(.2)
         self.nav.save(observation, 'high-low-table-unconfirmed')
         raise NavigationError('未確認比大小牌桌，未授權投注')

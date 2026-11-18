@@ -84,11 +84,44 @@ def test_high_low_advances_a_verified_open_invitation_once(speaker, line):
         return [SimpleNamespace(text=value)] if re.search(pattern, value) else []
 
     nav = SimpleNamespace(observe=lambda: next(observations), text=text,
+        vision=SimpleNamespace(match=lambda *args: SimpleNamespace(box=(980, 670, 60, 30))),
         inputs=SimpleNamespace(key=lambda key, duration: events.append(key), pause=lambda _: None))
     runner = HighLowRunner(nav, None, None)
     runner.table = lambda observation: observation is table
     runner.open_table()
     assert events == [0x45]
+
+
+def test_high_low_waits_then_dismisses_only_a_stable_followup_from_the_same_speaker():
+    def scene(name, body, *, kind='park_dialogue'):
+        return SimpleNamespace(scene=kind, image=kind, speaker=name, body=body)
+
+    invitation = scene('Shiori', '若想抓住機會，那就全力以赴吧。')
+    different_speaker = scene('Kiara', '這是另一位角色的對話')
+    followup = scene('Shiori', '已準備好開始了嗎？')
+    entry = scene('', '', kind='home')
+    table = scene('', '', kind=None)
+    observations = iter((entry, invitation, invitation, different_speaker, different_speaker,
+                         followup, followup, followup, table))
+    events = []
+
+    def text(observation, pattern, roi):
+        value = {(550, 560, 170, 50): observation.speaker, (200, 610, 850, 60): observation.body,
+                 (700, 300, 560, 310): '比大小' if observation is entry else ''}[roi]
+        return [SimpleNamespace(text=value)] if re.search(pattern, value) else []
+
+    nav = SimpleNamespace(observe=lambda: next(observations), text=text,
+        vision=SimpleNamespace(match=lambda image, name: SimpleNamespace(box=(980, 670, 60, 30))
+                               if image == 'park_dialogue' else None),
+        inputs=SimpleNamespace(key=lambda key, duration: events.append(('key', key)),
+                               click=lambda *xy: events.append(('click', xy)),
+                               pause=lambda length: events.append(('pause', length))))
+    runner = HighLowRunner(nav, None, None)
+    runner.table = lambda observation: observation is table
+    runner.open_table()
+    assert events[:4] == [('key', 0x45), ('pause', 2.5), ('key', 0x45), ('pause', 2.5)]
+    assert [event for event in events if event[0] != 'pause'] == [
+        ('key', 0x45), ('key', 0x45), ('click', (1010, 685))]
 
 
 @pytest.mark.parametrize('final_screen', [True, False])

@@ -13,6 +13,8 @@ def recorded_action(monkeypatch, tmp_path):
     events = []
 
     class Recording:
+        hwnd = 123
+
         def __init__(self, *args):
             pass
 
@@ -39,6 +41,7 @@ def recorded_action(monkeypatch, tmp_path):
     monkeypatch.setenv('PI_USER_DATA_DIR', str(tmp_path))
     monkeypatch.setattr(actions, 'ROOT', tmp_path)
     monkeypatch.setattr(actions, 'GameRecording', Recording)
+    monkeypatch.setattr(actions, 'game_in_foreground', lambda hwnd: hwnd == Recording.hwnd)
     monkeypatch.setattr(actions, 'Navigator', Navigator)
     monkeypatch.setattr(actions, 'read_settings', lambda *args: {'task': 'connect'})
     monkeypatch.setattr(actions, 'recording_directory', lambda *args: tmp_path)
@@ -59,6 +62,16 @@ def test_startup_failure_never_enters_navigation(recorded_action, monkeypatch):
     assert not test.action.run(test.context, test.args)
     assert 'navigator' not in test.events
     assert test.result()['result']['status'] == 'failed'
+
+
+def test_competing_foreground_prevents_recording_and_navigation(recorded_action, monkeypatch):
+    test = recorded_action
+    monkeypatch.setattr(actions, 'game_in_foreground', lambda _: False)
+    test.context.tasker.controller = SimpleNamespace(post_screencap=lambda: SimpleNamespace(
+        wait=lambda: SimpleNamespace(succeeded=True)))
+    assert not test.action.run(test.context, test.args)
+    assert 'start' not in test.events and 'navigator' not in test.events
+    assert '前景' in test.result()['result']['reason']
 
 
 @pytest.mark.parametrize('task', ['cooking', 'jump_rope'])

@@ -24,8 +24,9 @@ class FrameRecording:
     FPS = 5
     MAX_FRAME_AGE = 3.0
 
-    def __init__(self, controller, directory: Path, label: str):
+    def __init__(self, controller, directory: Path, label: str, *, check_window=lambda: None):
         self.controller = controller
+        self.check_window = check_window
         directory.mkdir(parents=True, exist_ok=True)
         stem = f'{label}-{uuid.uuid4().hex[:8]}'
         self.video = directory / f'{stem}.avi'
@@ -72,7 +73,9 @@ class FrameRecording:
             raise RecordingError('錄影超過三秒未取得新畫面，停止遊戲操作')
 
     def _capture(self):
+        self.check_window()
         job = self.controller.post_screencap().wait()
+        self.check_window()
         if not job.succeeded:
             raise RecordingError('無法擷取錄影畫面')
         return Vision.normalize(job.get())

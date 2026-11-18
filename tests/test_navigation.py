@@ -26,6 +26,38 @@ class Context:
         return SimpleNamespace(hit=True, filtered_results=[SimpleNamespace(text=w, box=(1, 2, 3, 4)) for w in self.words])
 
 
+@pytest.mark.parametrize('mode', ['home', 'still_unknown', 'live_result', 'black', 'text'])
+def test_unknown_overlay_recovery_has_a_single_blank_probe(tmp_path, monkeypatch, mode):
+    navigator = Navigator(Context([]), Path(__file__).resolve().parents[1] / 'resource', tmp_path)
+    screen = np.zeros((720, 1280, 3), dtype=np.uint8)
+    if mode != 'black':
+        screen[:400] = 150
+    unknown = Observation(screen, None, 0)
+    home = Observation(screen, 'home', 0)
+    events = []
+    clock = [0]
+    monkeypatch.setattr(navigation.time, 'monotonic', lambda: clock[0])
+    navigator.save = lambda *args: None
+    navigator.inputs = SimpleNamespace(click=lambda *xy: events.append(xy),
+                                       pause=lambda duration: clock.__setitem__(0, clock[0]+duration))
+    navigator.observe = lambda: home if mode == 'home' and events else unknown
+    navigator.text = lambda observation, pattern, roi: (
+        [SimpleNamespace(text='繼續')] if mode == 'text' and pattern == '.+' else [])
+    navigator.vision.match = lambda *args: None
+    navigator.high_low_idle_table = lambda _: None
+    navigator.gift_transfer_dialogue = lambda _: False
+    navigator.wait_for = lambda *args, **kwargs: home
+    if mode == 'live_result':
+        navigator._last_known_scene = 'live_result'
+    if mode == 'home':
+        assert navigator.to_home() is home
+    else:
+        for _ in range(2):
+            with pytest.raises(NavigationError):
+                navigator.to_home()
+    assert events == ([(640, 697)] if mode in {'home', 'still_unknown'} else [])
+
+
 @pytest.mark.parametrize(('labels', 'matches'), [
     (['已於其他裝置登入，即將返回標題畫面'], True),
     (['已於其他裝置登入，', '即將返回標題畫面'], True),

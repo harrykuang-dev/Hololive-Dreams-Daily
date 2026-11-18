@@ -31,20 +31,25 @@ def main():
             raise GuardedClickError('Managed input domain has not been reserved')
         parent = ParentProcess(config['parent_pid'], expected_creation=config['parent_creation'])
         game = GameProcess(config['hwnd'], expected_pid=config['game_pid'], expected_image=config['game_image'])
+        from daily.window_capture import game_in_foreground
+
         def check_target():
             if (not parent.alive() or not game.backend.is_running(game.handle)
                     or game.backend.pid_for_window(config['hwnd']) != game.pid):
                 raise GuardedClickError('Click target or owner changed')
+            if not game_in_foreground(config['hwnd']):
+                raise GuardedClickError('Game window is no longer in the foreground')
         # Controller is local to THIS process. Terminating this worker removes
         # its queued jobs before independent emergency input release.
         from maa.controller import Win32Controller
         from maa.define import MaaWin32InputMethodEnum, MaaWin32ScreencapMethodEnum
         from maa.toolkit import Toolkit
         Toolkit.init_option(str(args.config.parent/'controller-debug'))
-        controller = Win32Controller(config['hwnd'], MaaWin32ScreencapMethodEnum.FramePool,
+        controller = Win32Controller(config['hwnd'], MaaWin32ScreencapMethodEnum.Foreground,
             MaaWin32InputMethodEnum.Seize, MaaWin32InputMethodEnum.Seize)
         if not controller.set_screenshot_target_short_side(720):
             raise GuardedClickError('Local capture scaling is unavailable')
+        check_target()
         if not controller.post_connection().wait().succeeded:
             raise GuardedClickError('Local input controller did not connect')
         coordinates = FrameCoordinates(controller)

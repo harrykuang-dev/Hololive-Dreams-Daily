@@ -11,6 +11,7 @@ import cv2
 
 from .inputs import Inputs
 from .vision import Match, Vision
+from .window_capture import game_in_foreground
 
 
 class NavigationError(RuntimeError):
@@ -39,23 +40,34 @@ class Navigator:
         self.context = context
         self.controller = context.tasker.controller
         self.recording = recording
-        options = {'guard': recording.check, 'trace': recording.mark} if recording else {}
+        options = {'guard': self._check_game, 'trace': recording.mark} if recording else {}
         self.inputs = Inputs(self.controller, stopping=lambda: context.tasker.stopping, **options)
         self.vision = Vision(resources)
         self.evidence = evidence
+        self._last_known_scene = None
+        self._unknown_recovery_used = False
         evidence.mkdir(parents=True, exist_ok=True)
+
+    def _check_game(self):
+        self.recording.check()
+        hwnd = getattr(self.recording, 'hwnd', None)
+        if hwnd is not None and not game_in_foreground(hwnd):
+            raise NavigationError('遊戲視窗已離開前景，停止操作')
 
     def observe(self, *, park_loading_only=False) -> Observation:
         self.inputs.check()
         job = self.controller.post_screencap().wait()
         if not job.succeeded:
             raise NavigationError('無法擷取遊戲畫面')
+        self.inputs.check()
         captured = time.monotonic()
         observation = self.interpret(job.get(), captured_at=captured, park_loading_only=park_loading_only)
         if self.recording:
             self.recording.mark('observation', scene=observation.scene)
         if observation.scene == 'session_displaced':
             raise SessionDisplaced(self.save(observation, 'session-displaced'))
+        if observation.scene is not None:
+            self._last_known_scene = observation.scene
         return observation
 
     def interpret(self, image, *, captured_at=None, park_loading_only=False):
@@ -563,6 +575,34 @@ class Navigator:
         self.inputs.click(int(x+w/2), int(y+h/2))
         return self.wait_for({destination})
 
+    def _probe_unknown_home_overlay(self, observation):
+        """One blank-area click, only while recovering the park or login."""
+        if (self._unknown_recovery_used or observation.scene is not None
+                or self._last_known_scene not in {None, 'home', 'game_title', 'game_title_ready',
+                                                  'date_changed', 'login_bonus',
+                                                  'login_bonus_standard', 'login_reward', 'login_notice'}
+                or observation.image is None or self.park_dialogue_footer(observation)
+                or self.vision.match(observation.image, 'park_dialogue_next')):
+            return observation
+        gray = cv2.cvtColor(observation.image, cv2.COLOR_BGR2GRAY)
+        x, y = 640, 697
+        patch = gray[y-15:y+16, x-40:x+41]
+        # Don't click on a dark/blank capture, text, or the edge of a control.
+        if (cv2.meanStdDev(gray)[1].item() < 10 or cv2.meanStdDev(patch)[1].item() > 18
+                or cv2.countNonZero(cv2.Canny(patch, 40, 100)) > .015 * patch.size
+                or self.text(observation, '.+', (x-75, y-28, 150, 51))):
+            return observation
+        self._unknown_recovery_used = True
+        self.save(observation, 'home-unknown-before-blank-click')
+        self.inputs.click(x, y)
+        deadline = time.monotonic()+5
+        while time.monotonic() < deadline:
+            self.inputs.pause(.2)
+            observation = self.observe()
+            if observation.scene is not None:
+                break
+        return observation
+
     def to_home(self):
         observation = self.observe()
         if observation.scene is None and (close := self.high_low_idle_table(observation)):
@@ -575,6 +615,12 @@ class Navigator:
         while observation.scene is None and time.monotonic() < deadline:
             self.inputs.pause(.2)
             observation = self.observe()
+        if observation.scene is None:
+            if close := self.high_low_idle_table(observation):
+                x, y, w, h = close.box
+                self.inputs.click(x+w//2, y+h//2)
+                return self.wait_for({'home'})
+            observation = self._probe_unknown_home_overlay(observation)
         if observation.scene in {'game_title', 'game_title_ready', 'game_update'}:
             return self.wait_for({'home'}, timeout=120)
         if observation.scene in {'date_changed', 'login_bonus', 'login_bonus_standard', 'login_reward', 'expired_conversion',
