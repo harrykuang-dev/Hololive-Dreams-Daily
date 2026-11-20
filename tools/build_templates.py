@@ -50,6 +50,7 @@ AUTO = {'solo_auto_on': ('solo_setup', [523, 635, 77, 41]),
 AUTO['work_empty_slot'] = ('holowork_assignment_empty', [464, 155, 80, 80])
 AUTO['park_dialogue_next'] = ('gift_azki_dialogue', [980, 674, 74, 32])
 AUTO['high_low_close'] = ('high_low_table', [1199, 20, 59, 59])
+AUTO['high_low_host_icon'] = ('high_low_entry', [583, 222, 38, 41])
 AUTO['park_interact_key'] = ('gift_house_entry', [808, 427, 32, 33])
 AUTO['park_gift_prompt'] = ('gift_house_entry', [901, 433, 23, 25])
 AUTO['park_gift_prompt_compact'] = ('gift_bijou_entry', [897, 432, 25, 27])
@@ -82,7 +83,7 @@ def build(samples: Path):
                          'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
         if name == 'map_fishing_hook':
             entries[name].update(scene=False, threshold=.82)
-        elif name.startswith(('map_', 'park_', 'lottery_', 'home_')) or name in ('energy_minus', 'energy_plus', 'portal_go', 'work_empty_slot', 'fishing_practice_infinite', 'high_low_close') or name.endswith('_boost_button'):
+        elif name.startswith(('map_', 'park_', 'lottery_', 'home_', 'high_low_')) or name in ('energy_minus', 'energy_plus', 'portal_go', 'work_empty_slot', 'fishing_practice_infinite') or name.endswith('_boost_button'):
             entries[name].update(scene=False)
         if name == 'notifications':
             entries[name]['priority'] = 1

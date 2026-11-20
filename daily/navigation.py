@@ -948,7 +948,7 @@ class Navigator:
             self.inputs.click(int(x+w/2), int(y+h/2))
             self.wait_for({'home'}, timeout=45)
             return self.approach('^比大小$')
-        raise NavigationError('未找到可唯一確認的 Shiori 比大小遊戲桌')
+        raise NavigationError('未找到可唯一確認的比大小遊戲桌')
 
     def wait_for_map_card(self):
         deadline = time.monotonic()+6

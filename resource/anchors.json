@@ -1318,6 +1318,21 @@
     "sha256": "e0a5dea5e3d5687344ee3ea2337c1dfc3a224b87c2b475b0eca9088850000713",
     "scene": false
   },
+  "high_low_host_icon": {
+    "file": "anchors/high_low_host_icon.png",
+    "roi": [583, 222, 38, 41],
+    "threshold": 0.9,
+    "source": {
+      "scene": "high_low_entry",
+      "video": "Desktop 2026.10.31 - 13.51.56.03.mp4",
+      "seconds": 260,
+      "client": [115, 133, 1484, 834],
+      "frame_size": [1280, 720],
+      "sha256": "3840d1e50d611c6edd9d217a4ecd3eee2421cbd8dab62bffbb0da55c855e2ecb"
+    },
+    "sha256": "7938c76cf4f320e2556b1b3590f072b10977037d0005427ac7748b1629ba2ae4",
+    "scene": false
+  },
   "high_low_close": {
     "file": "anchors/high_low_close.png",
     "roi": [

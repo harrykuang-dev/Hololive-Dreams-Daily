@@ -1,5 +1,4 @@
 from types import SimpleNamespace
-import re
 
 import pytest
 
@@ -7,6 +6,7 @@ from daily.high_low_worker import play
 from daily.high_low import HighLowRunner
 from daily.calendar import DailyUnavailable
 from daily.contracts import TaskConfig, TaskStatus
+from daily.navigation import NavigationError
 
 
 @pytest.mark.parametrize('strategy,mode,opening,reason', [
@@ -68,60 +68,46 @@ def test_high_low_guard_blocks_click_on_window_change_even_if_upstream_swallows_
     assert not bot.bot_running and bot.safe_click is original
 
 
-@pytest.mark.parametrize(('speaker', 'line'), [
-    ('Shiori', '若想抓住機會，那就全力以赴吧。'),
-    ('Kiara', '喂喂，來玩一下嘛～！拜託～～！'),
-])
-def test_high_low_advances_a_verified_open_invitation_once(speaker, line):
-    text_by_roi = {(550, 560, 170, 50): speaker, (200, 610, 850, 60): line}
-    dialogue = SimpleNamespace(scene='park_dialogue', image=None)
-    table = SimpleNamespace(scene=None, image=None)
-    observations = iter((dialogue, dialogue, table))
+@pytest.mark.parametrize('start_from_prompt', [False, True])
+@pytest.mark.parametrize('table_opens', [False, True])
+def test_high_low_waits_and_clicks_only_once_without_reading_dialogue(
+        monkeypatch, start_from_prompt, table_opens):
+    clock = [0.]
+    monkeypatch.setattr('daily.high_low.time.monotonic', lambda: clock[0])
+    entry = SimpleNamespace(scene='home', image='entry')
+    foreign = SimpleNamespace(scene='park_dialogue', image='gift')
+    dialogue = SimpleNamespace(scene='park_dialogue', image='high_low')
+    table = SimpleNamespace(scene=None, image='table')
     events = []
+    observations = iter([entry, foreign, dialogue] if start_from_prompt else [dialogue, dialogue])
+
+    def observe():
+        return next(observations, table if table_opens and clock[0] >= 3 else dialogue)
 
     def text(observation, pattern, roi):
-        value = text_by_roi.get(roi, '')
-        return [SimpleNamespace(text=value)] if re.search(pattern, value) else []
+        assert observation is entry and pattern == '^比大小$'
+        return [object()]
 
-    nav = SimpleNamespace(observe=lambda: next(observations), text=text,
-        vision=SimpleNamespace(match=lambda *args: SimpleNamespace(box=(980, 670, 60, 30))),
-        inputs=SimpleNamespace(key=lambda key, duration: events.append(key), pause=lambda _: None))
+    def pause(seconds):
+        clock[0] += seconds
+
+    nav = SimpleNamespace(observe=observe, text=text,
+        vision=SimpleNamespace(
+            match=lambda image, name: SimpleNamespace(box=(980, 674, 74, 32)),
+            find_all=lambda image, name, **kwargs: [object()] if image == 'high_low' else []),
+        inputs=SimpleNamespace(key=lambda key, duration: events.append(('key', key, clock[0])),
+                               click=lambda *xy: events.append(('click', xy, clock[0])),
+                               pause=pause),
+        save=lambda *args: None)
     runner = HighLowRunner(nav, None, None)
     runner.table = lambda observation: observation is table
-    runner.open_table()
-    assert events == [0x45]
-
-
-def test_high_low_waits_then_dismisses_only_a_stable_followup_from_the_same_speaker():
-    def scene(name, body, *, kind='park_dialogue'):
-        return SimpleNamespace(scene=kind, image=kind, speaker=name, body=body)
-
-    invitation = scene('Shiori', '若想抓住機會，那就全力以赴吧。')
-    different_speaker = scene('Kiara', '這是另一位角色的對話')
-    followup = scene('Shiori', '已準備好開始了嗎？')
-    entry = scene('', '', kind='home')
-    table = scene('', '', kind=None)
-    observations = iter((entry, invitation, invitation, different_speaker, different_speaker,
-                         followup, followup, followup, table))
-    events = []
-
-    def text(observation, pattern, roi):
-        value = {(550, 560, 170, 50): observation.speaker, (200, 610, 850, 60): observation.body,
-                 (700, 300, 560, 310): '比大小' if observation is entry else ''}[roi]
-        return [SimpleNamespace(text=value)] if re.search(pattern, value) else []
-
-    nav = SimpleNamespace(observe=lambda: next(observations), text=text,
-        vision=SimpleNamespace(match=lambda image, name: SimpleNamespace(box=(980, 670, 60, 30))
-                               if image == 'park_dialogue' else None),
-        inputs=SimpleNamespace(key=lambda key, duration: events.append(('key', key)),
-                               click=lambda *xy: events.append(('click', xy)),
-                               pause=lambda length: events.append(('pause', length))))
-    runner = HighLowRunner(nav, None, None)
-    runner.table = lambda observation: observation is table
-    runner.open_table()
-    assert events[:4] == [('key', 0x45), ('pause', 2.5), ('key', 0x45), ('pause', 2.5)]
-    assert [event for event in events if event[0] != 'pause'] == [
-        ('key', 0x45), ('key', 0x45), ('click', (1010, 685))]
+    if table_opens:
+        runner.open_table()
+    else:
+        with pytest.raises(NavigationError, match='未確認比大小牌桌'):
+            runner.open_table()
+    assert events == ([('key', 0x45, 0), ('click', (1039, 690), 2.7)] if start_from_prompt
+                      else [('click', (1039, 690), 2.5)])
 
 
 @pytest.mark.parametrize('final_screen', [True, False])
