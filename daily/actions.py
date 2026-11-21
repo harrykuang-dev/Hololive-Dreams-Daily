@@ -107,7 +107,12 @@ class RunDailyTask(CustomAction):
                                   recording=recording)
             navigator.daily_attempts = DailyAttempts.from_runtime(ROOT, data, recording)
             report(TaskResult(TaskStatus.RUNNING, '執行中'))
-            report(self.execute(navigator, config, progress=report))
+            params = getattr(argv, 'custom_action_param', None)
+            steps = json.loads(params or '{}').get('resume_steps') if config.task == 'daily_routine' else None
+            if steps is None:
+                report(self.execute(navigator, config, progress=report))
+            else:
+                report(self.run_routine(navigator, config, report, resume_steps=steps))
         except (ResourceUnavailable, DailyUnavailable, EntryUnavailable) as error:
             result = stopped(TaskStatus.SKIPPED, str(error))
         except Cancelled:
@@ -215,7 +220,15 @@ class RunDailyTask(CustomAction):
             attempt.finish(evidence=result.evidence)
         return result
 
-    def run_routine(self, navigator, config, progress):
+    def run_routine(self, navigator, config, progress, *, resume_steps=None):
+        steps = DAILY_STEPS
+        if resume_steps is not None:
+            if (not isinstance(resume_steps, list) or not resume_steps
+                    or any(not isinstance(step, str) for step in resume_steps)
+                    or len(set(resume_steps)) != len(resume_steps)
+                    or set(resume_steps) - {task for task, _, _ in DAILY_STEPS}):
+                raise ConfigurationError('續跑項目設定無效')
+            steps = tuple(step for step in DAILY_STEPS if step[0] in resume_steps)
         ledger = navigator.daily_attempts
         day = game_day(ledger.clock())
         guard = ledger.guard
@@ -228,16 +241,16 @@ class RunDailyTask(CustomAction):
         # Keep all daily reservations in the game day this run started in.
         ledger.guard = same_day
         try:
-            return self.run_routine_steps(navigator, config, progress, same_day)
+            return self.run_routine_steps(navigator, config, progress, same_day, steps)
         finally:
             ledger.guard = guard
 
-    def run_routine_steps(self, navigator, config, progress, same_day):
+    def run_routine_steps(self, navigator, config, progress, same_day, steps=DAILY_STEPS):
         ledger = navigator.daily_attempts
         data = Path(os.environ.get('PI_USER_DATA_DIR', ROOT / 'userdata')) / 'daily'
         outcomes, completed, evidence = [], 0, None
         pending = False
-        for task, label, keys in DAILY_STEPS:
+        for task, label, keys in steps:
             same_day()
             navigator.inputs.check()
             verified = set(ledger.completed_tasks()) if keys else set()
@@ -302,5 +315,5 @@ class RunDailyTask(CustomAction):
             except (EntryUnavailable, NavigationError) as error:
                 outcomes.append(f'返回樂園：{error}')
                 return TaskResult(TaskStatus.FAILED, '｜'.join(outcomes), completed, evidence)
-        status = TaskStatus.COMPLETE if completed == len(DAILY_STEPS) else TaskStatus.FAILED
+        status = TaskStatus.COMPLETE if completed == len(steps) else TaskStatus.FAILED
         return TaskResult(status, '｜'.join(outcomes), completed, evidence, pending_round=pending)

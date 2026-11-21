@@ -137,6 +137,14 @@ class Navigator:
                     return Observation(frame, 'holowork_get', captured)
                 work = [item for item in self.text(observation, r'^[Hh]olo[Ww]ork$', (90, 0, 270, 95))
                         if re.fullmatch(r'[Hh]olo[Ww]ork', getattr(item, 'text', '').strip())]
+                if not work and any(re.fullmatch(r'查看行程表[！!]', item.text.strip())
+                                    for item in self.text(observation, r'^查看行程表[！!]$',
+                                                          (90, 10, 170, 34))):
+                    # Keep the cursor and the adjacent ? badge out of the title
+                    # crop. Detected OCR can join their contours to "holowork".
+                    work = [item for item in self.text(observation, r'(?i)^holowork$', (102, 49, 173, 39),
+                                                       only_rec=True)
+                            if item.text.strip().casefold() == 'holowork']
                 menu = self.text(observation, r'^(個人檔案|會員資格|持有物|其他)$', (680, 110, 530, 440)) if not work else []
                 menu_words = {getattr(item, 'text', '').strip() for item in menu}
                 extra = self.text(observation, r'^(標題畫面|結束遊戲|客服諮詢)$', (150, 250, 950, 220)) if not work and len(menu_words) < 3 else []

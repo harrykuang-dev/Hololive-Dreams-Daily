@@ -20,6 +20,9 @@ def test_independent_round_counts_and_paid_capacity():
     assert not ResourceObservation(80, 100).permits(150)
     assert not ResourceObservation(180, 200).permits(150, 100)
     assert not ResourceObservation(None, 200).permits(1)
+    assert ResourceObservation(104, 100).permits(30, 90)
+    assert not ResourceObservation(104, 100).permits(30, 29)
+    assert not ResourceObservation(104, 0).permits(30, 90)
 
 
 def test_zero_resource_setting_does_not_allow_zero_rounds_or_targets():

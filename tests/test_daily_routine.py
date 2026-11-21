@@ -7,7 +7,8 @@ from daily.calendar import DailyAttempts
 from daily.contracts import ResourceObservation, TaskConfig, TaskResult, TaskStatus
 
 
-def test_routine_handles_only_the_requested_tasks(tmp_path, monkeypatch):
+@pytest.mark.parametrize('resume_steps', [None, ['holowork', 'park_gifts', 'cooking']])
+def test_routine_handles_only_the_requested_tasks(tmp_path, monkeypatch, resume_steps):
     tasks = []
     ledger = DailyAttempts(tmp_path)
     ledger.reserve('lottery').finish(evidence='lottery.png')
@@ -58,9 +59,15 @@ def test_routine_handles_only_the_requested_tasks(tmp_path, monkeypatch):
     monkeypatch.setattr(actions, 'CookingRunner', Cooking)
     monkeypatch.setattr(actions, 'SoloLiveRunner', Live)
     monkeypatch.setattr(actions, 'RewardsRunner', Rewards)
-    result = action.run_routine(nav, TaskConfig('daily_routine', strategy='aggressive'), lambda _: None)
-    assert result.status == TaskStatus.COMPLETE and result.completed_rounds == 7
-    assert tasks == ['holowork', 'park_gifts', 'high_low', 'cooking', 'solo_live', 'missions', 'rewards', 'home']
+    result = action.run_routine(nav, TaskConfig('daily_routine', strategy='aggressive'), lambda _: None,
+                                resume_steps=resume_steps)
+    assert result.status == TaskStatus.COMPLETE
+    if resume_steps:
+        assert result.completed_rounds == 3
+        assert tasks == ['holowork', 'park_gifts', 'cooking', 'home']
+    else:
+        assert result.completed_rounds == 7
+        assert tasks == ['holowork', 'park_gifts', 'high_low', 'cooking', 'solo_live', 'missions', 'rewards', 'home']
 
 
 @pytest.mark.parametrize(('observed', 'expected_multipliers', 'status'), [

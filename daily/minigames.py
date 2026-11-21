@@ -82,6 +82,8 @@ class MinigameResults:
             if button := self.reward_button(updated):
                 self.nav.save(updated, self.prefix+'-rewards-confirmed')
                 return self.close_reward(button)
+            if button := self.event_button(updated):
+                return self.finish_event(updated, button)
             if time.monotonic() >= deadline:
                 self.nav.save(updated, self.prefix+'-rewards-not-confirmed')
                 raise NavigationError(self.label+'獎勵頁尚未確認，未重複下一步')
@@ -97,9 +99,9 @@ class MinigameResults:
         if any(sum(item.text.strip().endswith(label) for item in labels) != 1
                for label in (self.summary_label, '獲得獎勵')):
             return None
-        buttons = self.nav.text(observation, '^OK[!！]?$', (980, 610, 260, 90))
+        buttons = self.nav.text(observation, r'^OK\s*[!！]?$', (980, 610, 260, 90))
         if not buttons:
-            buttons = self.nav.text(observation, '^OK[!！]?$', (1055, 630, 90, 35))
+            buttons = self.nav.text(observation, r'^OK\s*[!！]?$', (1055, 630, 90, 35))
         return buttons[0].box if len(buttons) == 1 else None
 
     def close_reward(self, button):
@@ -121,6 +123,10 @@ class MinigameResults:
         if len(words.intersection({'活動加成', '已持有的活動加成指定成員', '已解鎖全部劇情'})) < 2:
             return None
         buttons = self.nav.text(observation, '下一步$', (980, 610, 260, 90))
+        if not buttons and self.prefix == 'cooking':
+            # The cursor can cover the middle stroke of 下一步. The other
+            # button on this event page is above this tightly bounded crop.
+            buttons = self.nav.text(observation, r'^下[一－-]?步$', (1057, 638, 78, 30))
         return buttons[0].box if len(buttons) == 1 else None
 
     def finish_event(self, observation=None, button=None):

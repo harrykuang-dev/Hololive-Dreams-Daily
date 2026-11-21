@@ -85,12 +85,13 @@ class ResourceObservation:
     capacity: int | None
 
     def permits(self, cost: int, budget_remaining: int | None = None) -> bool:
-        # Account capacity is observed, never inferred from a subscription label.
+        # Reward energy can exceed the displayed regeneration cap (e.g. 104/100).
+        # Spending is bounded by the observed balance and the session budget.
         if type(cost) is not int or cost < 0:
             return False
         if type(self.available) is not int or type(self.capacity) is not int:
             return False
-        if not 0 <= self.available <= self.capacity:
+        if self.available < 0 or self.capacity <= 0:
             return False
         return cost <= self.available and (budget_remaining is None or cost <= budget_remaining)
 
