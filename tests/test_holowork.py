@@ -96,3 +96,9 @@ def test_bulk_claim_does_not_become_an_individual_claim_button():
 def test_observed_bulk_setup_ocr_variant_remains_a_unique_button():
     items = [SimpleNamespace(text='键設定', box=(1000, 620, 80, 30))]
     assert button_map(items) == {'一鍵設定': (1000, 620, 80, 30)}
+
+
+def test_observed_recommend_ocr_variant_identifies_assignment_controls():
+    items = [SimpleNamespace(text='👩推蔗設定', box=(753, 625, 133, 32)),
+             SimpleNamespace(text='決定', box=(1087, 625, 58, 31))]
+    assert button_map(items) == {'推薦設定': (753, 625, 133, 32), '決定': (1087, 625, 58, 31)}

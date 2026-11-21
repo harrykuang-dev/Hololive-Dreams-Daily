@@ -25,7 +25,8 @@ def button_map(items):
     for name in names:
         candidates = [item for item in items if
                       (bool(re.search(r'一?[鍵键]設定$', getattr(item, 'text', '').strip()))
-                       if name == '一鍵設定' else getattr(item, 'text', '').strip().endswith(name))
+                       if name == '一鍵設定' else bool(re.search(r'推[薦蔗]設定$', item.text.strip()))
+                       if name == '推薦設定' else getattr(item, 'text', '').strip().endswith(name))
                       and not (name == '領取' and '全部領取' in item.text)]
         if len(candidates) == 1:
             result[name] = tuple(candidates[0].box)

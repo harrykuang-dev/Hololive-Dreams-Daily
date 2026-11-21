@@ -705,11 +705,29 @@ class Navigator:
                     self.inputs.pause(.15)
             self.inputs.click(1223, 55)
             return self.wait_for({'home'})
+        if observation.scene == 'holowork':
+            from .holowork import HoloWorkRunner
+            assignment = HoloWorkRunner(self).read(observation).kind == 'assignment'
+            self.inputs.click(1223, 55)
+            if assignment:
+                # Back from team selection opens the work board, not the park.
+                # Verify its state before issuing the second Back.
+                deadline = time.monotonic()+8
+                work = HoloWorkRunner(self)
+                while time.monotonic() < deadline:
+                    observation = self.observe()
+                    if observation.scene == 'home':
+                        return observation
+                    if work.read(observation).kind in {'available', 'working', 'completed'}:
+                        self.inputs.click(1223, 55)
+                        break
+                    self.inputs.pause(.2)
+            return self.wait_for({'home'})
         # These screens have the visibly recorded close button at top right.
         if observation.scene in {'live_portal', 'minigame_portal', 'daily_missions',
                                  'achievements', 'event_missions', 'gifts',
                                  'event_list',
-                                 'fishing_setup_second', 'main_menu', 'holowork'}:
+                                 'fishing_setup_second', 'main_menu'}:
             self.inputs.click(1223, 55)
             return self.wait_for({'home'})
         evidence = self.save(observation, 'home-unrecognized')
