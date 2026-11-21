@@ -1,5 +1,7 @@
 {
   "CurrentLanguage": "zh-Hant",
   "ContinueRunningWhenError": false,
+  "AutoConnectAfterRefresh": false,
+  "UI.LiveView.EnableLiveView": false,
   "UI.HasCompletedFirstUseTutorial": true
 }

@@ -47,7 +47,7 @@ def recorded_action(monkeypatch, tmp_path):
     monkeypatch.setattr(actions, 'recording_directory', lambda *args: tmp_path)
     action = actions.RunDailyTask()
     return SimpleNamespace(action=action, events=events, recording=Recording,
-                           context=SimpleNamespace(tasker=SimpleNamespace(controller=object())),
+                           context=SimpleNamespace(tasker=SimpleNamespace(controller=object(), stopping=False)),
                            args=SimpleNamespace(node_name='Daily_connect'),
                            result=lambda: json.loads(next((tmp_path / 'daily/results').glob('*.json')).read_text(encoding='utf-8')))
 
@@ -66,12 +66,28 @@ def test_startup_failure_never_enters_navigation(recorded_action, monkeypatch):
 
 def test_competing_foreground_prevents_recording_and_navigation(recorded_action, monkeypatch):
     test = recorded_action
+    activations = []
     monkeypatch.setattr(actions, 'game_in_foreground', lambda _: False)
-    test.context.tasker.controller = SimpleNamespace(post_screencap=lambda: SimpleNamespace(
-        wait=lambda: SimpleNamespace(succeeded=True)))
+    monkeypatch.setattr(actions, 'request_game_foreground', activations.append)
+    ticks = iter((0, 1, 15))
+    monkeypatch.setattr(actions.time, 'monotonic', lambda: next(ticks))
+    monkeypatch.setattr(actions.time, 'sleep', lambda _: None)
     assert not test.action.run(test.context, test.args)
-    assert 'start' not in test.events and 'navigator' not in test.events
-    assert '前景' in test.result()['result']['reason']
+    assert activations == [123]
+    assert test.events == []
+    assert test.result()['result']['reason'] == '等待遊戲前景逾時，未開始任何日常操作'
+
+
+def test_delayed_foreground_allows_recording_and_navigation(recorded_action, monkeypatch):
+    test = recorded_action
+    checks = iter((False, False, True))
+    monkeypatch.setattr(actions, 'game_in_foreground', lambda _: next(checks))
+    monkeypatch.setattr(actions, 'request_game_foreground', lambda _: test.events.append('request_focus'))
+    monkeypatch.setattr(actions.time, 'sleep', lambda _: test.events.append('wait'))
+    monkeypatch.setattr(test.action, 'execute', lambda *args, **kwargs:
+                        TaskResult(TaskStatus.COMPLETE, 'done'))
+    assert test.action.run(test.context, test.args)
+    assert test.events[:4] == ['request_focus', 'wait', 'start', 'navigator']
 
 
 @pytest.mark.parametrize('task', ['cooking', 'jump_rope'])

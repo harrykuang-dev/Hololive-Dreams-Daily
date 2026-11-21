@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import threading
+import time
 import uuid
 
 from maa.custom_action import CustomAction
@@ -26,7 +27,7 @@ from .high_low import HighLowRunner
 from .jump import JumpRunner
 from .cooking import CookingRunner
 from .rewards import RewardsRunner
-from .window_capture import game_in_foreground
+from .window_capture import game_in_foreground, request_game_foreground
 
 ROOT = Path(__file__).resolve().parents[1]
 DAILY_STEPS = (
@@ -38,6 +39,27 @@ DAILY_STEPS = (
     ('solo_live', '單人 Auto Live', ()),
     ('rewards', '任務獎勵與禮物箱', ()),
 )
+
+FOREGROUND_WAIT = 15
+
+
+def wait_for_game_foreground(hwnd, stopping):
+    if stopping():
+        raise Cancelled('已停止')
+    if game_in_foreground(hwnd):
+        return
+    print(f'等待遊戲切到前景（最多 {FOREGROUND_WAIT} 秒）；若未自動切換，請點一下遊戲視窗。',
+          flush=True)
+    request_game_foreground(hwnd)
+    deadline = time.monotonic() + FOREGROUND_WAIT
+    while True:
+        if stopping():
+            raise Cancelled('已停止')
+        if game_in_foreground(hwnd):
+            return
+        if time.monotonic() >= deadline:
+            raise NavigationError('等待遊戲前景逾時，未開始任何日常操作')
+        time.sleep(.1)
 
 
 class RunDailyTask(CustomAction):
@@ -52,6 +74,7 @@ class RunDailyTask(CustomAction):
             return False
         self.session = datetime.now().strftime('%Y%m%d-%H%M%S-') + uuid.uuid4().hex[:8]
         navigator = recording = journal = config = result = None
+        recording_start_attempted = False
 
         def report(value):
             nonlocal result
@@ -77,12 +100,8 @@ class RunDailyTask(CustomAction):
                 recording = GameRecording(context.tasker.controller, recording_directory(ROOT, data), label)
             else:
                 recording = GameAudit(context.tasker.controller, data / 'audit', label)
-            if not game_in_foreground(recording.hwnd):
-                # Clicking Start in the launcher takes focus. Allow the SDK's
-                # foreground capture to acquire it once before recording/input.
-                acquired = context.tasker.controller.post_screencap().wait()
-                if not acquired.succeeded or not game_in_foreground(recording.hwnd):
-                    raise NavigationError('請先還原遊戲視窗並切到前景')
+            wait_for_game_foreground(recording.hwnd, lambda: context.tasker.stopping)
+            recording_start_attempted = True
             recording.start()
             navigator = Navigator(context, ROOT / 'resource', data / 'evidence' / self.session,
                                   recording=recording)
@@ -107,7 +126,7 @@ class RunDailyTask(CustomAction):
                 except Exception as error:
                     result = stopped(TaskStatus.FAILED, f'釋放輸入失敗：{error}')
                 try:
-                    if recording is not None:
+                    if recording_start_attempted:
                         try:
                             recording.mark('task_end', **result.to_dict())
                         finally:
