@@ -99,9 +99,9 @@ class MinigameResults:
         if any(sum(item.text.strip().endswith(label) for item in labels) != 1
                for label in (self.summary_label, '獲得獎勵')):
             return None
-        buttons = self.nav.text(observation, r'^OK\s*[!！]?$', (980, 610, 260, 90))
+        buttons = self.nav.text(observation, r'(?i)^OK\s*[!！]?$', (980, 610, 260, 90))
         if not buttons:
-            buttons = self.nav.text(observation, r'^OK\s*[!！]?$', (1055, 630, 90, 35))
+            buttons = self.nav.text(observation, r'(?i)^OK\s*[!！]?$', (1055, 630, 90, 35))
         return buttons[0].box if len(buttons) == 1 else None
 
     def close_reward(self, button):
