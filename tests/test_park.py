@@ -197,6 +197,29 @@ def test_failed_gift_location_is_excluded_while_other_locations_remain_independe
     assert consumed == [GIFT_PLACES[1].key] and events == []
 
 
+def test_approach_failure_does_not_reserve_or_block_other_gift_locations(tmp_path, monkeypatch):
+    runner, _ = runner_for(tmp_path, monkeypatch, [])
+    attempted, claimed = [], []
+
+    def entry(task, *, exclude):
+        place = next(place for place in GIFT_PLACES if place.key not in exclude)
+        attempted.append(place.key)
+        if place == GIFT_PLACES[0]:
+            error = park.ApproachUnavailable('camera')
+            error.place = place
+            raise error
+        return place, ParkView('entry', None)
+
+    runner.entry = entry
+    runner.consume = lambda place, _: claimed.append(place.key) or 'get.png'
+    result = runner.run(TaskConfig('park_gifts'))
+    assert result.status == TaskStatus.FAILED and result.completed_rounds == 2
+    assert '1 處未到達' in result.reason
+    assert attempted == [place.key for place in GIFT_PLACES]
+    assert claimed == attempted[1:]
+    assert not runner.nav.daily_attempts.attempted_tasks()
+
+
 @pytest.mark.parametrize('change', [None, 'window', 'nameplate', 'second_e'])
 def test_house_handover_resumes_once_only_from_same_recorded_interaction(tmp_path, monkeypatch, change):
     runner, events = runner_for(tmp_path, monkeypatch, ['reward', 'park'])
@@ -351,6 +374,17 @@ def test_prompt_appearing_while_waiting_for_marker_prevents_further_movement(tmp
     def missing(view):
         raise park.GiftMarkerMissing('temporary animation')
     runner.house_gift_offset = missing
+    place, view = runner.entry('park_gifts')
+    assert place == GIFT_PLACES[0] and view.kind == 'entry'
+    assert events == [('click', (190, 205))]
+
+
+def test_verified_gift_text_and_key_stop_camera_while_icon_settles(tmp_path, monkeypatch):
+    runner, events = runner_for(tmp_path, monkeypatch, [])
+    prepare_house_entry(runner)
+    views = iter([ParkView('prompt_loading', None, signature='target'), ParkView('entry', None)])
+    runner.read = lambda *_: next(views)
+    runner.house_gift_offset = lambda _: pytest.fail('Do not move camera at visible gift prompt')
     place, view = runner.entry('park_gifts')
     assert place == GIFT_PLACES[0] and view.kind == 'entry'
     assert events == [('click', (190, 205))]

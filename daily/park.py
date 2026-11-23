@@ -22,14 +22,19 @@ class ParkPlace:
 
 
 GIFT_PLACES = (
-    ParkPlace('park_gift_holo_house', r'^可在holo之家領取禮物$', r'禮物$'),
-    ParkPlace('park_gift_the_cell', r'^可在The\s*Cell\s*重臨領取禮物$', r'禮物$'),
-    ParkPlace('park_gift_rock_mountain', r'^可在.{1,3}岩山領取禮物$', r'禮物$'),
+    ParkPlace('park_gift_holo_house', r'^可在holo之家領取禮物$', r'^禮物$'),
+    ParkPlace('park_gift_the_cell', r'^可在The\s*Cell\s*重臨領取禮物$', r'^禮物$'),
+    ParkPlace('park_gift_rock_mountain', r'^可在.{1,3}岩山領取禮物$', r'^禮物$'),
 )
 LOTTERY_PLACE = ParkPlace('lottery', r'^可遊玩洽馬洽馬極運輪盤$', r'^刮刮樂$')
 
 
-class GiftMarkerMissing(NavigationError):
+class ApproachUnavailable(NavigationError):
+    """A location failed before any consuming input."""
+    place: ParkPlace
+
+
+class GiftMarkerMissing(ApproachUnavailable):
     pass
 
 
@@ -88,6 +93,8 @@ class ParkRunner:
                 for name in ('park_gift_prompt', 'park_gift_prompt_compact')))
             if len(labels) == 1 and key and icon:
                 return ParkView('entry', observation)
+            if key and len(labels) == 1:
+                return ParkView('prompt_loading', observation, signature='target')
             if key:
                 return ParkView('prompt_loading', observation)
             return ParkView('park', observation)
@@ -111,6 +118,13 @@ class ParkRunner:
         x, y, w, h = item.box
         self.nav.inputs.click(int(x+w/2), int(y+h/2))
         self.wait_for_arrival(place)
+        try:
+            return place, self.approach(place)
+        except ApproachUnavailable as error:
+            error.place = place
+            raise
+
+    def approach(self, place):
         forward_steps = camera_steps = 0
         previous_offset = None
         previous_dx = None
@@ -122,7 +136,12 @@ class ParkRunner:
                 self.nav.inputs.pause(.2)
                 view = self.read(self.nav.observe(), place)
             if view.kind == 'entry':
-                return place, view
+                return view
+            if view.kind == 'prompt_loading' and view.signature == 'target':
+                # The on-screen E and target label are already in range.
+                # Keep the camera still until the last visual cue is verified.
+                self.nav.inputs.pause(.2)
+                continue
             if place.key == 'park_gift_holo_house' and view.kind in ('park', 'prompt_loading'):
                 deadline = time.monotonic()+3
                 while True:
@@ -135,12 +154,17 @@ class ParkRunner:
                         self.nav.inputs.pause(.2)
                         view = self.read(self.nav.observe(), place)
                         if view.kind == 'entry':
-                            return place, view
+                            return view
+                        if view.kind == 'prompt_loading' and view.signature == 'target':
+                            offset = None
+                            break
                         if view.kind not in ('park', 'prompt_loading'):
                             raise NavigationError('等待禮物標記時畫面已改變，停止移動')
+                if offset is None:
+                    continue
                 if previous_offset is not None and abs(offset) > abs(previous_offset)*1.1+5:
                     self.nav.save(view.observation, 'gift-camera-wrong-direction')
-                    raise NavigationError('鏡頭移動未讓禮物標記接近中央，停止接近')
+                    raise ApproachUnavailable('鏡頭移動未讓禮物標記接近中央，停止接近')
                 if previous_offset is not None and previous_dx:
                     # Measure this client's actual camera response. A fixed
                     # proportional step can exhaust the bounded allowance
@@ -152,7 +176,7 @@ class ParkRunner:
                 if abs(offset) > 35:
                     if camera_steps >= 12:
                         self.nav.save(view.observation, 'gift-camera-limit')
-                        raise NavigationError('禮物鏡頭對準次數已達上限')
+                        raise ApproachUnavailable('禮物鏡頭對準次數已達上限')
                     step = offset*.75/median(camera_gains[-3:]) if camera_gains else offset*.15
                     dx = max(-40, min(40, round(step)))
                     self.nav.inputs.look(dx)
@@ -174,7 +198,7 @@ class ParkRunner:
             else:
                 break
         self.nav.save(view.observation, place.key + '-not-reached')
-        raise NavigationError('未在有限移動距離內找到禮物／刮刮樂互動提示')
+        raise ApproachUnavailable('未在有限移動距離內找到禮物／刮刮樂互動提示')
 
     def wait_for_arrival(self, place):
         deadline = time.monotonic() + 45
@@ -201,7 +225,7 @@ class ParkRunner:
                                             roi=(300, 100, 800, 350))
         if len(markers) != 1:
             self.nav.save(view.observation, 'gift-marker-not-unique')
-            error = GiftMarkerMissing if not markers else NavigationError
+            error = GiftMarkerMissing if not markers else ApproachUnavailable
             raise error('無法唯一確認角色頭頂的禮物標記，停止移動')
         x, y, w, h = markers[0].box
         if recording := getattr(self.nav, 'recording', None):
@@ -351,13 +375,24 @@ class ParkRunner:
                 and self.nav.gift_transfer_dialogue(self.nav.observe())):
             return self.resume_house_gift()
         completed, evidence = 0, None
+        unreachable = []
         for _ in range(3 if config.task == 'park_gifts' else 1):
             try:
                 place, view = self.entry(config.task, exclude=excluded)
             except EntryUnavailable:
+                if unreachable:
+                    break
                 if completed:
                     return TaskResult(TaskStatus.COMPLETE, '已領取所有可確認的樂園通知項目', completed, evidence)
                 raise
+            except ApproachUnavailable as error:
+                if config.task != 'park_gifts' or config.entry_only:
+                    raise
+                excluded.add(error.place.key)
+                unreachable.append(str(error))
+                if getattr(self.nav, 'recording', None):
+                    self.nav.recording.mark('gift_approach_unavailable', place=error.place.key, reason=str(error))
+                continue
             evidence = self.nav.save(view.observation, place.key + '-entry')
             if config.entry_only:
                 return TaskResult(TaskStatus.ENTRY_VERIFIED, '每日互動入口已驗證，未按 E 或消耗次數', evidence=evidence)
@@ -370,4 +405,7 @@ class ParkRunner:
                 completed, evidence, pending_round=True)))
             completed += 1
             self.progress(TaskResult(TaskStatus.RUNNING, '已確認每日領取結果', completed, evidence))
+        if unreachable:
+            return TaskResult(TaskStatus.FAILED, f'已領取 {completed} 處禮物；{len(unreachable)} 處未到達：'
+                              + '；'.join(unreachable), completed, evidence)
         return TaskResult(TaskStatus.COMPLETE, '已確認樂園每日領取結果', completed, evidence)

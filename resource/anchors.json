@@ -1158,7 +1158,7 @@
       25,
       27
     ],
-    "threshold": 0.9,
+    "threshold": 0.88,
     "source": {
       "scene": "gift_bijou_entry",
       "video": "Desktop 2026.10.31 - 09.52.54.01.mp4",

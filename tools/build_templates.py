@@ -85,6 +85,9 @@ def build(samples: Path):
             entries[name].update(scene=False, threshold=.82)
         elif name.startswith(('map_', 'park_', 'lottery_', 'home_', 'high_low_')) or name in ('energy_minus', 'energy_plus', 'portal_go', 'work_empty_slot', 'fishing_practice_infinite') or name.endswith('_boost_button'):
             entries[name].update(scene=False)
+        if name == 'park_gift_prompt_compact':
+            # Used together with the exact gift label and adjacent E.
+            entries[name]['threshold'] = .88
         if name == 'notifications':
             entries[name]['priority'] = 1
         elif name in ('event_list', 'event_home'):
