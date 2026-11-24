@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from types import SimpleNamespace
 
 import pytest
@@ -88,6 +89,32 @@ def test_delayed_foreground_allows_recording_and_navigation(recorded_action, mon
                         TaskResult(TaskStatus.COMPLETE, 'done'))
     assert test.action.run(test.context, test.args)
     assert test.events[:4] == ['request_focus', 'wait', 'start', 'navigator']
+
+
+@pytest.mark.parametrize('cancel', [False, True])
+def test_early_routine_waits_before_foreground_recording_or_input(recorded_action, monkeypatch, cancel):
+    test = recorded_action
+    from daily.calendar import DailyAttempts
+    moments = iter(datetime.fromisoformat(s) for s in
+                   ('2026-11-24T04:00:19+08:00', '2026-11-24T04:01:00+08:00'))
+    ledger = DailyAttempts(None, not_before='2026-11-02T04:05:00+08:00', clock=lambda: next(moments))
+    monkeypatch.setattr(actions.DailyAttempts, 'from_runtime', lambda *args: ledger)
+    monkeypatch.setattr(actions, 'read_settings', lambda *args: {'task': 'daily_routine'})
+    monkeypatch.setattr(actions, 'wait_for_game_foreground', lambda *args: test.events.append('foreground'))
+    monkeypatch.setattr(test.action, 'execute', lambda *args, **kwargs:
+                        TaskResult(TaskStatus.COMPLETE, 'done'))
+
+    def wait(seconds):
+        test.events.append('wait')
+        test.context.tasker.stopping = cancel
+
+    monkeypatch.setattr(actions.time, 'sleep', wait)
+    assert test.action.run(test.context, test.args) is not cancel
+    if cancel:
+        assert test.events == ['wait']
+        assert test.result()['result']['status'] == 'cancelled'
+    else:
+        assert test.events[:4] == ['wait', 'foreground', 'start', 'navigator']
 
 
 @pytest.mark.parametrize('task', ['cooking', 'jump_rope'])

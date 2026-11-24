@@ -50,15 +50,21 @@ def test_game_day_changes_at_four_in_utc_plus_eight():
     assert game_day(moment('2026-10-31T20:00:00+00:00')) == '2026-11-01'
 
 
-def test_once_only_test_waits_until_five_minutes_after_reset(tmp_path):
-    now = [moment('2026-11-01T04:04:59+08:00')]
-    ledger = DailyAttempts(tmp_path, not_before='2026-11-01T04:05:00+08:00', clock=lambda: now[0])
-    with pytest.raises(DailyUnavailable, match='04:05'):
+def test_once_only_test_waits_until_one_minute_after_reset(tmp_path):
+    now = [moment('2026-11-24T04:00:59+08:00')]
+    ledger = DailyAttempts(tmp_path, not_before='2026-11-02T04:05:00+08:00', clock=lambda: now[0])
+    with pytest.raises(DailyUnavailable, match='04:01'):
         ledger.reserve('lottery')
     assert not list(tmp_path.rglob('*.json'))
-    now[0] = moment('2026-11-01T04:05:00+08:00')
+    now[0] = moment('2026-11-24T04:01:00+08:00')
     attempt = ledger.reserve('lottery')
-    assert attempt.record['game_day'] == '2026-11-01'
+    assert attempt.record['game_day'] == '2026-11-24'
+
+
+def test_before_reset_uses_the_previous_game_days_window(tmp_path):
+    ledger = DailyAttempts(tmp_path, not_before='2026-11-01T04:05:00+08:00',
+                           clock=lambda: moment('2026-11-02T03:59:00+08:00'))
+    assert ledger.reserve('park_gift_the_cell').record['game_day'] == '2026-11-01'
 
 
 def test_pending_or_failed_attempt_blocks_replay_even_after_restart(tmp_path):

@@ -20,7 +20,7 @@ from .resources import ResourceUnavailable
 from .live import SoloLiveRunner
 from .holowork import HoloWorkRunner
 from .recording import GameAudit, GameRecording, recording_directory, video_enabled
-from .calendar import DailyAttempts, DailyUnavailable, game_day
+from .calendar import DailyAttempts, DailyUnavailable, TEST_DELAY, game_day
 from .park import GIFT_PLACES, ParkRunner
 from .fishing import FishingRunner
 from .high_low import HighLowRunner
@@ -41,6 +41,26 @@ DAILY_STEPS = (
 )
 
 FOREGROUND_WAIT = 15
+
+
+def wait_for_daily_window(ledger, stopping):
+    waiting = False
+    max_wait = TEST_DELAY.total_seconds()
+    deadline = time.monotonic() + max_wait
+    while True:
+        if stopping():
+            raise Cancelled('已停止')
+        now = ledger.clock()
+        opens = ledger.wait_until(now)
+        if opens is None:
+            return
+        remaining = (opens - now).total_seconds()
+        if remaining > max_wait or time.monotonic() >= deadline:
+            raise DailyUnavailable(ledger.wait_message(opens))
+        if not waiting:
+            print(f'{ledger.wait_message(opens)}；到時再開始操作遊戲。', flush=True)
+            waiting = True
+        time.sleep(min(.25, remaining))
 
 
 def wait_for_game_foreground(hwnd, stopping):
@@ -100,12 +120,17 @@ class RunDailyTask(CustomAction):
                 recording = GameRecording(context.tasker.controller, recording_directory(ROOT, data), label)
             else:
                 recording = GameAudit(context.tasker.controller, data / 'audit', label)
-            wait_for_game_foreground(recording.hwnd, lambda: context.tasker.stopping)
+            ledger = DailyAttempts.from_runtime(ROOT, data, recording)
+            stopping = lambda: context.tasker.stopping
+            if (config.task == 'daily_routine'
+                    or not config.entry_only and config.task in {'holowork', 'park_gifts', 'lottery', 'high_low'}):
+                wait_for_daily_window(ledger, stopping)
+            wait_for_game_foreground(recording.hwnd, stopping)
             recording_start_attempted = True
             recording.start()
             navigator = Navigator(context, ROOT / 'resource', data / 'evidence' / self.session,
                                   recording=recording)
-            navigator.daily_attempts = DailyAttempts.from_runtime(ROOT, data, recording)
+            navigator.daily_attempts = ledger
             report(TaskResult(TaskStatus.RUNNING, '執行中'))
             params = getattr(argv, 'custom_action_param', None)
             steps = json.loads(params or '{}').get('resume_steps') if config.task == 'daily_routine' else None

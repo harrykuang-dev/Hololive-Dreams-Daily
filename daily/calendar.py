@@ -1,4 +1,4 @@
-"""Game-day attempt records: reset at04:00 UTC+8, recorded tests after04:05."""
+"""Game-day attempt records: reset at 04:00 UTC+8, recorded tests from 04:01."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,6 +11,7 @@ import uuid
 
 
 GAME_TIMEZONE = timezone(timedelta(hours=8))
+TEST_DELAY = timedelta(minutes=1)
 
 
 class DailyUnavailable(RuntimeError):
@@ -26,7 +27,8 @@ def game_day(now: datetime) -> str:
 def test_window_start(now: datetime) -> datetime:
     if now.tzinfo is None:
         raise ValueError('Test-window timestamps require a timezone')
-    return now.astimezone(GAME_TIMEZONE).replace(hour=4, minute=5, second=0, microsecond=0)
+    reset = datetime.fromisoformat(f'{game_day(now)}T04:00:00').replace(tzinfo=GAME_TIMEZONE)
+    return reset + TEST_DELAY
 
 
 @dataclass
@@ -80,10 +82,8 @@ class DailyAttempts:
         self.guard()
         now = self.clock()
         day = game_day(now)
-        if self.not_before is not None:
-            opens = max(self.not_before, test_window_start(now))
-            if now < opens:
-                raise DailyUnavailable(f'每日限次實測等待 {opens.astimezone(GAME_TIMEZONE):%Y-%m-%d %H:%M} UTC+8')
+        if opens := self.wait_until(now):
+            raise DailyUnavailable(self.wait_message(opens))
         directory = self.directory / day
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f'{task}.json'
@@ -100,6 +100,16 @@ class DailyAttempts:
         except FileExistsError:
             raise DailyUnavailable(f'{task} 本遊戲日已有嘗試紀錄；未重複消耗次數') from None
         return DailyAttempt(path, record)
+
+    def wait_until(self, now: datetime) -> datetime | None:
+        if self.not_before is None:
+            return None
+        opens = max(self.not_before, test_window_start(now))
+        return opens if now < opens else None
+
+    @staticmethod
+    def wait_message(opens: datetime) -> str:
+        return f'每日限次實測等待 {opens.astimezone(GAME_TIMEZONE):%Y-%m-%d %H:%M} UTC+8'
 
     def attempted_tasks(self):
         directory = self.directory / game_day(self.clock())
@@ -125,7 +135,7 @@ class DailyAttempts:
         self.guard()
         now = self.clock()
         day = game_day(now)
-        if self.not_before is not None and now < max(self.not_before, test_window_start(now)):
+        if self.wait_until(now) is not None:
             raise DailyUnavailable('每日對話接續尚未到實測時間')
         if not self.allow_dialogue_recovery:
             raise DailyUnavailable('目前未啟用錄影，本日對話保留原嘗試紀錄')

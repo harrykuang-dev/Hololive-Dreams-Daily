@@ -1,11 +1,14 @@
 """Stage a local development GUI without modifying the canonical PI paths."""
 import argparse
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 import json
 from pathlib import Path
 import shutil
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from daily.calendar import GAME_TIMEZONE, test_window_start
 
 
 def copy_changed(source, destination):
@@ -36,8 +39,8 @@ def stage(gui: Path, python: Path, output: Path, module_python: Path | None = No
     (config / 'recording.json').write_text(json.dumps(
         {'directory': str((output.parent / 'recordings').resolve()),
          'attempt_directory': str((output.parent / 'daily-attempts').resolve()),
-         'daily_test_not_before': datetime.now(timezone(timedelta(hours=8))).replace(
-             hour=4, minute=5, second=0, microsecond=0).isoformat()}, indent=2), encoding='utf-8')
+         'daily_test_not_before': test_window_start(datetime.now(GAME_TIMEZONE)).isoformat()},
+        indent=2), encoding='utf-8')
     if module_python is not None:
         if not module_python.is_file():
             raise FileNotFoundError('Module interpreter is missing')
